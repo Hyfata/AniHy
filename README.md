@@ -155,6 +155,7 @@ mv functions.php.inc functions.php
 - 접근 인증번호와 쿠키 서명용 비밀키는 DB의 `settings` 테이블에 저장됩니다. 이 프로젝트가 오픈소스이므로 이러한 값을 소스 코드에 하드코딩하지 않도록 주의하세요.
 - `downloader/`, `inc/`, `logs/`, `worker/`, `sql/` 디렉터리는 `.apache/anihy.conf`를 통해 웹에서 직접 접근할 수 없습니다.
 - Apache의 Rewrite 규칙은 쿠키 존재 여부만 검사하며, 실제 서명 검증은 PHP에서 수행합니다. 강력한 보호가 필요하다면 추가적으로 `mod_session`이나 외부 인증 서비스를 고려하세요.
+- 접근 인증 쿠키는 `HttpOnly`, `Secure`(HTTPS 환경), `SameSite=Lax`, 10년 만료로 설정됩니다. 외부 사이트에서의 직접 링크 클릭 시에도 쿠키가 전달되도록 `Lax`를 사용합니다.
 - `api/search.php`와 `worker/convert.php`에서 `shell_exec()`를 사용합니다. 입력값은 `escapeshellarg()`로 처리하고 있지만, 추가적인 화이트리스트 검증을 권장합니다.
 - 파일 업로드는 확장자만 검증합니다. 필요 시 MIME/type 검사를 추가하세요.
 - 다운로더를 사용할 때는 Crunchyroll 이용약관 및 관련 법규를 준수하세요.

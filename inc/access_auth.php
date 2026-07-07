@@ -36,12 +36,12 @@ function issueAccessCookie(): void {
     $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 
     setcookie(ACCESS_COOKIE_NAME, $value, [
-        'expires' => time() + 60 * 60 * 24 * 30,
+        'expires' => time() + 60 * 60 * 24 * 365 * 10,
         'path' => ACCESS_COOKIE_PATH,
         'domain' => '',
         'secure' => $isSecure,
         'httponly' => true,
-        'samesite' => 'Strict',
+        'samesite' => 'Lax',
     ]);
     $_COOKIE[ACCESS_COOKIE_NAME] = $value;
 }
@@ -53,7 +53,7 @@ function clearAccessCookie(): void {
         'domain' => '',
         'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
         'httponly' => true,
-        'samesite' => 'Strict',
+        'samesite' => 'Lax',
     ]);
     unset($_COOKIE[ACCESS_COOKIE_NAME]);
 }

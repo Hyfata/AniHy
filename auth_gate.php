@@ -15,7 +15,7 @@ if (!empty($_COOKIE['anihy_redirect'])) {
         'domain' => $_SERVER['HTTP_HOST'] ?? '',
         'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
         'httponly' => true,
-        'samesite' => 'Strict',
+        'samesite' => 'Lax',
     ]);
 }
 
