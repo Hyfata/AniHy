@@ -2,7 +2,7 @@
 require_once __DIR__ . '/db.php';
 
 const ACCESS_COOKIE_NAME = 'anihy_access';
-const ACCESS_COOKIE_PATH = '/anime/';
+const ACCESS_COOKIE_PATH = '/';
 
 function getSetting(string $key): ?string {
     global $pdo;
