@@ -63,7 +63,7 @@ $currentCode = getSetting('access_code') ?: '';
                 완전히 차단하려면 관리자 메뉴에서 쿠키를 발급한 브라우저를 개별적으로 처리해야 합니다.
             </p>
             <p style="text-align:center;margin-top:12px;font-size:0.85rem">
-                <a href="/anime/">← 돌아가기</a>
+                <a href="javascript:history.back()">← 돌아가기</a>
             </p>
         </div>
     </main>

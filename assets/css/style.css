@@ -509,9 +509,11 @@ img {
 
 /* Floating settings button */
 .fab-settings {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
+    position: fixed !important;
+    right: 24px !important;
+    bottom: 24px !important;
+    left: auto !important;
+    top: auto !important;
     width: 56px;
     height: 56px;
     border-radius: 50%;
@@ -520,7 +522,7 @@ img {
     border: none;
     box-shadow: 0 4px 16px rgba(124, 92, 255, 0.4);
     cursor: pointer;
-    z-index: 150;
+    z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -540,8 +542,10 @@ img {
 
 @media (max-width: 768px) {
     .fab-settings {
-        right: 16px;
-        bottom: 16px;
+        right: 16px !important;
+        bottom: 16px !important;
+        left: auto !important;
+        top: auto !important;
         width: 48px;
         height: 48px;
     }
