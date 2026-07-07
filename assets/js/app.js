@@ -308,37 +308,69 @@ document.addEventListener('DOMContentLoaded', () => {
         renderEpisodes(group.episodes);
     }
 
+    function createEpisodeCard(ep) {
+        const info = getStatusInfo(ep.status);
+        const card = document.createElement('div');
+        card.className = 'queue-card queue-episode-card';
+        card.dataset.jobId = ep.job_id;
+        card.innerHTML = `
+            <div class="queue-card-header">
+                <h4 class="queue-card-title">${ep.episode_number}회 ${escapeHtml(ep.episode_title !== ep.episode_number + '회' ? ' · ' + ep.episode_title : '')}</h4>
+                <div class="queue-card-actions">
+                    <button type="button" class="btn btn-danger btn-xs queue-stop-btn" data-job-id="${ep.job_id}">중지</button>
+                    <span class="status-badge ${info.class}">${info.text}</span>
+                </div>
+            </div>
+            <div class="queue-card-message">${escapeHtml(ep.message || '')}</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width:${ep.progress}%"></div>
+            </div>
+        `;
+        card.addEventListener('click', () => showLog(ep));
+        card.querySelector('.queue-stop-btn').addEventListener('click', e => {
+            e.stopPropagation();
+            stopJob(ep.job_id);
+        });
+        return card;
+    }
+
     function renderEpisodes(episodes) {
         queueEpisodesList.innerHTML = '';
         if (episodes.length === 0) {
             queueEpisodesList.innerHTML = '<div class="queue-empty">처리 중인 에피소드가 없습니다.</div>';
             return;
         }
+        episodes.forEach(ep => queueEpisodesList.appendChild(createEpisodeCard(ep)));
+    }
+
+    function updateEpisodeCards(episodes) {
+        const existing = new Map();
+        queueEpisodesList.querySelectorAll('.queue-episode-card').forEach(card => {
+            existing.set(parseInt(card.dataset.jobId, 10), card);
+        });
+
+        if (episodes.length === 0 && existing.size === 0) {
+            queueEpisodesList.innerHTML = '<div class="queue-empty">처리 중인 에피소드가 없습니다.</div>';
+            return;
+        }
 
         episodes.forEach(ep => {
-            const info = getStatusInfo(ep.status);
-            const card = document.createElement('div');
-            card.className = 'queue-card queue-episode-card';
-            card.innerHTML = `
-                <div class="queue-card-header">
-                    <h4 class="queue-card-title">${ep.episode_number}회 ${escapeHtml(ep.episode_title !== ep.episode_number + '회' ? ' · ' + ep.episode_title : '')}</h4>
-                    <div class="queue-card-actions">
-                        <button type="button" class="btn btn-danger btn-xs queue-stop-btn" data-job-id="${ep.job_id}">중지</button>
-                        <span class="status-badge ${info.class}">${info.text}</span>
-                    </div>
-                </div>
-                <div class="queue-card-message">${escapeHtml(ep.message || '')}</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width:${ep.progress}%"></div>
-                </div>
-            `;
-            card.addEventListener('click', () => showLog(ep));
-            card.querySelector('.queue-stop-btn').addEventListener('click', e => {
-                e.stopPropagation();
-                stopJob(ep.job_id);
-            });
-            queueEpisodesList.appendChild(card);
+            let card = existing.get(ep.job_id);
+            if (!card) {
+                card = createEpisodeCard(ep);
+                queueEpisodesList.appendChild(card);
+            } else {
+                const info = getStatusInfo(ep.status);
+                const badge = card.querySelector('.status-badge');
+                badge.className = 'status-badge ' + info.class;
+                badge.textContent = info.text;
+                card.querySelector('.queue-card-message').textContent = ep.message || '';
+                card.querySelector('.progress-fill').style.width = ep.progress + '%';
+            }
+            existing.delete(ep.job_id);
         });
+
+        existing.forEach(card => card.remove());
     }
 
     async function stopJob(jobId) {
@@ -446,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const group = queueGroups.find(g => g.anime_id === selectedGroup?.anime_id);
                 if (group) {
                     selectedGroup = group;
-                    renderEpisodes(group.episodes);
+                    updateEpisodeCards(group.episodes);
                 } else {
                     backToGroups.click();
                 }
