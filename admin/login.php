@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/access_auth.php';
 require_once __DIR__ . '/../inc/functions.php';
+
+requireAccessAuth();
 
 $error = '';
 

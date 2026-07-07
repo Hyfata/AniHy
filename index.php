@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/inc/auth.php';
+require_once __DIR__ . '/inc/access_auth.php';
 require_once __DIR__ . '/inc/functions.php';
+
+requireAccessAuth();
 
 $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC");
 $animes = $stmt->fetchAll();
@@ -21,6 +24,7 @@ $animes = $stmt->fetchAll();
                 <?php if (isAdmin()): ?>
                     <button class="btn btn-primary btn-sm" onclick="openModal('add-anime-modal')">애니 추가</button>
                     <button class="btn btn-sm" onclick="openQueueModal()">대기열</button>
+                    <a href="/anime/admin/access_code.php">인증번호</a>
                     <a href="/anime/admin/logout.php">로그아웃</a>
                 <?php else: ?>
                     <a href="/anime/admin/login.php">관리자 로그인</a>

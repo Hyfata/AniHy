@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/inc/auth.php';
+require_once __DIR__ . '/inc/access_auth.php';
 require_once __DIR__ . '/inc/functions.php';
+
+requireAccessAuth();
 
 $aid = filter_input(INPUT_GET, 'aid', FILTER_VALIDATE_INT);
 $epNum = filter_input(INPUT_GET, 'ep', FILTER_VALIDATE_INT);
@@ -49,6 +52,7 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
             <div class="nav-links">
                 <?php if (isAdmin()): ?>
                     <button class="btn btn-sm" onclick="openQueueModal()">대기열</button>
+                    <a href="/anime/admin/access_code.php">인증번호</a>
                     <a href="/anime/admin/logout.php">로그아웃</a>
                 <?php else: ?>
                     <a href="/anime/admin/login.php">관리자 로그인</a>
