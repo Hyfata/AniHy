@@ -11,3 +11,5 @@ subtitles/
 animes/
 covers/
 assets/fonts/
+inc/auth.php
+inc/db.php
