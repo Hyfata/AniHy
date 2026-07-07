@@ -503,6 +503,90 @@ img {
     padding: 20px;
 }
 
+.modal-sm {
+    max-width: 360px;
+}
+
+/* Floating settings button */
+.fab-settings {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 16px rgba(124, 92, 255, 0.4);
+    cursor: pointer;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.fab-settings:hover {
+    transform: translateY(-2px) rotate(30deg);
+    background: var(--primary-hover);
+    box-shadow: 0 6px 20px rgba(124, 92, 255, 0.5);
+}
+
+.fab-settings svg {
+    width: 26px;
+    height: 26px;
+}
+
+@media (max-width: 768px) {
+    .fab-settings {
+        right: 16px;
+        bottom: 16px;
+        width: 48px;
+        height: 48px;
+    }
+    .fab-settings svg {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+/* Settings modal list */
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    transition: background 0.2s;
+}
+
+.settings-item:hover {
+    background: var(--surface-light);
+}
+
+.settings-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.settings-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.settings-item-danger {
+    color: var(--danger);
+}
+
 .form-group {
     margin-bottom: 16px;
 }
