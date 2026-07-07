@@ -1,0 +1,4 @@
+ffmpeg: 'ffmpeg'
+mkvmerge: 'mkvmerge'
+mp4decrypt: './bento4/bin/mp4decrypt'
+shaka: 'shaka-packager'
