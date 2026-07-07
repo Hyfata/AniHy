@@ -658,6 +658,155 @@ img {
     word-break: break-all;
 }
 
+/* Queue modal */
+.modal-queue {
+    max-width: 640px;
+}
+
+.queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.queue-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.queue-card {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.queue-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.queue-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.queue-card-title {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 600;
+    word-break: keep-all;
+}
+
+.queue-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.queue-card-meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.queue-card-message {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    min-height: 1.2em;
+}
+
+.btn-xs {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+}
+
+.queue-back {
+    margin-bottom: 14px;
+}
+
+.queue-anime-title {
+    margin: 0 0 14px;
+    font-size: 1.1rem;
+}
+
+.queue-progress-wrap {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+.queue-progress-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.queue-progress-label + .progress-bar {
+    margin-bottom: 14px;
+}
+
+.queue-progress-label + .progress-bar:last-of-type {
+    margin-bottom: 10px;
+}
+
+.progress-fill-encode {
+    background: linear-gradient(90deg, #00d4aa, #0ea5e9);
+}
+
+.queue-log-status {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.status-pending {
+    background: rgba(139, 146, 168, 0.2);
+    color: var(--text-muted);
+}
+
+.status-downloading {
+    background: rgba(124, 92, 255, 0.2);
+    color: #b8a8ff;
+}
+
+.status-preparing {
+    background: rgba(0, 212, 170, 0.15);
+    color: var(--accent);
+}
+
+.status-encoding {
+    background: rgba(14, 165, 233, 0.15);
+    color: #7dd3fc;
+}
+
+.status-completed {
+    background: rgba(0, 212, 170, 0.2);
+    color: var(--accent);
+}
+
+.status-failed {
+    background: rgba(255, 77, 109, 0.2);
+    color: var(--danger);
+}
+
 /* Video.js custom - keep default layout, only color/shape */
 .video-js {
     width: 100%;

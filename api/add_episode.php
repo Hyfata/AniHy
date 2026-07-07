@@ -37,6 +37,13 @@ if (!$stmt->fetch()) {
     jsonResponse(false, [], '애니를 찾을 수 없습니다.');
 }
 
+// Prevent duplicate active/pending job for same anime + episode
+$stmt = $pdo->prepare("SELECT id FROM jobs WHERE anime_id = ? AND episode_number = ? AND status NOT IN ('completed', 'failed')");
+$stmt->execute([$animeId, $episodeNumber]);
+if ($stmt->fetch()) {
+    jsonResponse(false, [], '이미 대기열에 있거나 처리 중인 에피소드입니다.');
+}
+
 $subtitleFile = null;
 if (isset($_FILES['subtitle']) && $_FILES['subtitle']['error'] === UPLOAD_ERR_OK) {
     $ext = strtolower(pathinfo($_FILES['subtitle']['name'], PATHINFO_EXTENSION));
@@ -58,15 +65,34 @@ $stmt = $pdo->prepare(
 $stmt->execute([$animeId, $episodeNumber, $seasonId, $episodeTitle, $subtitleFile]);
 $jobId = (int)$pdo->lastInsertId();
 
-// Start background worker
-$worker = __DIR__ . '/../worker/convert.php';
-$logFile = __DIR__ . '/../logs/job_' . $jobId . '.log';
-$cmd = sprintf(
-    'nohup php %s %d > %s 2>&1 &',
-    escapeshellarg($worker),
-    $jobId,
-    escapeshellarg($logFile)
-);
-exec($cmd);
+// Trigger queue manager if not already running
+$lockFile = __DIR__ . '/../logs/queue.lock';
+$startQueue = true;
+if (file_exists($lockFile)) {
+    $pid = (int)trim((string)file_get_contents($lockFile));
+    if ($pid > 0 && function_exists('posix_kill') && posix_kill($pid, 0)) {
+        $startQueue = false;
+    }
+}
+if ($startQueue) {
+    $queueWorker = __DIR__ . '/../worker/queue.php';
+    $queueLog = __DIR__ . '/../logs/queue.log';
 
-jsonResponse(true, ['job_id' => $jobId, 'anime_id' => $animeId], '작업이 시작되었습니다.');
+    // 웹 SAPI에서는 PHP_BINARY가 비어 있을 수 있으므로 PHP_BINDIR/php를 fallback으로 사용
+    $phpBinary = (defined('PHP_BINARY') && PHP_BINARY !== '' && PHP_BINARY !== '-')
+        ? PHP_BINARY
+        : PHP_BINDIR . '/php';
+    if (!file_exists($phpBinary)) {
+        $phpBinary = 'php';
+    }
+
+    $cmd = sprintf(
+        'nohup %s %s > %s 2>&1 &',
+        escapeshellarg($phpBinary),
+        escapeshellarg($queueWorker),
+        escapeshellarg($queueLog)
+    );
+    exec($cmd);
+}
+
+jsonResponse(true, ['job_id' => $jobId, 'anime_id' => $animeId], '대기열에 추가되었습니다.');

@@ -48,6 +48,7 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
             <a href="/anime/" class="logo">AniHy</a>
             <div class="nav-links">
                 <?php if (isAdmin()): ?>
+                    <button class="btn btn-sm" onclick="openQueueModal()">대기열</button>
                     <a href="/anime/admin/logout.php">로그아웃</a>
                 <?php else: ?>
                     <a href="/anime/admin/login.php">관리자 로그인</a>
@@ -105,8 +106,13 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
         </div>
     </main>
 
+    <?php if (isAdmin()): ?>
+        <?php include __DIR__ . '/inc/queue_modal.php'; ?>
+    <?php endif; ?>
+
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js?v=2"></script>
     <script src="<?= assetUrl('js/videojs-ko.js') ?>"></script>
+    <script src="<?= assetUrl('js/app.js') ?>"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             videojs('anime-player', {

@@ -44,3 +44,4 @@ function allowedImageExt(string $ext): bool {
 function allowedSubtitleExt(string $ext): bool {
     return in_array(strtolower($ext), ['ass', 'smi'], true);
 }
+

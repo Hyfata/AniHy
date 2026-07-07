@@ -20,6 +20,7 @@ $animes = $stmt->fetchAll();
             <div class="nav-links">
                 <?php if (isAdmin()): ?>
                     <button class="btn btn-primary btn-sm" onclick="openModal('add-anime-modal')">애니 추가</button>
+                    <button class="btn btn-sm" onclick="openQueueModal()">대기열</button>
                     <a href="/anime/admin/logout.php">로그아웃</a>
                 <?php else: ?>
                     <a href="/anime/admin/login.php">관리자 로그인</a>
@@ -66,6 +67,8 @@ $animes = $stmt->fetchAll();
     </main>
 
     <?php if (isAdmin()): ?>
+        <?php include __DIR__ . '/inc/queue_modal.php'; ?>
+
         <div class="modal-overlay" id="add-anime-modal">
             <div class="modal">
                 <div class="modal-header">

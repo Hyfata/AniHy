@@ -34,6 +34,11 @@ function updateJob(PDO $pdo, int $id, string $status, int $progress, string $mes
     $stmt->execute([$status, $progress, $message, $id]);
 }
 
+function updateJobDuration(PDO $pdo, int $id, int $durationMs): void {
+    $stmt = $pdo->prepare("UPDATE jobs SET duration_ms = ? WHERE id = ?");
+    $stmt->execute([$durationMs, $id]);
+}
+
 function shellExecLogged(string $cmd): string {
     logMsg("Execute: $cmd");
     $output = shell_exec($cmd);
@@ -162,6 +167,7 @@ $durationCmd = sprintf(
 $durationOutput = trim(shellExecLogged($durationCmd));
 if (is_numeric($durationOutput) && (float)$durationOutput > 0) {
     $durationMs = (float)$durationOutput * 1000;
+    updateJobDuration($pdo, $jobId, (int)$durationMs);
     logMsg("Duration: " . round($durationMs / 1000, 2) . "s");
 }
 
@@ -169,7 +175,7 @@ if (is_numeric($durationOutput) && (float)$durationOutput > 0) {
 $encodeMessage = $hasSubtitle ? '자막을 영상에 입히는 중...' : 'MP4로 변환 중...';
 $encodeBaseProgress = 15;
 updateJob($pdo, $jobId, 'encoding', $encodeBaseProgress, $encodeMessage);
-$outputPath = "$videosDir/result.mp4";
+$outputPath = "$videosDir/job_{$jobId}_result.mp4";
 
 if ($hasSubtitle) {
     $cmdParts = [
@@ -237,7 +243,8 @@ while (!feof($pipes[2])) {
         $line = trim($line);
 
         if (preg_match('/^out_time_ms=(\d+)$/', $line, $m)) {
-            $ms = (int)$m[1];
+            // ffmpeg의 out_time_ms는 이름과 달리 마이크로초 단위다
+            $ms = (int)($m[1] / 1000);
             if ($durationMs > 0) {
                 $range = 99 - $encodeBaseProgress;
                 $pct = (int)min(99, max($encodeBaseProgress, round($ms / $durationMs * $range) + $encodeBaseProgress));
