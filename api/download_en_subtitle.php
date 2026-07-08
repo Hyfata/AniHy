@@ -5,11 +5,13 @@ require_once __DIR__ . '/../inc/functions.php';
 requireAdmin();
 
 $animeId = filter_input(INPUT_GET, 'aid', FILTER_VALIDATE_INT);
-$episodeNumber = filter_input(INPUT_GET, 'ep', FILTER_VALIDATE_INT);
+$episodeNumber = isset($_GET['ep']) ? trim((string)$_GET['ep']) : '';
 
-if (!$animeId || !$episodeNumber) {
+if (!$animeId || $episodeNumber === '') {
     jsonResponse(false, [], '필수 항목을 입력하세요.');
 }
+
+$safeEpisode = sanitizeFilename($episodeNumber);
 
 $stmt = $pdo->prepare("SELECT season_id, title FROM animes WHERE id = ?");
 $stmt->execute([$animeId]);
@@ -24,12 +26,12 @@ $downloaderDir = "$baseDir/downloader";
 $videosDir = "$downloaderDir/videos";
 $subtitlesDir = "$baseDir/subtitles";
 $assDir = "$subtitlesDir/$animeId";
-$targetPath = "$assDir/{$episodeNumber}_en.ass";
-$relativePath = "subtitles/$animeId/{$episodeNumber}_en.ass";
+$targetPath = "$assDir/{$safeEpisode}_en.ass";
+$relativePath = "subtitles/$animeId/{$safeEpisode}_en.ass";
 
 // Return cached file if exists
 if (file_exists($targetPath) && filesize($targetPath) > 0) {
-    serveAssDownload($targetPath, $episodeNumber . '_en.ass');
+    serveAssDownload($targetPath, $safeEpisode . '_en.ass');
 }
 
 if (!is_dir($assDir)) {
@@ -39,10 +41,10 @@ if (!is_dir($assDir)) {
 // Download English subtitle
 $before = glob($videosDir . '/*.ass');
 $cmd = sprintf(
-    'cd %s && ./crdn.sh -s %s -e %d --dlsubs en --noASSConv --novids --noaudio 2>&1',
+    'cd %s && ./crdn.sh -s %s -e %s --dlsubs en --noASSConv --novids --noaudio 2>&1',
     escapeshellarg($downloaderDir),
     escapeshellarg($anime['season_id']),
-    $episodeNumber
+    escapeshellarg($episodeNumber)
 );
 $output = shell_exec($cmd);
 
@@ -65,7 +67,7 @@ $stmt->execute([$relativePath, $animeId, $episodeNumber]);
 // Clean up downloaded file from videos dir
 @unlink($downloadedPath);
 
-serveAssDownload($targetPath, $episodeNumber . '_en.ass');
+serveAssDownload($targetPath, $safeEpisode . '_en.ass');
 
 function serveAssDownload(string $filePath, string $downloadName): void {
     if (!file_exists($filePath)) {

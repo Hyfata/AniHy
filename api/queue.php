@@ -46,7 +46,7 @@ foreach ($activeJobs as $job) {
     }
     $groups[$aid]['episodes'][] = [
         'job_id' => (int)$job['job_id'],
-        'episode_number' => (int)$job['episode_number'],
+        'episode_number' => (string)$job['episode_number'],
         'episode_title' => $job['episode_title'] ?: ($job['episode_number'] . '회'),
         'status' => $job['status'],
         'progress' => (int)$job['progress'],

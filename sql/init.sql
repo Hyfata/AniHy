@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS animes (
 CREATE TABLE IF NOT EXISTS episodes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     anime_id INT NOT NULL,
-    episode_number INT NOT NULL,
+    episode_number VARCHAR(50) NOT NULL,
     title VARCHAR(255),
     file_path VARCHAR(500) NOT NULL,
     has_subtitle BOOLEAN DEFAULT FALSE,
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS episodes (
 CREATE TABLE IF NOT EXISTS jobs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     anime_id INT NOT NULL,
-    episode_number INT NOT NULL,
+    episode_number VARCHAR(50) NOT NULL,
     season_id VARCHAR(100) NOT NULL,
     episode_title VARCHAR(255),
     subtitle_file VARCHAR(500),

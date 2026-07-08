@@ -5,6 +5,7 @@ downloader/docs/
 downloader/bento4/
 downloader/config/cr_token.yml
 downloader/config/archive.json
+downloader/videos/
 AGENTS.md
 logs/
 subtitles/

@@ -6,9 +6,9 @@ require_once __DIR__ . '/inc/functions.php';
 requireAccessAuth();
 
 $aid = filter_input(INPUT_GET, 'aid', FILTER_VALIDATE_INT);
-$epNum = filter_input(INPUT_GET, 'ep', FILTER_VALIDATE_INT);
+$epNum = isset($_GET['ep']) ? trim((string)$_GET['ep']) : '';
 
-if (!$aid || !$epNum) {
+if (!$aid || $epNum === '') {
     redirect('/anime/');
 }
 
@@ -41,7 +41,7 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($anime['title']) ?> <?= $epNum ?>회 - AniHy</title>
+    <title><?= htmlspecialchars($anime['title']) ?> <?= htmlspecialchars($epNum) ?>회 - AniHy</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css?v=2" rel="stylesheet">
     <link rel="stylesheet" href="<?= assetUrl('css/style.css') ?>">
 </head>
@@ -79,13 +79,13 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
                 <div class="watch-info">
                     <div class="watch-title-row">
                         <div>
-                            <h1 class="watch-episode-title"><?= $epNum ?>회 <?= htmlspecialchars($currentEp['title'] ? '| ' . $currentEp['title'] : '') ?></h1>
+                            <h1 class="watch-episode-title"><?= htmlspecialchars($epNum) ?>회 <?= htmlspecialchars($currentEp['title'] ? '| ' . $currentEp['title'] : '') ?></h1>
                             <a href="/anime/anime.php?aid=<?= $aid ?>" class="watch-anime-title"><?= htmlspecialchars($anime['title']) ?></a>
                         </div>
                     </div>
                     <?php if ($hasEnSubtitle): ?>
                         <div class="watch-actions">
-                            <a href="/anime/subtitles/<?= $aid ?>/<?= $epNum ?>_en.ass" download class="btn btn-sm">영어 자막 다운로드</a>
+                            <a href="/anime/subtitles/<?= $aid ?>/<?= rawurlencode($epNum) ?>_en.ass" download class="btn btn-sm">영어 자막 다운로드</a>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -95,10 +95,10 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
                 <h3>회차 목록</h3>
                 <div class="episode-list" style="margin:0">
                     <?php foreach ($episodes as $ep): ?>
-                        <div class="episode-item <?= $ep['episode_number'] == $epNum ? 'active' : '' ?>"
-                             onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= $ep['episode_number'] ?>'">
+                        <div class="episode-item <?= $ep['episode_number'] === $epNum ? 'active' : '' ?>"
+                             onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>'">
                             <div class="episode-meta">
-                                <span class="episode-number"><?= $ep['episode_number'] ?></span>
+                                <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
                                 <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '회')) ?></span>
                             </div>
                         </div>

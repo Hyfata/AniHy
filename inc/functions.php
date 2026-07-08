@@ -18,8 +18,8 @@ function subtitleUrl(string $path): string {
     return '/anime/' . ltrim($path, '/');
 }
 
-function animeVideoUrl(int $animeId, int $episodeNumber): string {
-    return "/anime/animes/$animeId/$episodeNumber.mp4";
+function animeVideoUrl(int $animeId, string $episodeNumber): string {
+    return "/anime/animes/$animeId/" . rawurlencode($episodeNumber) . ".mp4";
 }
 
 function redirect(string $url): void {

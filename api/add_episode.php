@@ -9,11 +9,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $animeId = filter_input(INPUT_POST, 'anime_id', FILTER_VALIDATE_INT);
-$episodeNumber = filter_input(INPUT_POST, 'episode_number', FILTER_VALIDATE_INT);
+$episodeNumber = trim($_POST['episode_number'] ?? '');
 $seasonId = trim($_POST['season_id'] ?? '');
 $episodeTitle = trim($_POST['episode_title'] ?? '');
-if (!$animeId || !$episodeNumber) {
+if (!$animeId || $episodeNumber === '') {
     jsonResponse(false, [], '필수 항목을 입력하세요.');
+}
+
+$episodeNumber = sanitizeFilename($episodeNumber);
+if ($episodeNumber === '') {
+    jsonResponse(false, [], '유효하지 않은 에피소드 번호입니다.');
 }
 
 // Use anime's stored season_id if not provided directly

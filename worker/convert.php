@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../inc/db.php';
+require_once __DIR__ . '/../inc/functions.php';
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
@@ -56,7 +56,8 @@ if (!$job) {
 }
 
 $animeId = (int)$job['anime_id'];
-$episodeNumber = (int)$job['episode_number'];
+$episodeNumber = (string)$job['episode_number'];
+$safeEpisode = sanitizeFilename($episodeNumber);
 $seasonId = $job['season_id'];
 $episodeTitle = $job['episode_title'] ?: ($episodeNumber . '회');
 $subtitleFile = $job['subtitle_file'];
@@ -66,14 +67,15 @@ updateJob($pdo, $jobId, 'downloading', 5, 'Crunchyroll에서 다운로드 중...
 
 // Download
 $cmd = sprintf(
-    "cd %s && ./crdn.sh -s %s -e %d --fileName ${seasonId}_${episodeNumber} 2>&1",
+    "cd %s && ./crdn.sh -s %s -e %s --fileName %s 2>&1",
     escapeshellarg($downloaderDir),
     escapeshellarg($seasonId),
-    $episodeNumber
+    escapeshellarg($episodeNumber),
+    escapeshellarg("{$seasonId}_{$safeEpisode}")
 );
 $output = shellExecLogged($cmd);
 
-$mkvPath = "$videosDir/${seasonId}_${episodeNumber}.mkv";
+$mkvPath = "$videosDir/{$seasonId}_{$safeEpisode}.mkv";
 
 if (!file_exists($mkvPath)) {
     updateJob($pdo, $jobId, 'failed', 0, '다운로드 실패: MKV 파일을 찾을 수 없습니다.');
@@ -88,8 +90,8 @@ $assDir = "$subtitlesDir/$animeId";
 if (!is_dir($assDir)) {
     mkdir($assDir, 0777, true);
 }
-$assPath = "$assDir/$episodeNumber.ass";
-$subtitleRelativePath = "subtitles/$animeId/$episodeNumber.ass";
+$assPath = "$assDir/$safeEpisode.ass";
+$subtitleRelativePath = "subtitles/$animeId/$safeEpisode.ass";
 
 $hasSubtitle = false;
 $sourceAssPath = null;
@@ -278,7 +280,7 @@ $targetDir = "$animesDir/$animeId";
 if (!is_dir($targetDir)) {
     mkdir($targetDir, 0777, true);
 }
-$targetPath = "$targetDir/$episodeNumber.mp4";
+$targetPath = "$targetDir/$safeEpisode.mp4";
 if (!rename($outputPath, $targetPath)) {
     updateJob($pdo, $jobId, 'failed', 0, '최종 파일 이동 실패');
     logMsg("Failed to move output to $targetPath");
@@ -291,16 +293,16 @@ logMsg("Moved to: $targetPath");
 @unlink($outputPath);
 
 // Update episodes table
-$relativePath = "animes/$animeId/$episodeNumber.mp4";
+$relativePath = "animes/$animeId/$safeEpisode.mp4";
 $subFlag = $hasSubtitle ? 1 : 0;
 $enSubtitleRelativePath = null;
-$enSubtitlePath = "$subtitlesDir/$animeId/{$episodeNumber}_en.ass";
+$enSubtitlePath = "$subtitlesDir/$animeId/{$safeEpisode}_en.ass";
 if (file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0) {
-    $enSubtitleRelativePath = "subtitles/$animeId/{$episodeNumber}_en.ass";
+    $enSubtitleRelativePath = "subtitles/$animeId/{$safeEpisode}_en.ass";
 }
 
 $stmt = $pdo->prepare("SELECT id FROM episodes WHERE anime_id = ? AND episode_number = ?");
-$stmt->execute([$animeId, $episodeNumber]);
+$stmt->execute([$animeId, $safeEpisode]);
 $existing = $stmt->fetch();
 
 if ($existing) {
@@ -308,7 +310,7 @@ if ($existing) {
     $stmt->execute([$episodeTitle, $relativePath, $subFlag, $enSubtitleRelativePath, $subtitleRelativePath, $existing['id']]);
 } else {
     $stmt = $pdo->prepare("INSERT INTO episodes (anime_id, episode_number, title, file_path, has_subtitle, en_subtitle_file, subtitle_file) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$animeId, $episodeNumber, $episodeTitle, $relativePath, $subFlag, $enSubtitleRelativePath, $subtitleRelativePath]);
+    $stmt->execute([$animeId, $safeEpisode, $episodeTitle, $relativePath, $subFlag, $enSubtitleRelativePath, $subtitleRelativePath]);
 }
 
 updateJob($pdo, $jobId, 'completed', 100, '완료');

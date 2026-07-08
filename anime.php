@@ -70,9 +70,9 @@ $episodes = $stmt->fetchAll();
         <?php else: ?>
             <div class="episode-list">
                 <?php foreach ($episodes as $ep): ?>
-                    <div class="episode-item" onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= $ep['episode_number'] ?>'">
+                    <div class="episode-item" onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>'">
                         <div class="episode-meta">
-                            <span class="episode-number"><?= $ep['episode_number'] ?></span>
+                            <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
                             <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '회')) ?></span>
                         </div>
                         <?php if (isAdmin()): ?>
@@ -100,7 +100,7 @@ $episodes = $stmt->fetchAll();
 
                         <div class="form-group">
                             <label for="episode_number">에피소드 번호</label>
-                            <input type="number" id="episode_number" name="episode_number" min="1" required>
+                            <input type="text" id="episode_number" name="episode_number" placeholder="예: 1, 0, 0.5, OVA" required>
                         </div>
 
                         <div class="form-group">
