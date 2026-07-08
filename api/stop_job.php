@@ -27,11 +27,11 @@ if (in_array($job['status'], ['completed', 'failed'], true)) {
 
 $pid = isset($job['worker_pid']) ? (int)$job['worker_pid'] : 0;
 if ($pid > 0 && function_exists('posix_kill')) {
-    // 먼저 정상 종료 요청, 즉시 반응이 없으면 강제 종료
-    posix_kill($pid, SIGTERM);
+    // 웹 SAPI에서는 SIGTERM/SIGKILL 상수가 없을 수 있으므로 정수값 사용
+    posix_kill($pid, 15); // SIGTERM
     usleep(200000); // 0.2초 대기
     if (posix_kill($pid, 0)) {
-        posix_kill($pid, SIGKILL);
+        posix_kill($pid, 9); // SIGKILL
     }
 }
 
