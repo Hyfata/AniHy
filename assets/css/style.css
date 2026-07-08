@@ -746,6 +746,10 @@ img {
     word-break: break-all;
 }
 
+#add-episode-lookup-view .log-box {
+    max-height: 360px;
+}
+
 /* Queue modal */
 .modal-queue {
     max-width: 640px;

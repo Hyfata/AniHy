@@ -88,45 +88,59 @@ $episodes = $stmt->fetchAll();
         <?php include __DIR__ . '/inc/queue_modal.php'; ?>
         <?php include __DIR__ . '/inc/settings_float.php'; ?>
 
-        <div class="modal-overlay" id="add-episode-modal">
+        <div class="modal-overlay" id="add-episode-modal" data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '') ?>">
             <div class="modal">
                 <div class="modal-header">
                     <h2>에피소드 추가</h2>
                     <button class="modal-close" onclick="closeModal('add-episode-modal')">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <form id="episode-form" enctype="multipart/form-data">
-                        <input type="hidden" name="anime_id" value="<?= $aid ?>">
+                    <div id="add-episode-form-view">
+                        <form id="episode-form" enctype="multipart/form-data">
+                            <input type="hidden" name="anime_id" value="<?= $aid ?>">
 
-                        <div class="form-group">
-                            <label for="episode_number">에피소드 번호</label>
-                            <input type="text" id="episode_number" name="episode_number" placeholder="예: 1, 0, 0.5, OVA" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="episode_title">에피소드 제목 (선택)</label>
-                            <input type="text" id="episode_title" name="episode_title">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="subtitle">자막 파일 (ass/smi, 선택)</label>
-                            <input type="file" id="subtitle" name="subtitle" accept="*">
-                        </div>
-
-                        <div class="form-group">
-                            <button type="button" id="download-en-subtitle-btn" class="btn btn-secondary" style="width:100%">영어 자막 다운로드</button>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary" style="width:100%">다운로드 및 변환</button>
-
-                        <div class="progress-box hidden" id="progress-box">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progress-fill"></div>
+                            <div class="form-group">
+                                <label for="episode_number">에피소드 번호</label>
+                                <input type="text" id="episode_number" name="episode_number" placeholder="예: 1, 0, 0.5, OVA" required>
                             </div>
-                            <div class="progress-text" id="progress-text">준비 중...</div>
-                            <div class="log-box hidden" id="log-box"></div>
+
+                            <div class="form-group">
+                                <label for="episode_title">에피소드 제목 (선택)</label>
+                                <input type="text" id="episode_title" name="episode_title">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="subtitle">자막 파일 (ass/smi, 선택)</label>
+                                <input type="file" id="subtitle" name="subtitle" accept="*">
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" id="download-en-subtitle-btn" class="btn btn-secondary" style="width:100%">영어 자막 다운로드</button>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" id="lookup-episodes-btn" class="btn btn-secondary" style="width:100%">에피소드 조회</button>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="width:100%">다운로드 및 변환</button>
+
+                            <div class="progress-box hidden" id="progress-box">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progress-fill"></div>
+                                </div>
+                                <div class="progress-text" id="progress-text">준비 중...</div>
+                                <div class="log-box hidden" id="log-box"></div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="add-episode-lookup-view" class="hidden">
+                        <div class="queue-back">
+                            <button type="button" class="btn btn-sm" id="lookup-back-to-form">&larr; 뒤로가기</button>
                         </div>
-                    </form>
+                        <h3 class="queue-anime-title" id="lookup-title">에피소드 조회</h3>
+                        <div class="log-box" id="lookup-log-box"></div>
+                    </div>
                 </div>
             </div>
         </div>

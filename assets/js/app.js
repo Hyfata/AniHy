@@ -185,6 +185,100 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Episode lookup
+    const addEpisodeModal = document.getElementById('add-episode-modal');
+    const lookupBtn = document.getElementById('lookup-episodes-btn');
+    const formView = document.getElementById('add-episode-form-view');
+    const lookupView = document.getElementById('add-episode-lookup-view');
+    const lookupBackBtn = document.getElementById('lookup-back-to-form');
+    const lookupLogBox = document.getElementById('lookup-log-box');
+    const lookupTitle = document.getElementById('lookup-title');
+    let lookupEventSource = null;
+
+    function showLookupView() {
+        if (formView) formView.classList.add('hidden');
+        if (lookupView) lookupView.classList.remove('hidden');
+    }
+
+    function hideLookupView() {
+        if (lookupView) lookupView.classList.add('hidden');
+        if (formView) formView.classList.remove('hidden');
+    }
+
+    function stopLookup() {
+        if (lookupEventSource) {
+            lookupEventSource.close();
+            lookupEventSource = null;
+        }
+    }
+
+    function startLookup(seasonId) {
+        stopLookup();
+        if (lookupLogBox) {
+            lookupLogBox.textContent = '에피소드 목록을 조회하는 중...\n';
+        }
+        if (lookupTitle) lookupTitle.textContent = '에피소드 조회';
+
+        const url = '/anime/api/episode_lookup_stream.php?season_id=' + encodeURIComponent(seasonId);
+        lookupEventSource = new EventSource(url);
+
+        lookupEventSource.onopen = () => {
+            if (lookupLogBox) {
+                lookupLogBox.textContent += '서버에 연결되었습니다.\n';
+                lookupLogBox.scrollTop = lookupLogBox.scrollHeight;
+            }
+        };
+
+        lookupEventSource.onmessage = (e) => {
+            if (lookupLogBox) {
+                lookupLogBox.textContent += e.data + '\n';
+                lookupLogBox.scrollTop = lookupLogBox.scrollHeight;
+            }
+        };
+
+        lookupEventSource.addEventListener('done', () => {
+            if (lookupLogBox) {
+                lookupLogBox.textContent += '\n조회가 완료되었습니다.\n';
+                lookupLogBox.scrollTop = lookupLogBox.scrollHeight;
+            }
+            stopLookup();
+        });
+
+        lookupEventSource.onerror = () => {
+            if (lookupLogBox) {
+                lookupLogBox.textContent += '\n연결 중 오류가 발생했습니다. 관리자 권한이 있는지 확인하세요.\n';
+                lookupLogBox.scrollTop = lookupLogBox.scrollHeight;
+            }
+            stopLookup();
+        };
+    }
+
+    if (lookupBtn && addEpisodeModal) {
+        lookupBtn.addEventListener('click', () => {
+            const seasonId = (addEpisodeModal.dataset.seasonId || '').trim();
+            if (!seasonId) {
+                alert('애니에 등록된 시즌 ID가 없습니다.');
+                return;
+            }
+            showLookupView();
+            startLookup(seasonId);
+        });
+    }
+
+    if (lookupBackBtn) {
+        lookupBackBtn.addEventListener('click', () => {
+            stopLookup();
+            hideLookupView();
+        });
+    }
+
+    if (addEpisodeModal) {
+        addEpisodeModal.addEventListener('modal-closed', () => {
+            stopLookup();
+            hideLookupView();
+        });
+    }
+
     async function pollProgress(jobId, animeId) {
         const interval = setInterval(async () => {
             try {
