@@ -115,6 +115,7 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
 
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js?v=2"></script>
     <script src="<?= assetUrl('js/videojs-ko.js') ?>"></script>
+    <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

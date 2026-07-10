@@ -164,6 +164,7 @@ $animes = $stmt->fetchAll();
         </div>
     <?php endif; ?>
 
+    <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
 </body>
 </html>

@@ -12,6 +12,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // System alert/confirm modal (always on top of other modals)
+    const alertModalOverlay = document.getElementById('alert-modal-overlay');
+    const alertModalTitle = document.getElementById('alert-modal-title');
+    const alertModalMessage = document.getElementById('alert-modal-message');
+    const alertModalOk = document.getElementById('alert-modal-ok');
+    const alertModalCancel = document.getElementById('alert-modal-cancel');
+
+    function openAlertModal(title, message, showCancel) {
+        if (alertModalTitle) alertModalTitle.textContent = title;
+        if (alertModalMessage) alertModalMessage.textContent = message;
+        if (alertModalCancel) alertModalCancel.classList.toggle('hidden', !showCancel);
+        if (alertModalOverlay) alertModalOverlay.classList.add('active');
+    }
+
+    function closeAlertModal() {
+        if (alertModalOverlay) alertModalOverlay.classList.remove('active');
+    }
+
+    window.modalAlert = (message) => {
+        return new Promise((resolve) => {
+            openAlertModal('알림', message, false);
+            const okHandler = () => {
+                closeAlertModal();
+                cleanup();
+                resolve();
+            };
+            const cancelHandler = () => {
+                closeAlertModal();
+                cleanup();
+                resolve();
+            };
+            function cleanup() {
+                alertModalOk.removeEventListener('click', okHandler);
+                alertModalCancel.removeEventListener('click', cancelHandler);
+            }
+            alertModalOk.addEventListener('click', okHandler);
+            alertModalCancel.addEventListener('click', cancelHandler);
+        });
+    };
+
+    window.modalConfirm = (message) => {
+        return new Promise((resolve) => {
+            openAlertModal('확인', message, true);
+            const okHandler = () => {
+                closeAlertModal();
+                cleanup();
+                resolve(true);
+            };
+            const cancelHandler = () => {
+                closeAlertModal();
+                cleanup();
+                resolve(false);
+            };
+            function cleanup() {
+                alertModalOk.removeEventListener('click', okHandler);
+                alertModalCancel.removeEventListener('click', cancelHandler);
+            }
+            alertModalOk.addEventListener('click', okHandler);
+            alertModalCancel.addEventListener('click', cancelHandler);
+        });
+    };
+
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', e => {
             if (e.target === overlay) closeModal(overlay.id);
@@ -19,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Generic confirm delete
-    window.confirmDelete = (message) => confirm(message || '정말 삭제하시겠습니까?');
+    window.confirmDelete = (message) => modalConfirm(message || '정말 삭제하시겠습니까?');
 
     // Anime description more/less toggle
     const animeInfo = document.getElementById('anime-info');
@@ -47,10 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     window.location.reload();
                 } else {
-                    alert(data.message || '애니 추가에 실패했습니다.');
+                    await modalAlert(data.message || '애니 추가에 실패했습니다.');
                 }
             } catch (err) {
-                alert('오류: ' + err.message);
+                await modalAlert('오류: ' + err.message);
             }
         });
     }
@@ -79,10 +141,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     window.location.reload();
                 } else {
-                    alert(data.message || '애니 수정에 실패했습니다.');
+                    await modalAlert(data.message || '애니 수정에 실패했습니다.');
                 }
             } catch (err) {
-                alert('오류: ' + err.message);
+                await modalAlert('오류: ' + err.message);
             }
         });
     }
@@ -119,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const animeId = document.querySelector('input[name="anime_id"]')?.value;
             const episodeNumber = document.getElementById('episode_number')?.value;
             if (!animeId || !episodeNumber) {
-                alert('에피소드 번호를 입력하세요.');
+                await modalAlert('에피소드 번호를 입력하세요.');
                 return;
             }
 
@@ -143,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             } catch (err) {
-                alert('오류: ' + err.message);
+                await modalAlert('오류: ' + err.message);
             } finally {
                 downloadEnBtn.disabled = false;
                 downloadEnBtn.textContent = '영어 자막 다운로드';
@@ -172,12 +234,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
                 if (data.success) {
                     episodeForm.reset();
-                    alert(data.message || '대기열에 추가되었습니다.');
+                    await modalAlert(data.message || '대기열에 추가되었습니다.');
                 } else {
-                    alert(data.message || '추가 실패');
+                    await modalAlert(data.message || '추가 실패');
                 }
             } catch (err) {
-                alert('오류: ' + err.message);
+                await modalAlert('오류: ' + err.message);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
@@ -254,10 +316,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (lookupBtn && addEpisodeModal) {
-        lookupBtn.addEventListener('click', () => {
+        lookupBtn.addEventListener('click', async () => {
             const seasonId = (addEpisodeModal.dataset.seasonId || '').trim();
             if (!seasonId) {
-                alert('애니에 등록된 시즌 ID가 없습니다.');
+                await modalAlert('애니에 등록된 시즌 ID가 없습니다.');
                 return;
             }
             showLookupView();
@@ -468,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function stopJob(jobId) {
-        if (!confirmDelete('이 작업을 중지하시겠습니까?')) return;
+        if (!(await confirmDelete('이 작업을 중지하시겠습니까?'))) return;
         try {
             const res = await fetch('/anime/api/stop_job.php', {
                 method: 'POST',
@@ -479,10 +541,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success) {
                 loadQueue();
             } else {
-                alert(data.message || '중지 실패');
+                await modalAlert(data.message || '중지 실패');
             }
         } catch (err) {
-            alert('오류: ' + err.message);
+            await modalAlert('오류: ' + err.message);
         }
     }
 
@@ -629,7 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.delete-anime-btn').forEach(btn => {
         btn.addEventListener('click', async e => {
             e.stopPropagation();
-            if (!confirmDelete('이 애니와 모든 에피소드를 삭제하시겠습니까?')) return;
+            if (!(await confirmDelete('이 애니와 모든 에피소드를 삭제하시겠습니까?'))) return;
             const id = btn.dataset.id;
             try {
                 const res = await fetch('/anime/api/delete_anime.php', {
@@ -641,10 +703,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     btn.closest('.card').remove();
                 } else {
-                    alert(data.message || '삭제 실패');
+                    await modalAlert(data.message || '삭제 실패');
                 }
             } catch (err) {
-                alert('오류: ' + err.message);
+                await modalAlert('오류: ' + err.message);
             }
         });
     });
@@ -653,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.delete-episode-btn').forEach(btn => {
         btn.addEventListener('click', async e => {
             e.stopPropagation();
-            if (!confirmDelete('이 에피소드를 삭제하시겠습니까?')) return;
+            if (!(await confirmDelete('이 에피소드를 삭제하시겠습니까?'))) return;
             const id = btn.dataset.id;
             try {
                 const res = await fetch('/anime/api/delete_episode.php', {
@@ -665,10 +727,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     window.location.reload();
                 } else {
-                    alert(data.message || '삭제 실패');
+                    await modalAlert(data.message || '삭제 실패');
                 }
             } catch (err) {
-                alert('오류: ' + err.message);
+                await modalAlert('오류: ' + err.message);
             }
         });
     });

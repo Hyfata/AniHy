@@ -121,6 +121,16 @@ img {
     background: rgba(255, 77, 109, 0.25);
 }
 
+.btn-secondary {
+    background: var(--surface-light);
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
 .btn-sm {
     padding: 6px 12px;
     font-size: 0.82rem;
@@ -978,4 +988,52 @@ img {
 
 .mt-2 {
     margin-top: 12px;
+}
+
+/* Alert/Confirm modal (always on top) */
+.alert-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 16px;
+}
+
+.alert-modal-overlay.active {
+    display: flex;
+}
+
+.alert-modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 360px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.alert-modal-header {
+    padding: 18px 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.alert-modal-body {
+    padding: 20px;
+    font-size: 0.95rem;
+    color: var(--text);
+    line-height: 1.5;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.alert-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px 20px;
 }
