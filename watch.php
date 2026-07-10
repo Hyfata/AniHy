@@ -28,13 +28,21 @@ if (!$currentEp) {
     redirect('/anime/anime.php?aid=' . $aid);
 }
 
-$stmt = $pdo->prepare("SELECT * FROM episodes WHERE anime_id = ? ORDER BY episode_number ASC");
+$stmt = $pdo->prepare("SELECT * FROM episodes WHERE anime_id = ? ORDER BY (episode_number LIKE 'S%') DESC, CASE WHEN episode_number LIKE 'S%' THEN CAST(SUBSTRING(episode_number, 2) AS DECIMAL(20,6)) ELSE NULL END ASC, CASE WHEN episode_number REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN 0 ELSE 1 END ASC, CASE WHEN episode_number REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN CAST(episode_number AS DECIMAL(20,6)) ELSE NULL END ASC, episode_number ASC");
 $stmt->execute([$aid]);
 $episodes = $stmt->fetchAll();
 
 $videoUrl = animeVideoUrl($aid, $epNum);
 $enSubtitlePath = __DIR__ . '/subtitles/' . $aid . '/' . $epNum . '_en.ass';
 $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
+
+$nextEp = null;
+foreach ($episodes as $idx => $ep) {
+    if ($ep['episode_number'] === $epNum && isset($episodes[$idx + 1])) {
+        $nextEp = $episodes[$idx + 1]['episode_number'];
+        break;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -70,7 +78,8 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
                         preload="auto"
                         playsinline
                         data-aid="<?= $aid ?>"
-                        data-ep="<?= htmlspecialchars($epNum) ?>">
+                        data-ep="<?= htmlspecialchars($epNum) ?>"
+                        data-next-ep="<?= $nextEp !== null ? htmlspecialchars($nextEp) : '' ?>">
                         <source src="<?= $videoUrl ?>" type="video/mp4">
                         <p class="vjs-no-js">
                             JavaScript를 활성화하거나 HTML5 video를 지원하는 브라우저를 사용하세요.

@@ -809,11 +809,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let lastSaveAt = 0;
 
         const saved = loadWatchProgress(aid, epNum);
-        if (saved && saved.currentTime > 0) {
-            player.one('loadedmetadata', () => {
-                isSeeking = true;
-                player.currentTime(saved.currentTime);
-            });
+        if (saved && saved.currentTime > 0 && saved.duration > 0) {
+            const progressRatio = saved.currentTime / saved.duration;
+            if (progressRatio < 0.95) {
+                player.one('loadedmetadata', () => {
+                    isSeeking = true;
+                    player.currentTime(saved.currentTime);
+                });
+            }
         }
 
         player.on('seeking', () => {
@@ -839,6 +842,11 @@ document.addEventListener('DOMContentLoaded', () => {
         player.on('ended', () => {
             const duration = player.duration();
             saveWatchProgress(aid, epNum, duration, duration);
+
+            const nextEp = playerEl.dataset.nextEp;
+            if (nextEp) {
+                window.location.href = '/anime/watch.php?aid=' + encodeURIComponent(aid) + '&ep=' + encodeURIComponent(nextEp);
+            }
         });
     };
 });
