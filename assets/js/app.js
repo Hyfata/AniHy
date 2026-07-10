@@ -734,4 +734,111 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Watch progress helpers
+    function getWatchKey(aid, epNum) {
+        return 'anime_' + aid + '_' + epNum;
+    }
+
+    function loadWatchProgress(aid, epNum) {
+        try {
+            const raw = localStorage.getItem(getWatchKey(aid, epNum));
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (data && typeof data.currentTime === 'number') {
+                return data;
+            }
+        } catch (e) {
+            console.error('loadWatchProgress error', e);
+        }
+        return null;
+    }
+
+    function saveWatchProgress(aid, epNum, currentTime, duration) {
+        try {
+            const data = {
+                currentTime: parseFloat(currentTime) || 0,
+                duration: parseFloat(duration) || 0,
+                updatedAt: Date.now()
+            };
+            localStorage.setItem(getWatchKey(aid, epNum), JSON.stringify(data));
+        } catch (e) {
+            console.error('saveWatchProgress error', e);
+        }
+    }
+
+    function getProgressPercent(currentTime, duration) {
+        if (!duration || duration <= 0) return 0;
+        const pct = (currentTime / duration) * 100;
+        return Math.min(100, Math.max(0, pct));
+    }
+
+    // Render watch progress bars on anime.php episode list
+    function renderEpisodeProgressBars() {
+        document.querySelectorAll('.episode-item[data-aid][data-ep]').forEach(item => {
+            const aid = item.dataset.aid;
+            const epNum = item.dataset.ep;
+            const fill = item.querySelector('.episode-progress-fill');
+            if (!aid || !epNum || !fill) return;
+
+            const progress = loadWatchProgress(aid, epNum);
+            if (progress && progress.duration > 0) {
+                fill.style.width = getProgressPercent(progress.currentTime, progress.duration) + '%';
+            } else {
+                fill.style.width = '0%';
+            }
+        });
+    }
+
+    renderEpisodeProgressBars();
+
+    // Save watch progress on watch.php
+    window.initWatchProgress = function(player) {
+        const playerEl = document.getElementById('anime-player');
+        if (!playerEl || typeof videojs === 'undefined') return;
+
+        const aid = playerEl.dataset.aid;
+        const epNum = playerEl.dataset.ep;
+        if (!aid || !epNum) return;
+
+        if (!player) player = videojs.getPlayer('anime-player');
+        if (!player) return;
+
+        let isSeeking = false;
+        let lastSavedTime = 0;
+        let lastSaveAt = 0;
+
+        const saved = loadWatchProgress(aid, epNum);
+        if (saved && saved.currentTime > 0) {
+            player.one('loadedmetadata', () => {
+                isSeeking = true;
+                player.currentTime(saved.currentTime);
+            });
+        }
+
+        player.on('seeking', () => {
+            isSeeking = true;
+        });
+
+        player.on('seeked', () => {
+            isSeeking = false;
+        });
+
+        player.on('timeupdate', () => {
+            if (isSeeking) return;
+            const currentTime = player.currentTime();
+            const duration = player.duration();
+            const now = Date.now();
+            if (Math.abs(currentTime - lastSavedTime) >= 5 || now - lastSaveAt >= 5000) {
+                saveWatchProgress(aid, epNum, currentTime, duration);
+                lastSavedTime = currentTime;
+                lastSaveAt = now;
+            }
+        });
+
+        player.on('ended', () => {
+            const duration = player.duration();
+            saveWatchProgress(aid, epNum, duration, duration);
+        });
+    };
 });

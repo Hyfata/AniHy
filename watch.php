@@ -68,7 +68,9 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
                         class="video-js vjs-theme-anime vjs-big-play-centered"
                         controls
                         preload="auto"
-                        playsinline>
+                        playsinline
+                        data-aid="<?= $aid ?>"
+                        data-ep="<?= htmlspecialchars($epNum) ?>">
                         <source src="<?= $videoUrl ?>" type="video/mp4">
                         <p class="vjs-no-js">
                             JavaScript를 활성화하거나 HTML5 video를 지원하는 브라우저를 사용하세요.
@@ -119,7 +121,7 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
     <script src="<?= assetUrl('js/app.js') ?>"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            videojs('anime-player', {
+            window.animePlayer = videojs('anime-player', {
                 language: 'ko',
                 fluid: true,
                 responsive: true,
@@ -128,6 +130,9 @@ $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
                     doubleClick: false
                 }
             });
+            if (typeof window.initWatchProgress === 'function') {
+                window.initWatchProgress(window.animePlayer);
+            }
         });
     </script>
 </body>

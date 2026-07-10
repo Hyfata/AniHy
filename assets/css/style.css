@@ -353,6 +353,8 @@ img {
     background: var(--surface);
     border-radius: var(--radius-sm);
     transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
 }
 
 .episode-item:hover {
@@ -389,6 +391,22 @@ img {
 
 .episode-title {
     font-weight: 500;
+}
+
+.episode-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.episode-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #ff0000;
+    transition: width 0.3s;
 }
 
 /* Watch page */

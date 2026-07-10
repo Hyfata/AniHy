@@ -70,7 +70,7 @@ $episodes = $stmt->fetchAll();
         <?php else: ?>
             <div class="episode-list">
                 <?php foreach ($episodes as $ep): ?>
-                    <div class="episode-item" onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>'">
+                    <div class="episode-item" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number']) ?>" onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>'">
                         <div class="episode-meta">
                             <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
                             <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '회')) ?></span>
@@ -78,6 +78,9 @@ $episodes = $stmt->fetchAll();
                         <?php if (isAdmin()): ?>
                             <button class="btn btn-danger btn-sm delete-episode-btn" data-id="<?= $ep['id'] ?>" title="삭제">삭제</button>
                         <?php endif; ?>
+                        <div class="episode-progress-bar">
+                            <div class="episode-progress-fill"></div>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
