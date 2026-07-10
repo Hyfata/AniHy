@@ -715,7 +715,20 @@ img {
 }
 
 .watch-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-top: 12px;
+}
+
+#skip-intro-ending-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+#skip-intro-ending-btn.active:hover {
+    background: var(--primary-hover);
 }
 
 .search-result {

@@ -848,5 +848,141 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = '/anime/watch.php?aid=' + encodeURIComponent(aid) + '&ep=' + encodeURIComponent(nextEp);
             }
         });
+
+        initChapterSkip(player);
     };
+
+    function initChapterSkip(player) {
+        if (!player || typeof videojs === 'undefined') return;
+
+        const skipBtn = document.getElementById('skip-intro-ending-btn');
+        if (!skipBtn) return;
+
+        const STORAGE_KEY = 'anihy_skip_intro_ending';
+        let autoSkipEnabled = false;
+        try {
+            autoSkipEnabled = localStorage.getItem(STORAGE_KEY) === '1';
+        } catch (e) {
+            // localStorage unavailable
+        }
+
+        const skippedCueStarts = new Set();
+        let chaptersTrack = null;
+
+        function normalizeChapterTitle(text) {
+            return (text || '').toLowerCase().trim();
+        }
+
+        function isIntroCue(title) {
+            return title === 'intro' || title === 'opening';
+        }
+
+        function isCreditsCue(title) {
+            return title === 'credits' || title === 'ending';
+        }
+
+        function isEpisodeCue(title) {
+            return title === 'episode';
+        }
+
+        function getChaptersTrack() {
+            const tracks = player.textTracks ? player.textTracks() : [];
+            for (let i = 0; i < tracks.length; i++) {
+                if (tracks[i].kind === 'chapters') return tracks[i];
+            }
+            return null;
+        }
+
+        function waitForChaptersTrack(callback) {
+            const track = getChaptersTrack();
+            if (track) {
+                callback(track);
+                return;
+            }
+            const tracks = player.textTracks();
+            function onAddTrack() {
+                const t = getChaptersTrack();
+                if (t) {
+                    tracks.removeEventListener('addtrack', onAddTrack);
+                    callback(t);
+                }
+            }
+            tracks.addEventListener('addtrack', onAddTrack);
+        }
+
+        function waitForCues(track, callback) {
+            if (track.cues && track.cues.length > 0) {
+                callback(track);
+                return;
+            }
+            track.mode = 'hidden';
+            function onLoad() {
+                track.removeEventListener('load', onLoad);
+                callback(track);
+            }
+            track.addEventListener('load', onLoad);
+        }
+
+        function updateButton() {
+            skipBtn.textContent = autoSkipEnabled
+                ? '오프닝/엔딩 스킵: 켜짐'
+                : '오프닝/엔딩 스킵: 꺼짐';
+            skipBtn.classList.toggle('active', autoSkipEnabled);
+        }
+
+        skipBtn.addEventListener('click', () => {
+            autoSkipEnabled = !autoSkipEnabled;
+            updateButton();
+            try {
+                localStorage.setItem(STORAGE_KEY, autoSkipEnabled ? '1' : '0');
+            } catch (e) {
+                // ignore
+            }
+        });
+
+        updateButton();
+
+        waitForChaptersTrack((track) => {
+            chaptersTrack = track;
+            waitForCues(track, () => {
+                // 챕터 데이터 준비 완료; 별도 UI 변화 없음
+            });
+        });
+
+        player.on('timeupdate', () => {
+            if (!autoSkipEnabled || !chaptersTrack || !chaptersTrack.cues) return;
+
+            const activeCues = chaptersTrack.activeCues;
+            const cue = activeCues && activeCues.length > 0 ? activeCues[0] : null;
+            if (!cue || !cue.text) return;
+
+            const title = normalizeChapterTitle(cue.text);
+            const isIntro = isIntroCue(title);
+            const isCredits = isCreditsCue(title);
+            if (!isIntro && !isCredits) return;
+
+            if (skippedCueStarts.has(cue.startTime)) return;
+
+            let targetTime = null;
+            const cues = chaptersTrack.cues;
+            for (let i = 0; i < cues.length; i++) {
+                const other = cues[i];
+                if (other.startTime > cue.startTime && isEpisodeCue(normalizeChapterTitle(other.text))) {
+                    targetTime = other.startTime;
+                    break;
+                }
+            }
+
+            if (targetTime !== null) {
+                player.currentTime(targetTime);
+            } else if (isCredits) {
+                const duration = player.duration();
+                if (duration && isFinite(duration)) {
+                    player.currentTime(duration);
+                }
+            }
+
+            skippedCueStarts.add(cue.startTime);
+        });
+    }
 });

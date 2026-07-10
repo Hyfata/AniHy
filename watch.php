@@ -94,11 +94,12 @@ foreach ($episodes as $idx => $ep) {
                             <a href="/anime/anime.php?aid=<?= $aid ?>" class="watch-anime-title"><?= htmlspecialchars($anime['title']) ?></a>
                         </div>
                     </div>
-                    <?php if ($hasEnSubtitle): ?>
-                        <div class="watch-actions">
+                    <div class="watch-actions">
+                        <button type="button" id="skip-intro-ending-btn" class="btn btn-sm btn-secondary">오프닝/엔딩 스킵: 꺼짐</button>
+                        <?php if ($hasEnSubtitle): ?>
                             <a href="/anime/subtitles/<?= $aid ?>/<?= rawurlencode($epNum) ?>_en.ass" download class="btn btn-sm">영어 자막 다운로드</a>
-                        </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
 
