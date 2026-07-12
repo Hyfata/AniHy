@@ -91,7 +91,7 @@ $episodes = $stmt->fetchAll();
         <?php include __DIR__ . '/inc/queue_modal.php'; ?>
         <?php include __DIR__ . '/inc/settings_float.php'; ?>
 
-        <div class="modal-overlay" id="add-episode-modal" data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '') ?>">
+        <div class="modal-overlay" id="add-episode-modal" data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '') ?>" data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>">
             <div class="modal">
                 <div class="modal-header">
                     <h2>에피소드 추가</h2>

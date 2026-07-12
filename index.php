@@ -51,6 +51,7 @@ $animes = $stmt->fetchAll();
                                         data-title="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>"
                                         data-description="<?= htmlspecialchars($anime['description'] ?? '', ENT_QUOTES) ?>"
                                         data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '', ENT_QUOTES) ?>"
+                                        data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>"
                                         data-cover="<?= coverUrl($anime['cover_image']) ?>"
                                         title="수정">✎</button>
                                 <button class="btn btn-danger btn-sm delete-anime-btn" data-id="<?= $anime['id'] ?>" title="삭제">×</button>
@@ -93,7 +94,15 @@ $animes = $stmt->fetchAll();
                             <textarea id="description" name="description"></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="search-keyword">Crunchyroll 시즌 검색</label>
+                            <label for="is_hidive">서비스</label>
+                            <select id="is_hidive" name="is_hidive">
+                                <option value="0">Crunchyroll</option>
+                                <option value="1">Hidive</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="search-keyword">시즌 검색</label>
                             <div style="display:flex;gap:8px">
                                 <input type="text" id="search-keyword" name="keyword" placeholder="예: one piece" style="flex:1">
                                 <button type="button" id="search-btn" class="btn btn-primary">검색</button>
@@ -106,7 +115,7 @@ $animes = $stmt->fetchAll();
                         </div>
 
                         <div class="form-group">
-                            <label for="season_id">Crunchyroll 시즌 ID</label>
+                            <label for="season_id">시즌 ID</label>
                             <input type="text" id="season_id" name="season_id" placeholder="예: GS0012345678">
                         </div>
                         <button type="submit" class="btn btn-primary" style="width:100%">추가</button>
@@ -141,7 +150,15 @@ $animes = $stmt->fetchAll();
                             <textarea id="edit-description" name="description"></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="edit-search-keyword">Crunchyroll 시즌 검색</label>
+                            <label for="edit-is-hidive">서비스</label>
+                            <select id="edit-is-hidive" name="is_hidive">
+                                <option value="0">Crunchyroll</option>
+                                <option value="1">Hidive</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-search-keyword">시즌 검색</label>
                             <div style="display:flex;gap:8px">
                                 <input type="text" id="edit-search-keyword" name="keyword" placeholder="예: one piece" style="flex:1">
                                 <button type="button" id="edit-search-btn" class="btn btn-primary">검색</button>
@@ -154,7 +171,7 @@ $animes = $stmt->fetchAll();
                         </div>
 
                         <div class="form-group">
-                            <label for="edit-season-id">Crunchyroll 시즌 ID</label>
+                            <label for="edit-season-id">시즌 ID</label>
                             <input type="text" id="edit-season-id" name="season_id" placeholder="예: GS0012345678">
                         </div>
                         <button type="submit" class="btn btn-primary" style="width:100%">수정</button>

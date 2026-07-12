@@ -13,13 +13,15 @@ if (!$animeId || $episodeNumber === '') {
 
 $safeEpisode = sanitizeFilename($episodeNumber);
 
-$stmt = $pdo->prepare("SELECT season_id, title FROM animes WHERE id = ?");
+$stmt = $pdo->prepare("SELECT season_id, title, is_hidive FROM animes WHERE id = ?");
 $stmt->execute([$animeId]);
 $anime = $stmt->fetch();
 
 if (!$anime || empty($anime['season_id'])) {
     jsonResponse(false, [], '애니 또는 시즌 ID를 찾을 수 없습니다.');
 }
+
+$script = !empty($anime['is_hidive']) ? './hidn.sh' : './crdn.sh';
 
 $baseDir = '/var/www/html/anime';
 $downloaderDir = "$baseDir/downloader";
@@ -41,8 +43,9 @@ if (!is_dir($assDir)) {
 // Download English subtitle
 $before = glob($videosDir . '/*.ass');
 $cmd = sprintf(
-    'cd %s && ./crdn.sh -s %s -e %s --dlsubs en --noASSConv --novids --noaudio 2>&1',
+    'cd %s && %s -s %s -e %s --dlsubs en --noASSConv --novids --noaudio 2>&1',
     escapeshellarg($downloaderDir),
+    $script,
     escapeshellarg($anime['season_id']),
     escapeshellarg($episodeNumber)
 );

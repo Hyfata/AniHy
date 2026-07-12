@@ -12,6 +12,8 @@ $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 $title = trim($_POST['title'] ?? '');
 $description = trim($_POST['description'] ?? '');
 $seasonId = trim($_POST['season_id'] ?? '');
+$isHidive = filter_input(INPUT_POST, 'is_hidive', FILTER_VALIDATE_INT) ?: 0;
+$isHidive = $isHidive ? 1 : 0;
 
 if (!$id || $title === '') {
     jsonResponse(false, [], '필수 항목을 입력하세요.');
@@ -50,7 +52,7 @@ if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
     $coverImage = $newFilename;
 }
 
-$stmt = $pdo->prepare("UPDATE animes SET title = ?, cover_image = ?, description = ?, season_id = ? WHERE id = ?");
-$stmt->execute([$title, $coverImage, $description, $seasonId ?: null, $id]);
+$stmt = $pdo->prepare("UPDATE animes SET title = ?, cover_image = ?, description = ?, season_id = ?, is_hidive = ? WHERE id = ?");
+$stmt->execute([$title, $coverImage, $description, $seasonId ?: null, $isHidive, $id]);
 
 jsonResponse(true, ['id' => $id], '애니 정보가 수정되었습니다.');

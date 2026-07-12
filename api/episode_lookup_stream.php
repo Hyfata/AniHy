@@ -5,6 +5,7 @@ require_once __DIR__ . '/../inc/functions.php';
 requireAdmin();
 
 $seasonId = trim($_GET['season_id'] ?? '');
+$service = trim($_GET['service'] ?? 'crunchy');
 if ($seasonId === '') {
     http_response_code(400);
     jsonResponse(false, [], '시즌 ID가 필요합니다.');
@@ -29,10 +30,12 @@ function sendSse(string $data, string $event = 'message'): void {
     flush();
 }
 
+$script = $service === 'hidive' ? './hidn.sh' : './crdn.sh';
 $downloaderDir = __DIR__ . '/../downloader';
 $cmd = sprintf(
-    'cd %s && ./crdn.sh -s %s 2>&1',
+    'cd %s && %s -s %s 2>&1',
     escapeshellarg($downloaderDir),
+    $script,
     escapeshellarg($seasonId)
 );
 

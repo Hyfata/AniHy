@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS animes (
     cover_image VARCHAR(500) NOT NULL,
     description TEXT,
     season_id VARCHAR(100),
+    is_hidive BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -4,6 +4,7 @@ downloader/widevine/
 downloader/docs/
 downloader/bento4/
 downloader/config/cr_token.yml
+downloader/config/hd_new_token.yml
 downloader/config/archive.json
 downloader/videos/
 AGENTS.md

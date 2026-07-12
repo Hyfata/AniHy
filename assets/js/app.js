@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('edit-title').value = btn.dataset.title;
                 document.getElementById('edit-description').value = btn.dataset.description;
                 document.getElementById('edit-season-id').value = btn.dataset.seasonId || '';
+                document.getElementById('edit-is-hidive').value = btn.dataset.isHidive === '1' ? '1' : '0';
                 document.getElementById('edit-cover-preview').src = btn.dataset.cover;
                 openModal('edit-anime-modal');
             });
@@ -150,18 +151,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Season search helpers
-    function setupSearch(btnId, inputId, resultId) {
+    function setupSearch(btnId, inputId, resultId, serviceSelectId) {
         const searchBtn = document.getElementById(btnId);
         const searchInput = document.getElementById(inputId);
         const searchResult = document.getElementById(resultId);
+        const serviceSelect = serviceSelectId ? document.getElementById(serviceSelectId) : null;
 
         if (searchBtn && searchInput && searchResult) {
             searchBtn.addEventListener('click', async () => {
                 const keyword = searchInput.value.trim();
                 if (!keyword) return;
+                const service = serviceSelect ? (serviceSelect.value === '1' ? 'hidive' : 'crunchy') : 'crunchy';
                 searchResult.textContent = '검색 중...';
                 try {
-                    const res = await fetch('/anime/api/search.php?keyword=' + encodeURIComponent(keyword));
+                    const res = await fetch('/anime/api/search.php?keyword=' + encodeURIComponent(keyword) + '&service=' + encodeURIComponent(service));
                     const text = await res.text();
                     searchResult.textContent = text;
                 } catch (err) {
@@ -171,8 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    setupSearch('search-btn', 'search-keyword', 'search-result');
-    setupSearch('edit-search-btn', 'edit-search-keyword', 'edit-search-result');
+    setupSearch('search-btn', 'search-keyword', 'search-result', 'is_hidive');
+    setupSearch('edit-search-btn', 'edit-search-keyword', 'edit-search-result', 'edit-is-hidive');
 
     // English subtitle download button
     const downloadEnBtn = document.getElementById('download-en-subtitle-btn');
@@ -274,14 +277,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function startLookup(seasonId) {
+    function startLookup(seasonId, isHidive) {
         stopLookup();
         if (lookupLogBox) {
             lookupLogBox.textContent = '에피소드 목록을 조회하는 중...\n';
         }
         if (lookupTitle) lookupTitle.textContent = '에피소드 조회';
 
-        const url = '/anime/api/episode_lookup_stream.php?season_id=' + encodeURIComponent(seasonId);
+        const service = isHidive ? 'hidive' : 'crunchy';
+        const url = '/anime/api/episode_lookup_stream.php?season_id=' + encodeURIComponent(seasonId) + '&service=' + encodeURIComponent(service);
         lookupEventSource = new EventSource(url);
 
         lookupEventSource.onopen = () => {
@@ -318,12 +322,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lookupBtn && addEpisodeModal) {
         lookupBtn.addEventListener('click', async () => {
             const seasonId = (addEpisodeModal.dataset.seasonId || '').trim();
+            const isHidive = addEpisodeModal.dataset.isHidive === '1';
             if (!seasonId) {
                 await modalAlert('애니에 등록된 시즌 ID가 없습니다.');
                 return;
             }
             showLookupView();
-            startLookup(seasonId);
+            startLookup(seasonId, isHidive);
         });
     }
 

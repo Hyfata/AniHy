@@ -11,6 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $title = trim($_POST['title'] ?? '');
 $description = trim($_POST['description'] ?? '');
 $seasonId = trim($_POST['season_id'] ?? '');
+$isHidive = filter_input(INPUT_POST, 'is_hidive', FILTER_VALIDATE_INT) ?: 0;
+$isHidive = $isHidive ? 1 : 0;
 
 if ($title === '') {
     jsonResponse(false, [], '제목을 입력하세요.');
@@ -32,7 +34,7 @@ if (!move_uploaded_file($_FILES['cover']['tmp_name'], $dest)) {
     jsonResponse(false, [], '이미지 저장에 실패했습니다.');
 }
 
-$stmt = $pdo->prepare("INSERT INTO animes (title, cover_image, description, season_id) VALUES (?, ?, ?, ?)");
-$stmt->execute([$title, $filename, $description, $seasonId ?: null]);
+$stmt = $pdo->prepare("INSERT INTO animes (title, cover_image, description, season_id, is_hidive) VALUES (?, ?, ?, ?, ?)");
+$stmt->execute([$title, $filename, $description, $seasonId ?: null, $isHidive]);
 
 jsonResponse(true, ['id' => $pdo->lastInsertId()], '애니가 추가되었습니다.');

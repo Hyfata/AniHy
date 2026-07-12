@@ -62,13 +62,21 @@ $seasonId = $job['season_id'];
 $episodeTitle = $job['episode_title'] ?: ($episodeNumber . '회');
 $subtitleFile = $job['subtitle_file'];
 
-logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId");
-updateJob($pdo, $jobId, 'downloading', 5, 'Crunchyroll에서 다운로드 중...');
+$stmt = $pdo->prepare("SELECT is_hidive FROM animes WHERE id = ?");
+$stmt->execute([$animeId]);
+$anime = $stmt->fetch();
+$isHidive = !empty($anime['is_hidive']);
+$script = $isHidive ? './hidn.sh' : './crdn.sh';
+$serviceName = $isHidive ? 'Hidive' : 'Crunchyroll';
+
+logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId service=$serviceName");
+updateJob($pdo, $jobId, 'downloading', 5, "$serviceName에서 다운로드 중...");
 
 // Download
 $cmd = sprintf(
-    "cd %s && ./crdn.sh -s %s -e %s --fileName %s 2>&1",
+    "cd %s && %s -s %s -e %s --fileName %s 2>&1",
     escapeshellarg($downloaderDir),
+    $script,
     escapeshellarg($seasonId),
     escapeshellarg($episodeNumber),
     escapeshellarg("{$seasonId}_{$safeEpisode}")
