@@ -115,16 +115,18 @@ if ($subtitleFile && file_exists("$subtitlesDir/$subtitleFile")) {
     $subtitleExt = strtolower(pathinfo($subtitlePath, PATHINFO_EXTENSION));
     if ($subtitleExt === 'smi') {
         $smiFilename = basename($subtitlePath);
-        $dockerCmd = sprintf(
-            'docker run --rm -i -v %s:/subtitles seconv:1.0 %s ass 2>&1',
-            escapeshellarg($subtitlesDir . '/'),
-            escapeshellarg($smiFilename)
-        );
-        shellExecLogged($dockerCmd);
         $smiBasename = pathinfo($subtitlePath, PATHINFO_FILENAME);
-        $seconvOutput = "$subtitlesDir/{$smiBasename}.ass";
-        if (file_exists($seconvOutput)) {
-            $sourceAssPath = $seconvOutput;
+        $smi2assCmd = sprintf(
+            'cd %s && %s %s -o %s 2>&1',
+            escapeshellarg($subtitlesDir),
+            escapeshellarg($baseDir . '/smi2ass/smi2ass'),
+            escapeshellarg($smiFilename),
+            escapeshellarg($assDir)
+        );
+        shellExecLogged($smi2assCmd);
+        $smi2assOutput = "$assDir/{$smiBasename}.ass";
+        if (file_exists($smi2assOutput)) {
+            $sourceAssPath = $smi2assOutput;
         }
     } else {
         copy($subtitlePath, $assPath);
@@ -142,24 +144,11 @@ if ($subtitleFile && file_exists("$subtitlesDir/$subtitleFile")) {
     $sourceAssPath = $assPath;
 }
 
-// Fix ruby tags for converted/extracted ASS
+// Move prepared ASS to final path
 if ($sourceAssPath && file_exists($sourceAssPath) && filesize($sourceAssPath) > 0) {
-    $fixCmd = sprintf(
-        'python3 %s %s 2>&1',
-        escapeshellarg($baseDir . '/ass_ruby_fix.py'),
-        escapeshellarg($sourceAssPath)
-    );
-    shellExecLogged($fixCmd);
-    $sourceBasename = pathinfo($sourceAssPath, PATHINFO_FILENAME);
-    $fixedPath = "$subtitlesDir/{$sourceBasename}_fixed.ass";
-    if (file_exists($fixedPath)) {
-        if ($fixedPath !== $assPath) {
-            @unlink($assPath);
-            rename($fixedPath, $assPath);
-        }
-        if ($sourceAssPath !== $assPath && file_exists($sourceAssPath)) {
-            @unlink($sourceAssPath);
-        }
+    if ($sourceAssPath !== $assPath) {
+        @unlink($assPath);
+        rename($sourceAssPath, $assPath);
     }
 }
 

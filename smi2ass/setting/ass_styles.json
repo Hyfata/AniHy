@@ -1,0 +1,43 @@
+{
+    "ScriptInfo": {
+        "Head": "[Script Info]",
+        "msg": [
+            ";This is an Advanced Sub Station Alpha v4+ script.",
+            ";Converted by smi2ass"
+        ],
+        "Title": "0",
+        "ScriptType": "v4.00+",
+        "ScaledBorderAndShadow": "Yes",
+        "Collisions": "Normal",
+        "PlayDepth": 0,
+        "PlayResX": 1920,
+        "PlayResY": 1080,
+        "Timer": 100.0000
+    },
+    "style": {
+        "Head": "[V4+ Styles]",
+        "Name": "Default",
+        "Fontname": "Malgun Gothic",
+        "Fontsize": 75,
+        "PrimaryColour": "&H00FFFFFF",
+        "SecondaryColour": "&HFF00FFFF",
+        "OutlineColour": "&H00000000",
+        "BackColour": "&H02000000",
+        "Bold": -1,
+        "Italic": 0,
+        "Underline": 0,
+        "StrikeOut": 0,
+        "ScaleX": 100,
+        "ScaleY": 100,
+        "Spacing": 0,
+        "Angle": 0,
+        "BorderStyle": 1,
+        "Outline": 4,
+        "Shadow": 0,
+        "Alignment": 2,
+        "MarginL": 0,
+        "MarginR": 0,
+        "MarginV": 100,
+        "Encoding": 1
+    }
+}

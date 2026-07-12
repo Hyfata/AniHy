@@ -1,0 +1,19 @@
+{
+    "KRCC": "kor",
+    "KOCC": "kor",
+    "KR": "kor",
+    "KO": "kor",
+    "KOREANSC": "kor",
+    "KRC": "kor",
+    "ENCC": "eng",
+    "EGCC": "eng",
+    "EN": "eng",
+    "EnglishSC": "eng",
+    "ENUSCC": "eng",
+    "ERCC": "eng",
+    "CNCC": "chi",
+    "JPCC": "jpn",
+    "UNKNOWNCC": "und",
+    "UNKNWN": "und",
+    "COMMENTARY": "commentary"
+}
