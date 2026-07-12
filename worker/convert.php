@@ -61,6 +61,10 @@ $safeEpisode = sanitizeFilename($episodeNumber);
 $seasonId = $job['season_id'];
 $episodeTitle = $job['episode_title'] ?: ($episodeNumber . '회');
 $subtitleFile = $job['subtitle_file'];
+$trimSeconds = (float)($job['trim_seconds'] ?? 0);
+if ($trimSeconds < 0) {
+    $trimSeconds = 0;
+}
 
 $stmt = $pdo->prepare("SELECT is_hidive FROM animes WHERE id = ?");
 $stmt->execute([$animeId]);
@@ -69,7 +73,7 @@ $isHidive = !empty($anime['is_hidive']);
 $script = $isHidive ? './hidn.sh' : './crdn.sh';
 $serviceName = $isHidive ? 'Hidive' : 'Crunchyroll';
 
-logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId service=$serviceName");
+logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId service=$serviceName trim=$trimSeconds");
 updateJob($pdo, $jobId, 'downloading', 5, "$serviceName에서 다운로드 중...");
 
 // Download
@@ -177,6 +181,11 @@ $durationCmd = sprintf(
 $durationOutput = trim(shellExecLogged($durationCmd));
 if (is_numeric($durationOutput) && (float)$durationOutput > 0) {
     $durationMs = (float)$durationOutput * 1000;
+    if ($trimSeconds > 0) {
+        $trimMs = (int)round($trimSeconds * 1000);
+        $durationMs = max(0, $durationMs - $trimMs);
+        logMsg("Adjusted duration (after {$trimSeconds}s trim): " . round($durationMs / 1000, 2) . "s");
+    }
     updateJobDuration($pdo, $jobId, (int)$durationMs);
     logMsg("Duration: " . round($durationMs / 1000, 2) . "s");
 }
@@ -191,6 +200,12 @@ if ($hasSubtitle) {
     $cmdParts = [
         'ffmpeg',
         '-y',
+    ];
+    if ($trimSeconds > 0) {
+        $cmdParts[] = '-ss';
+        $cmdParts[] = (string)$trimSeconds;
+    }
+    $cmdParts = array_merge($cmdParts, [
         '-vaapi_device', '/dev/dri/renderD128',
         '-i', $mkvPath,
         '-vf', 'ass=' . $assPath . ',format=nv12,hwupload',
@@ -202,12 +217,18 @@ if ($hasSubtitle) {
         '-progress', 'pipe:2',
         '-nostats',
         $outputPath
-    ];
+    ]);
 } else {
     // No subtitle: just remux to MP4 quickly
     $cmdParts = [
         'ffmpeg',
         '-y',
+    ];
+    if ($trimSeconds > 0) {
+        $cmdParts[] = '-ss';
+        $cmdParts[] = (string)$trimSeconds;
+    }
+    $cmdParts = array_merge($cmdParts, [
         '-i', $mkvPath,
         '-c:v', 'copy',
         '-c:a', 'copy',
@@ -216,7 +237,7 @@ if ($hasSubtitle) {
         '-progress', 'pipe:2',
         '-nostats',
         $outputPath
-    ];
+    ]);
 }
 $cmd = implode(' ', array_map('escapeshellarg', $cmdParts));
 logMsg("Encode cmd: $cmd");

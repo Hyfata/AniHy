@@ -223,6 +223,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressText = document.getElementById('progress-text');
     const logBox = document.getElementById('log-box');
 
+    const trimEnabled = document.getElementById('trim_enabled');
+    const trimSeconds = document.getElementById('trim_seconds');
+
+    if (trimEnabled && trimSeconds) {
+        trimEnabled.addEventListener('change', () => {
+            if (trimEnabled.checked) {
+                trimSeconds.value = '7.8';
+                trimSeconds.disabled = false;
+            } else {
+                trimSeconds.disabled = true;
+            }
+        });
+    }
+
     if (episodeForm) {
         episodeForm.addEventListener('submit', async e => {
             e.preventDefault();
@@ -237,6 +251,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
                 if (data.success) {
                     episodeForm.reset();
+                    if (trimEnabled) trimEnabled.checked = false;
+                    if (trimSeconds) trimSeconds.disabled = true;
                     await modalAlert(data.message || '대기열에 추가되었습니다.');
                 } else {
                     await modalAlert(data.message || '추가 실패');

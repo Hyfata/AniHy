@@ -117,6 +117,14 @@ $episodes = $stmt->fetchAll();
                                 <input type="file" id="subtitle" name="subtitle" accept="*">
                             </div>
 
+                            <div class="form-group trim-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="trim_enabled" name="trim_enabled">
+                                    앞부분 자르기
+                                </label>
+                                <input type="number" id="trim_seconds" name="trim_seconds" value="7.8" step="0.1" min="0" disabled>
+                            </div>
+
                             <div class="form-group">
                                 <button type="button" id="download-en-subtitle-btn" class="btn btn-secondary" style="width:100%">영어 자막 다운로드</button>
                             </div>

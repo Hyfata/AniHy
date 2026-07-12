@@ -12,6 +12,11 @@ $animeId = filter_input(INPUT_POST, 'anime_id', FILTER_VALIDATE_INT);
 $episodeNumber = trim($_POST['episode_number'] ?? '');
 $seasonId = trim($_POST['season_id'] ?? '');
 $episodeTitle = trim($_POST['episode_title'] ?? '');
+$trimSeconds = filter_input(INPUT_POST, 'trim_seconds', FILTER_VALIDATE_FLOAT);
+if ($trimSeconds === false || $trimSeconds === null || $trimSeconds < 0) {
+    $trimSeconds = 0;
+}
+$trimSeconds = round($trimSeconds, 3);
 if (!$animeId || $episodeNumber === '') {
     jsonResponse(false, [], '필수 항목을 입력하세요.');
 }
@@ -63,12 +68,20 @@ if (isset($_FILES['subtitle']) && $_FILES['subtitle']['error'] === UPLOAD_ERR_OK
 }
 
 // Create job record
-$stmt = $pdo->prepare(
-    "INSERT INTO jobs (anime_id, episode_number, season_id, episode_title, subtitle_file, status, progress, message)
-     VALUES (?, ?, ?, ?, ?, 'pending', 0, '대기 중')"
-);
-$stmt->execute([$animeId, $episodeNumber, $seasonId, $episodeTitle, $subtitleFile]);
-$jobId = (int)$pdo->lastInsertId();
+try {
+    $stmt = $pdo->prepare(
+        "INSERT INTO jobs (anime_id, episode_number, season_id, episode_title, subtitle_file, trim_seconds, status, progress, message)
+         VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, '대기 중')"
+    );
+    $stmt->execute([$animeId, $episodeNumber, $seasonId, $episodeTitle, $subtitleFile, $trimSeconds]);
+    $jobId = (int)$pdo->lastInsertId();
+} catch (PDOException $e) {
+    $msg = $e->getMessage();
+    if (str_contains($msg, 'trim_seconds') || $e->getCode() == '42S22') {
+        jsonResponse(false, [], 'DB에 trim_seconds 컬럼이 없습니다. sql/migrations/001_add_trim_seconds_to_jobs.sql 마이그레이션을 실행하세요.');
+    }
+    jsonResponse(false, [], 'DB 오류: ' . $msg);
+}
 
 // Trigger queue manager if not already running
 $lockFile = __DIR__ . '/../logs/queue.lock';
