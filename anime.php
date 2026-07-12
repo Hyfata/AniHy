@@ -122,7 +122,7 @@ $episodes = $stmt->fetchAll();
                                     <input type="checkbox" id="trim_enabled" name="trim_enabled">
                                     앞부분 자르기
                                 </label>
-                                <input type="number" id="trim_seconds" name="trim_seconds" value="7.8" step="0.1" min="0" disabled>
+                                <input type="number" id="trim_seconds" name="trim_seconds" value="7.5" step="0.1" min="0" disabled>
                             </div>
 
                             <div class="form-group">
