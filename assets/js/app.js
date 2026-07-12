@@ -237,6 +237,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const sourceVideoInput = document.getElementById('source_video');
+    const episodeSubmitBtn = episodeForm ? episodeForm.querySelector('button[type="submit"]') : null;
+    const episodeSubmitDefaultText = episodeSubmitBtn ? episodeSubmitBtn.textContent : '다운로드 및 변환';
+
+    function setUploadMode(isUpload) {
+        if (downloadEnBtn) downloadEnBtn.classList.toggle('hidden', isUpload);
+        if (lookupBtn) lookupBtn.classList.toggle('hidden', isUpload);
+        if (episodeSubmitBtn) {
+            episodeSubmitBtn.textContent = isUpload ? '업로드 및 변환' : episodeSubmitDefaultText;
+        }
+    }
+
+    if (sourceVideoInput) {
+        sourceVideoInput.addEventListener('change', () => {
+            setUploadMode(sourceVideoInput.files && sourceVideoInput.files.length > 0);
+        });
+    }
+
     if (episodeForm) {
         episodeForm.addEventListener('submit', async e => {
             e.preventDefault();
@@ -253,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     episodeForm.reset();
                     if (trimEnabled) trimEnabled.checked = false;
                     if (trimSeconds) trimSeconds.disabled = true;
+                    setUploadMode(false);
                     await modalAlert(data.message || '대기열에 추가되었습니다.');
                 } else {
                     await modalAlert(data.message || '추가 실패');
@@ -359,6 +378,8 @@ document.addEventListener('DOMContentLoaded', () => {
         addEpisodeModal.addEventListener('modal-closed', () => {
             stopLookup();
             hideLookupView();
+            if (sourceVideoInput) sourceVideoInput.value = '';
+            setUploadMode(false);
         });
     }
 

@@ -117,6 +117,11 @@ $episodes = $stmt->fetchAll();
                                 <input type="file" id="subtitle" name="subtitle" accept="*">
                             </div>
 
+                            <div class="form-group">
+                                <label for="source_video">원본 영상 파일 (mkv/mp4/mov/avi/webm, 선택)</label>
+                                <input type="file" id="source_video" name="source_video" accept="video/*">
+                            </div>
+
                             <div class="form-group trim-group">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="trim_enabled" name="trim_enabled">

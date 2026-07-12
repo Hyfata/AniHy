@@ -174,7 +174,10 @@ while (true) {
         }
 
         $jobId = (int)$candidate['id'];
-        updateJobStatus($pdo, $jobId, 'downloading', 0, 'Crunchyroll에서 다운로드 중...');
+        $isUpload = ($candidate['source_type'] ?? 'download') === 'upload';
+        $initialStatus = $isUpload ? 'preparing' : 'downloading';
+        $initialMessage = $isUpload ? '업로드된 영상 처리 중...' : 'Crunchyroll에서 다운로드 중...';
+        updateJobStatus($pdo, $jobId, $initialStatus, 0, $initialMessage);
 
         $descriptors = [
             0 => ['file', '/dev/null', 'r'],

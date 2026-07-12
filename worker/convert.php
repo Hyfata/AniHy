@@ -62,6 +62,8 @@ $seasonId = $job['season_id'];
 $episodeTitle = $job['episode_title'] ?: ($episodeNumber . '회');
 $subtitleFile = $job['subtitle_file'];
 $trimSeconds = (float)($job['trim_seconds'] ?? 0);
+$sourceType = $job['source_type'] ?? 'download';
+$sourceFile = $job['source_file'] ?? null;
 if ($trimSeconds < 0) {
     $trimSeconds = 0;
 }
@@ -73,29 +75,42 @@ $isHidive = !empty($anime['is_hidive']);
 $script = $isHidive ? './hidn.sh' : './crdn.sh';
 $serviceName = $isHidive ? 'Hidive' : 'Crunchyroll';
 
-logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId service=$serviceName trim=$trimSeconds");
-updateJob($pdo, $jobId, 'downloading', 5, "$serviceName에서 다운로드 중...");
-
-// Download
-$cmd = sprintf(
-    "cd %s && %s -s %s -e %s --fileName %s 2>&1",
-    escapeshellarg($downloaderDir),
-    $script,
-    escapeshellarg($seasonId),
-    escapeshellarg($episodeNumber),
-    escapeshellarg("{$seasonId}_{$safeEpisode}")
-);
-$output = shellExecLogged($cmd);
+logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId source=$sourceType service=$serviceName trim=$trimSeconds");
 
 $mkvPath = "$videosDir/{$seasonId}_{$safeEpisode}.mkv";
 
-if (!file_exists($mkvPath)) {
-    updateJob($pdo, $jobId, 'failed', 0, '다운로드 실패: MKV 파일을 찾을 수 없습니다.');
-    logMsg("MKV not found");
-    exit;
-}
+if ($sourceType === 'upload' && !empty($sourceFile)) {
+    $uploadedPath = $baseDir . '/' . $sourceFile;
+    if (!file_exists($uploadedPath)) {
+        updateJob($pdo, $jobId, 'failed', 0, '업로드된 원본 영상을 찾을 수 없습니다.');
+        logMsg("Uploaded source not found: $uploadedPath");
+        exit;
+    }
+    $mkvPath = $uploadedPath;
+    updateJob($pdo, $jobId, 'preparing', 10, '업로드된 영상 처리 중...');
+    logMsg("Using uploaded source: $mkvPath");
+} else {
+    updateJob($pdo, $jobId, 'downloading', 5, "$serviceName에서 다운로드 중...");
 
-logMsg("MKV found: $mkvPath");
+    // Download
+    $cmd = sprintf(
+        "cd %s && %s -s %s -e %s --fileName %s 2>&1",
+        escapeshellarg($downloaderDir),
+        $script,
+        escapeshellarg($seasonId),
+        escapeshellarg($episodeNumber),
+        escapeshellarg("{$seasonId}_{$safeEpisode}")
+    );
+    $output = shellExecLogged($cmd);
+
+    if (!file_exists($mkvPath)) {
+        updateJob($pdo, $jobId, 'failed', 0, '다운로드 실패: MKV 파일을 찾을 수 없습니다.');
+        logMsg("MKV not found");
+        exit;
+    }
+
+    logMsg("MKV found: $mkvPath");
+}
 
 // Prepare subtitle (ASS)
 $assDir = "$subtitlesDir/$animeId";

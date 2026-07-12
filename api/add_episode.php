@@ -36,7 +36,10 @@ if ($seasonId === '') {
     }
 }
 
-if ($seasonId === '') {
+// Determine whether a source video was uploaded
+$hasSourceVideo = isset($_FILES['source_video']) && $_FILES['source_video']['error'] === UPLOAD_ERR_OK;
+
+if (!$hasSourceVideo && $seasonId === '') {
     jsonResponse(false, [], '시즌 ID가 없습니다. 애니 정보에서 시즌 ID를 입력하세요.');
 }
 
@@ -70,17 +73,32 @@ if (isset($_FILES['subtitle']) && $_FILES['subtitle']['error'] === UPLOAD_ERR_OK
 // Create job record
 try {
     $stmt = $pdo->prepare(
-        "INSERT INTO jobs (anime_id, episode_number, season_id, episode_title, subtitle_file, trim_seconds, status, progress, message)
-         VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, '대기 중')"
+        "INSERT INTO jobs (anime_id, episode_number, season_id, episode_title, subtitle_file, trim_seconds, source_type, source_file, status, progress, message)
+         VALUES (?, ?, ?, ?, ?, ?, 'download', NULL, 'pending', 0, '대기 중')"
     );
     $stmt->execute([$animeId, $episodeNumber, $seasonId, $episodeTitle, $subtitleFile, $trimSeconds]);
     $jobId = (int)$pdo->lastInsertId();
 } catch (PDOException $e) {
     $msg = $e->getMessage();
-    if (str_contains($msg, 'trim_seconds') || $e->getCode() == '42S22') {
-        jsonResponse(false, [], 'DB에 trim_seconds 컬럼이 없습니다. sql/migrations/001_add_trim_seconds_to_jobs.sql 마이그레이션을 실행하세요.');
+    if (str_contains($msg, 'trim_seconds') || str_contains($msg, 'source_type') || str_contains($msg, 'source_file') || $e->getCode() == '42S22') {
+        jsonResponse(false, [], 'DB 스키마가 최신이 아닙니다. sql/migrations/ 디렉터리의 마이그레이션을 실행하세요.');
     }
     jsonResponse(false, [], 'DB 오류: ' . $msg);
+}
+
+// Move uploaded source video to worker directory
+if ($hasSourceVideo) {
+    $ext = strtolower(pathinfo($_FILES['source_video']['name'], PATHINFO_EXTENSION));
+    if (!allowedVideoExt($ext)) {
+        jsonResponse(false, [], '지원하지 않는 영상 형식입니다. (mkv/mp4/mov/avi/webm)');
+    }
+    $sourceFile = "downloader/videos/raw_{$jobId}.{$ext}";
+    $dest = __DIR__ . '/../' . $sourceFile;
+    if (!move_uploaded_file($_FILES['source_video']['tmp_name'], $dest)) {
+        jsonResponse(false, [], '원본 영상 파일 저장 실패');
+    }
+    $stmt = $pdo->prepare("UPDATE jobs SET source_type = 'upload', source_file = ? WHERE id = ?");
+    $stmt->execute([$sourceFile, $jobId]);
 }
 
 // Trigger queue manager if not already running

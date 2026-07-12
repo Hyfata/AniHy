@@ -7,7 +7,7 @@ function baseUrl(): string {
 }
 
 function assetUrl(string $path): string {
-    return '/anime/assets/' . ltrim($path, '/') . '?v=18';
+    return '/anime/assets/' . ltrim($path, '/') . '?v=19';
 }
 
 function coverUrl(string $filename): string {
@@ -43,5 +43,9 @@ function allowedImageExt(string $ext): bool {
 
 function allowedSubtitleExt(string $ext): bool {
     return in_array(strtolower($ext), ['ass', 'smi'], true);
+}
+
+function allowedVideoExt(string $ext): bool {
+    return in_array(strtolower($ext), ['mkv', 'mp4', 'mov', 'avi', 'webm'], true);
 }
 
