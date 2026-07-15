@@ -103,7 +103,7 @@ AniHy는 `/anime/` 하위 모든 콘텐츠에 대해 인증번호 기반 접근 
 
 ### downloader 설정
 
-`downloader/` 폴터에는 [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 저장소의 파일들을 주입해야 합니다. 해당 프로젝트를 클론 또는 빌드한 뒤, 바이너리 및 `config/` 파일들을 `downloader/` 아래에 배치하세요.
+`downloader/` 폴더에는 [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 저장소의 파일들을 주입해야 합니다. 해당 프로젝트를 클론 또는 빌드한 뒤, 바이너리 및 `config/` 파일들을 `downloader/` 아래에 배치하세요.
 
 예시:
 
@@ -116,7 +116,7 @@ cp -r /tmp/multi-downloader-nx/* /var/www/html/anime/downloader/
 
 ### inc 모듈 설정
 
-`inc/` 폴터 안의 `.inc` 파일들은 뒤의 `.inc` 확장자를 제거하고, 실제 환경에 맞게 내용을 수정한 뒤 사용하세요.
+`inc/` 폴더 안의 `.inc` 파일들은 뒤의 `.inc` 확장자를 제거하고, 실제 환경에 맞게 내용을 수정한 뒤 사용하세요.
 
 예시:
 
