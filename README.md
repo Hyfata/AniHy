@@ -20,6 +20,7 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 | 프론트엔드 | Vanilla JS, CSS3, Video.js 8.10.0 |
 | 미디어 처리 | ffmpeg 6.x, Bento4(mp4decrypt), Intel VA-API |
 | 다운로더 | [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 5.7.4 (Crunchyroll/Hidive 지원) |
+| 자막 변환 | [smi2ass](https://github.com/najoan125/smi2ass) (SMI → ASS) |
 
 ## 디렉터리 구조
 
