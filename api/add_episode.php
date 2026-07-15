@@ -36,10 +36,25 @@ if ($seasonId === '') {
     }
 }
 
-// Determine whether a source video was uploaded
+// Determine source type: upload, server file, or streaming download
 $hasSourceVideo = isset($_FILES['source_video']) && $_FILES['source_video']['error'] === UPLOAD_ERR_OK;
 
-if (!$hasSourceVideo && $seasonId === '') {
+$serverVideoPath = trim($_POST['server_video_path'] ?? '');
+$hasServerVideo = false;
+if ($serverVideoPath !== '') {
+    $serverRoot = '/var/lib/transmission-daemon/downloads';
+    $rootReal = realpath($serverRoot);
+    $realPath = realpath($serverVideoPath);
+    if ($rootReal !== false && $realPath !== false && strpos($realPath, $rootReal . DIRECTORY_SEPARATOR) === 0) {
+        $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
+        if (allowedVideoExt($ext)) {
+            $hasServerVideo = true;
+            $serverVideoPath = $realPath;
+        }
+    }
+}
+
+if (!$hasSourceVideo && !$hasServerVideo && $seasonId === '') {
     jsonResponse(false, [], '시즌 ID가 없습니다. 애니 정보에서 시즌 ID를 입력하세요.');
 }
 
@@ -99,6 +114,9 @@ if ($hasSourceVideo) {
     }
     $stmt = $pdo->prepare("UPDATE jobs SET source_type = 'upload', source_file = ? WHERE id = ?");
     $stmt->execute([$sourceFile, $jobId]);
+} elseif ($hasServerVideo) {
+    $stmt = $pdo->prepare("UPDATE jobs SET source_type = 'server', source_file = ? WHERE id = ?");
+    $stmt->execute([$serverVideoPath, $jobId]);
 }
 
 // Trigger queue manager if not already running

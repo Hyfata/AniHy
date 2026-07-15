@@ -238,20 +238,98 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const sourceVideoInput = document.getElementById('source_video');
+    const serverVideoPathInput = document.getElementById('server_video_path');
+    const selectServerFileBtn = document.getElementById('select-server-file-btn');
+    const serverFileList = document.getElementById('server-file-list');
+    const selectedServerFile = document.getElementById('selected-server-file');
     const episodeSubmitBtn = episodeForm ? episodeForm.querySelector('button[type="submit"]') : null;
     const episodeSubmitDefaultText = episodeSubmitBtn ? episodeSubmitBtn.textContent : '다운로드 및 변환';
 
-    function setUploadMode(isUpload) {
-        if (downloadEnBtn) downloadEnBtn.classList.toggle('hidden', isUpload);
-        if (lookupBtn) lookupBtn.classList.toggle('hidden', isUpload);
+    function setLocalSourceMode(isUpload, isServerFile) {
+        const isLocal = isUpload || isServerFile;
+        if (downloadEnBtn) downloadEnBtn.classList.toggle('hidden', isLocal);
+        if (lookupBtn) lookupBtn.classList.toggle('hidden', isLocal);
         if (episodeSubmitBtn) {
-            episodeSubmitBtn.textContent = isUpload ? '업로드 및 변환' : episodeSubmitDefaultText;
+            if (isUpload) {
+                episodeSubmitBtn.textContent = '업로드 및 변환';
+            } else if (isServerFile) {
+                episodeSubmitBtn.textContent = '서버 파일 변환';
+            } else {
+                episodeSubmitBtn.textContent = episodeSubmitDefaultText;
+            }
         }
+    }
+
+    function clearServerFileSelection() {
+        if (serverVideoPathInput) serverVideoPathInput.value = '';
+        if (selectedServerFile) {
+            selectedServerFile.classList.add('hidden');
+            selectedServerFile.innerHTML = '';
+        }
+    }
+
+    function renderServerFileList(files) {
+        if (!serverFileList) return;
+        serverFileList.innerHTML = '';
+        if (files.length === 0) {
+            serverFileList.textContent = '사용 가능한 서버 파일이 없습니다.';
+            return;
+        }
+        files.forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'server-file-item';
+            item.innerHTML = `<div class="server-file-name">${escapeHtml(file.name)}</div><div class="server-file-dir">${escapeHtml(file.relative_dir)}</div>`;
+            item.addEventListener('click', () => {
+                if (serverVideoPathInput) serverVideoPathInput.value = file.path;
+                if (sourceVideoInput) sourceVideoInput.value = '';
+                setLocalSourceMode(false, true);
+                if (serverFileList) serverFileList.classList.add('hidden');
+                if (selectedServerFile) {
+                    selectedServerFile.classList.remove('hidden');
+                    selectedServerFile.innerHTML = '선택됨: <strong>' + escapeHtml(file.name) + '</strong> <button type="button" class="btn btn-danger btn-xs" id="clear-server-file-btn">취소</button>';
+                    const clearBtn = document.getElementById('clear-server-file-btn');
+                    if (clearBtn) {
+                        clearBtn.addEventListener('click', () => {
+                            clearServerFileSelection();
+                            setLocalSourceMode(false, false);
+                        });
+                    }
+                }
+            });
+            serverFileList.appendChild(item);
+        });
+    }
+
+    if (selectServerFileBtn) {
+        selectServerFileBtn.addEventListener('click', async () => {
+            if (!serverFileList) return;
+            const isHidden = serverFileList.classList.contains('hidden');
+            if (!isHidden) {
+                serverFileList.classList.add('hidden');
+                return;
+            }
+            serverFileList.classList.remove('hidden');
+            serverFileList.textContent = '불러오는 중...';
+            try {
+                const res = await fetch('/anime/api/list_server_files.php');
+                const data = await res.json();
+                if (!data.success) {
+                    throw new Error(data.message || '목록을 불러올 수 없습니다.');
+                }
+                renderServerFileList(data.files || []);
+            } catch (err) {
+                serverFileList.textContent = '오류: ' + err.message;
+            }
+        });
     }
 
     if (sourceVideoInput) {
         sourceVideoInput.addEventListener('change', () => {
-            setUploadMode(sourceVideoInput.files && sourceVideoInput.files.length > 0);
+            const hasFile = sourceVideoInput.files && sourceVideoInput.files.length > 0;
+            if (hasFile) {
+                clearServerFileSelection();
+            }
+            setLocalSourceMode(hasFile, false);
         });
     }
 
@@ -271,7 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     episodeForm.reset();
                     if (trimEnabled) trimEnabled.checked = false;
                     if (trimSeconds) trimSeconds.disabled = true;
-                    setUploadMode(false);
+                    clearServerFileSelection();
+                    setLocalSourceMode(false, false);
                     await modalAlert(data.message || '대기열에 추가되었습니다.');
                 } else {
                     await modalAlert(data.message || '추가 실패');
@@ -379,7 +458,9 @@ document.addEventListener('DOMContentLoaded', () => {
             stopLookup();
             hideLookupView();
             if (sourceVideoInput) sourceVideoInput.value = '';
-            setUploadMode(false);
+            clearServerFileSelection();
+            if (serverFileList) serverFileList.classList.add('hidden');
+            setLocalSourceMode(false, false);
         });
     }
 

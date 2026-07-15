@@ -122,6 +122,13 @@ $episodes = $stmt->fetchAll();
                                 <input type="file" id="source_video" name="source_video" accept="video/*">
                             </div>
 
+                            <div class="form-group">
+                                <input type="hidden" id="server_video_path" name="server_video_path">
+                                <button type="button" id="select-server-file-btn" class="btn btn-secondary" style="width:100%">서버 파일 선택</button>
+                                <div id="server-file-list" class="server-file-list hidden"></div>
+                                <div id="selected-server-file" class="selected-server-file hidden"></div>
+                            </div>
+
                             <div class="form-group trim-group">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="trim_enabled" name="trim_enabled">

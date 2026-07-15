@@ -79,16 +79,18 @@ logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId s
 
 $mkvPath = "$videosDir/{$seasonId}_{$safeEpisode}.mkv";
 
-if ($sourceType === 'upload' && !empty($sourceFile)) {
-    $uploadedPath = $baseDir . '/' . $sourceFile;
-    if (!file_exists($uploadedPath)) {
-        updateJob($pdo, $jobId, 'failed', 0, '업로드된 원본 영상을 찾을 수 없습니다.');
-        logMsg("Uploaded source not found: $uploadedPath");
+if (($sourceType === 'upload' || $sourceType === 'server') && !empty($sourceFile)) {
+    $sourcePath = $sourceType === 'server' ? $sourceFile : ($baseDir . '/' . $sourceFile);
+    if (!file_exists($sourcePath)) {
+        $failMsg = $sourceType === 'server' ? '서버 원본 영상을 찾을 수 없습니다.' : '업로드된 원본 영상을 찾을 수 없습니다.';
+        updateJob($pdo, $jobId, 'failed', 0, $failMsg);
+        logMsg("Local source not found: $sourcePath");
         exit;
     }
-    $mkvPath = $uploadedPath;
-    updateJob($pdo, $jobId, 'preparing', 10, '업로드된 영상 처리 중...');
-    logMsg("Using uploaded source: $mkvPath");
+    $mkvPath = $sourcePath;
+    $prepareMsg = $sourceType === 'server' ? '서버 파일 처리 중...' : '업로드된 영상 처리 중...';
+    updateJob($pdo, $jobId, 'preparing', 10, $prepareMsg);
+    logMsg("Using local source: $mkvPath");
 } else {
     updateJob($pdo, $jobId, 'downloading', 5, "$serviceName에서 다운로드 중...");
 
