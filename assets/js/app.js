@@ -242,6 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectServerFileBtn = document.getElementById('select-server-file-btn');
     const serverFileList = document.getElementById('server-file-list');
     const selectedServerFile = document.getElementById('selected-server-file');
+    const extractSubtitleBtn = document.getElementById('extract-subtitle-btn');
     const episodeSubmitBtn = episodeForm ? episodeForm.querySelector('button[type="submit"]') : null;
     const episodeSubmitDefaultText = episodeSubmitBtn ? episodeSubmitBtn.textContent : '다운로드 및 변환';
 
@@ -249,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isLocal = isUpload || isServerFile;
         if (downloadEnBtn) downloadEnBtn.classList.toggle('hidden', isLocal);
         if (lookupBtn) lookupBtn.classList.toggle('hidden', isLocal);
+        if (extractSubtitleBtn) extractSubtitleBtn.classList.toggle('hidden', !isServerFile);
         if (episodeSubmitBtn) {
             if (isUpload) {
                 episodeSubmitBtn.textContent = '업로드 및 변환';
@@ -319,6 +321,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderServerFileList(data.files || []);
             } catch (err) {
                 serverFileList.textContent = '오류: ' + err.message;
+            }
+        });
+    }
+
+    if (extractSubtitleBtn) {
+        extractSubtitleBtn.addEventListener('click', async () => {
+            const videoPath = serverVideoPathInput ? serverVideoPathInput.value : '';
+            if (!videoPath) {
+                await modalAlert('서버 파일을 먼저 선택하세요.');
+                return;
+            }
+            extractSubtitleBtn.disabled = true;
+            const originalText = extractSubtitleBtn.textContent;
+            extractSubtitleBtn.textContent = '자막 추출 중...';
+            try {
+                const res = await fetch('/anime/api/extract_subtitle.php?path=' + encodeURIComponent(videoPath));
+                const contentType = res.headers.get('Content-Type') || '';
+                if (!res.ok || contentType.includes('application/json')) {
+                    const data = await res.json().catch(() => null);
+                    throw new Error((data && data.message) || '자막 추출에 실패했습니다.');
+                }
+                const blob = await res.blob();
+                const disposition = res.headers.get('Content-Disposition') || '';
+                const match = disposition.match(/filename="?([^";]+)"?/);
+                const filename = match ? match[1] : 'subtitle.ass';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                await modalAlert('오류: ' + err.message);
+            } finally {
+                extractSubtitleBtn.disabled = false;
+                extractSubtitleBtn.textContent = originalText;
             }
         });
     }

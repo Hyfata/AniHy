@@ -127,6 +127,7 @@ $episodes = $stmt->fetchAll();
                                 <button type="button" id="select-server-file-btn" class="btn btn-secondary" style="width:100%">서버 파일 선택</button>
                                 <div id="server-file-list" class="server-file-list hidden"></div>
                                 <div id="selected-server-file" class="selected-server-file hidden"></div>
+                                <button type="button" id="extract-subtitle-btn" class="btn btn-secondary hidden" style="width:100%;margin-top:6px">자막 다운로드</button>
                             </div>
 
                             <div class="form-group trim-group">
