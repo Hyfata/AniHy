@@ -1,15 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Modal helpers
     window.openModal = (id) => {
-        document.getElementById(id).classList.add('active');
+        const el = document.getElementById(id);
+        el.classList.remove('closing');
+        el.classList.add('active');
     };
 
     window.closeModal = (id) => {
         const el = document.getElementById(id);
-        if (el) {
-            el.classList.remove('active');
+        if (!el || el.classList.contains('closing') || !el.classList.contains('active')) return;
+        el.classList.add('closing');
+        el.classList.remove('active');
+        setTimeout(() => {
+            el.classList.remove('closing');
             el.dispatchEvent(new CustomEvent('modal-closed', { bubbles: false }));
-        }
+        }, 180);
     };
 
     // System alert/confirm modal (always on top of other modals)
@@ -23,11 +28,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (alertModalTitle) alertModalTitle.textContent = title;
         if (alertModalMessage) alertModalMessage.textContent = message;
         if (alertModalCancel) alertModalCancel.classList.toggle('hidden', !showCancel);
-        if (alertModalOverlay) alertModalOverlay.classList.add('active');
+        if (alertModalOverlay) {
+            alertModalOverlay.classList.remove('closing');
+            alertModalOverlay.classList.add('active');
+        }
     }
 
     function closeAlertModal() {
-        if (alertModalOverlay) alertModalOverlay.classList.remove('active');
+        if (!alertModalOverlay || alertModalOverlay.classList.contains('closing')) return;
+        alertModalOverlay.classList.add('closing');
+        alertModalOverlay.classList.remove('active');
+        setTimeout(() => alertModalOverlay.classList.remove('closing'), 180);
     }
 
     window.modalAlert = (message) => {
@@ -80,6 +91,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Home card click: 다른 카드가 사라지는 전환 애니메이션 후 이동
+    document.querySelectorAll('.card-grid .card[data-href]').forEach(card => {
+        card.addEventListener('click', () => {
+            const grid = card.closest('.card-grid');
+            if (!grid || grid.classList.contains('leaving')) return;
+            grid.classList.add('leaving');
+            card.classList.add('card-leave-target');
+            setTimeout(() => {
+                window.location.href = card.dataset.href;
+            }, 320);
+        });
+    });
+
     // Generic confirm delete
     window.confirmDelete = (message) => modalConfirm(message || '정말 삭제하시겠습니까?');
 
@@ -91,9 +115,69 @@ document.addEventListener('DOMContentLoaded', () => {
         if (animeDesc.scrollHeight > animeDesc.clientHeight) {
             descMoreBtn.classList.remove('hidden');
         }
+        let descAnimating = false;
         descMoreBtn.addEventListener('click', () => {
-            animeInfo.classList.toggle('expanded');
-            descMoreBtn.textContent = animeInfo.classList.contains('expanded') ? '접기' : '더보기';
+            const descWrap = animeInfo.querySelector('.anime-desc-wrap');
+            const collapsing = animeInfo.classList.contains('expanded');
+            if (descAnimating) return;
+
+            const doToggle = () => {
+                if (!descWrap) {
+                    animeInfo.classList.toggle('expanded');
+                    descMoreBtn.textContent = animeInfo.classList.contains('expanded') ? '접기' : '더보기';
+                    return;
+                }
+                descAnimating = true;
+                // 이전 상태의 인라인 높이가 남아있을 수 있으므로 초기화 후 측정
+                descWrap.style.height = '';
+                const willExpand = !animeInfo.classList.contains('expanded');
+                const startH = descWrap.offsetHeight;
+                animeInfo.classList.toggle('expanded', willExpand);
+                const endH = descWrap.offsetHeight;
+                if (!willExpand) {
+                    // 접힘: 애니메이션이 끝날 때까지 전체 텍스트를 유지하고 높이만 줄임
+                    animeInfo.classList.add('expanded');
+                }
+                descWrap.style.height = startH + 'px';
+                requestAnimationFrame(() => {
+                    descWrap.style.height = endH + 'px';
+                });
+                // transitionend 미발생(높이 동일, 중단 등)에 대비해 타이머로 정리
+                setTimeout(() => {
+                    if (!willExpand) animeInfo.classList.remove('expanded');
+                    descWrap.style.height = '';
+                    descAnimating = false;
+                }, 350);
+                descMoreBtn.textContent = willExpand ? '접기' : '더보기';
+            };
+
+            // 접을 때 설명 영역이 화면 위로 벗어나 있으면, 먼저 부드럽게 스크롤한 뒤 접기
+            // (동시에 진행하면 문서 높이 감소로 브라우저가 스크롤을 즉시 클램프해 점프가 발생)
+            if (collapsing) {
+                const top = animeInfo.getBoundingClientRect().top;
+                const navOffset = 80;
+                if (top < navOffset) {
+                    const target = Math.max(0, window.scrollY + top - navOffset);
+                    descAnimating = true; // 스크롤 중 재클릭 방지
+                    const startedAt = Date.now();
+                    let lastY = -1;
+                    const waitSettle = () => {
+                        const y = window.scrollY;
+                        const settled = Math.abs(y - target) <= 2 || (y === lastY && Date.now() - startedAt > 400);
+                        if (settled || Date.now() - startedAt > 2500) {
+                            descAnimating = false;
+                            doToggle();
+                        } else {
+                            lastY = y;
+                            setTimeout(waitSettle, 100);
+                        }
+                    };
+                    window.scrollTo({ top: target, behavior: 'smooth' });
+                    setTimeout(waitSettle, 100);
+                    return;
+                }
+            }
+            doToggle();
         });
     }
 
@@ -572,6 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let queueGroups = [];
     let queueCompleted = [];
+    let lastGroupsJson = '';
+    let lastCompletedJson = '';
     let selectedGroup = null;
     let selectedEpisode = null;
     let logFromCompleted = false;
@@ -859,8 +945,17 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (!queueLogView.classList.contains('hidden')) {
                 // 로그 화면에서는 별도 폴리로 업데이트
             } else {
-                renderGroups(queueGroups);
-                renderCompleted(queueCompleted);
+                // 데이터가 바뀐 경우에만 다시 렌더링(진입 애니메이션 재생 방지)
+                const groupsJson = JSON.stringify(queueGroups);
+                const completedJson = JSON.stringify(queueCompleted);
+                if (groupsJson !== lastGroupsJson) {
+                    lastGroupsJson = groupsJson;
+                    renderGroups(queueGroups);
+                }
+                if (completedJson !== lastCompletedJson) {
+                    lastCompletedJson = completedJson;
+                    renderCompleted(queueCompleted);
+                }
             }
         } catch (err) {
             console.error(err);

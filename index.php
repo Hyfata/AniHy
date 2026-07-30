@@ -43,7 +43,7 @@ $animes = $stmt->fetchAll();
         <?php else: ?>
             <div class="card-grid">
                 <?php foreach ($animes as $anime): ?>
-                    <div class="card" onclick="location.href='/anime/anime.php?aid=<?= $anime['id'] ?>'">
+                    <div class="card" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
                         <?php if (isAdmin()): ?>
                             <div class="card-actions">
                                 <button class="btn btn-sm card-edit edit-anime-btn"

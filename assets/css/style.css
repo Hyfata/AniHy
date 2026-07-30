@@ -103,6 +103,11 @@ img {
     transform: translateY(-1px);
 }
 
+.btn:active {
+    transform: translateY(0) scale(0.96);
+    transition-duration: 0.05s;
+}
+
 .btn-primary {
     background: var(--primary);
     color: #fff;
@@ -192,6 +197,29 @@ img {
     box-shadow: var(--shadow);
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
+    animation: card-fade-in 0.4s ease backwards;
+}
+
+.card-grid .card:nth-child(2) { animation-delay: 0.04s; }
+.card-grid .card:nth-child(3) { animation-delay: 0.08s; }
+.card-grid .card:nth-child(4) { animation-delay: 0.12s; }
+.card-grid .card:nth-child(5) { animation-delay: 0.16s; }
+.card-grid .card:nth-child(6) { animation-delay: 0.2s; }
+.card-grid .card:nth-child(n+7) { animation-delay: 0.24s; }
+
+@keyframes card-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card:active {
+    transform: translateY(-1px) scale(0.98);
 }
 
 .card:hover {
@@ -295,10 +323,14 @@ img {
 .anime-info h1 {
     margin: 0 0 10px;
     font-size: 1.6rem;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
 }
 
 .anime-desc-wrap {
     position: relative;
+    overflow: hidden;
+    transition: height 0.3s ease;
 }
 
 .anime-desc {
@@ -311,6 +343,8 @@ img {
     overflow: hidden;
     text-overflow: ellipsis;
     -webkit-line-clamp: 4;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
 }
 
 @media (min-width: 768px) {
@@ -397,6 +431,8 @@ img {
 
 .episode-title {
     font-weight: 500;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
 }
 
 .episode-progress-bar {
@@ -500,6 +536,12 @@ img {
 
 .modal-overlay.active {
     display: flex;
+    animation: overlay-fade-in 0.2s ease;
+}
+
+.modal-overlay.closing {
+    display: flex;
+    animation: overlay-fade-out 0.18s ease forwards;
 }
 
 .modal {
@@ -510,6 +552,46 @@ img {
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow);
+}
+
+.modal-overlay.active .modal {
+    animation: modal-pop-in 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.modal-overlay.closing .modal {
+    animation: modal-pop-out 0.18s ease forwards;
+}
+
+@keyframes overlay-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes overlay-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes modal-pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes modal-pop-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(12px) scale(0.96);
+    }
 }
 
 .modal-header {
@@ -856,6 +938,45 @@ img {
     gap: 12px;
 }
 
+/* 모달 날 뷰 전환 애니메이션 */
+#queue-groups-view,
+#queue-episodes-view,
+#queue-log-view {
+    animation: queue-view-in 0.22s ease;
+}
+
+@keyframes queue-view-in {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.queue-card {
+    animation: queue-card-in 0.25s ease backwards;
+}
+
+.queue-list .queue-card:nth-child(2) { animation-delay: 0.04s; }
+.queue-list .queue-card:nth-child(3) { animation-delay: 0.07s; }
+.queue-list .queue-card:nth-child(4) { animation-delay: 0.1s; }
+.queue-list .queue-card:nth-child(5) { animation-delay: 0.13s; }
+.queue-list .queue-card:nth-child(n+6) { animation-delay: 0.16s; }
+
+@keyframes queue-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .queue-empty {
     text-align: center;
     padding: 40px 20px;
@@ -1173,4 +1294,66 @@ img {
 
 .selected-server-file strong {
     color: var(--accent);
+}
+
+/* Page content enter animation (모든 페이지의 main) */
+main.container {
+    animation: page-content-in 0.4s ease backwards;
+}
+
+@keyframes page-content-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Home → anime.php 전환: 클릭한 카드 외 사라짐 */
+.card-grid.leaving {
+    pointer-events: none;
+}
+
+.card-grid.leaving .card {
+    animation: card-fade-out 0.3s ease forwards;
+}
+
+.card-grid.leaving .card:nth-child(2) { animation-delay: 0.03s; }
+.card-grid.leaving .card:nth-child(3) { animation-delay: 0.05s; }
+.card-grid.leaving .card:nth-child(4) { animation-delay: 0.07s; }
+.card-grid.leaving .card:nth-child(5) { animation-delay: 0.09s; }
+.card-grid.leaving .card:nth-child(6) { animation-delay: 0.11s; }
+.card-grid.leaving .card:nth-child(n+7) { animation-delay: 0.13s; }
+
+.card-grid.leaving .card.card-leave-target {
+    animation: card-stay 0.32s ease forwards;
+    z-index: 5;
+}
+
+@keyframes card-fade-out {
+    to {
+        opacity: 0;
+        transform: translateY(12px) scale(0.95);
+    }
+}
+
+@keyframes card-stay {
+    to {
+        transform: translateY(-4px) scale(1.04);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
