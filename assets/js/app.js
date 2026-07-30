@@ -898,6 +898,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Edit episode title
+    const editEpisodeForm = document.getElementById('edit-episode-form');
+    document.querySelectorAll('.edit-episode-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            document.getElementById('edit_episode_id').value = btn.dataset.id;
+            document.getElementById('edit_episode_title').value = btn.dataset.title || '';
+            openModal('edit-episode-modal');
+        });
+    });
+
+    if (editEpisodeForm) {
+        editEpisodeForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const id = document.getElementById('edit_episode_id').value;
+            const title = document.getElementById('edit_episode_title').value;
+            try {
+                const res = await fetch('/anime/api/update_episode.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'id=' + encodeURIComponent(id) + '&title=' + encodeURIComponent(title)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    await modalAlert(data.message || '수정 실패');
+                }
+            } catch (err) {
+                await modalAlert('오류: ' + err.message);
+            }
+        });
+    }
+
     // Watch progress helpers
     function getWatchKey(aid, epNum) {
         return 'anime_' + aid + '_' + epNum;

@@ -76,7 +76,10 @@ $episodes = $stmt->fetchAll();
                             <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '회')) ?></span>
                         </div>
                         <?php if (isAdmin()): ?>
-                            <button class="btn btn-danger btn-sm delete-episode-btn" data-id="<?= $ep['id'] ?>" title="삭제">삭제</button>
+                            <div class="episode-actions">
+                                <button class="btn btn-sm edit-episode-btn" data-id="<?= $ep['id'] ?>" data-title="<?= htmlspecialchars($ep['title'] ?? '') ?>" title="제목 수정">수정</button>
+                                <button class="btn btn-danger btn-sm delete-episode-btn" data-id="<?= $ep['id'] ?>" title="삭제">삭제</button>
+                            </div>
                         <?php endif; ?>
                         <div class="episode-progress-bar">
                             <div class="episode-progress-fill"></div>
@@ -90,6 +93,25 @@ $episodes = $stmt->fetchAll();
     <?php if (isAdmin()): ?>
         <?php include __DIR__ . '/inc/queue_modal.php'; ?>
         <?php include __DIR__ . '/inc/settings_float.php'; ?>
+
+        <div class="modal-overlay" id="edit-episode-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>에피소드 제목 수정</h2>
+                    <button class="modal-close" onclick="closeModal('edit-episode-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-episode-form">
+                        <input type="hidden" id="edit_episode_id" name="id">
+                        <div class="form-group">
+                            <label for="edit_episode_title">에피소드 제목</label>
+                            <input type="text" id="edit_episode_title" name="title" placeholder="비워두면 회차 번호로 표시됩니다">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%">저장</button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         <div class="modal-overlay" id="add-episode-modal" data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '') ?>" data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>">
             <div class="modal">
