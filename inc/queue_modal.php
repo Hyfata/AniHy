@@ -6,8 +6,18 @@
         </div>
         <div class="modal-body">
             <div id="queue-groups-view">
-                <div class="queue-empty" id="queue-empty">대기열이 비어 있습니다.</div>
-                <div class="queue-list" id="queue-groups-list"></div>
+                <div class="queue-tabs">
+                    <button type="button" class="queue-tab active" id="queue-tab-active">처리 중</button>
+                    <button type="button" class="queue-tab" id="queue-tab-completed">완료</button>
+                </div>
+                <div id="queue-active-panel">
+                    <div class="queue-empty" id="queue-empty">대기열이 비어 있습니다.</div>
+                    <div class="queue-list" id="queue-groups-list"></div>
+                </div>
+                <div id="queue-completed-panel" class="hidden">
+                    <div class="queue-empty hidden" id="queue-completed-empty">완료된 작업이 없습니다.</div>
+                    <div class="queue-list" id="queue-completed-list"></div>
+                </div>
             </div>
 
             <div id="queue-episodes-view" class="hidden">

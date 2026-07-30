@@ -563,10 +563,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const queueLogBox = document.getElementById('queue-log-box');
     const backToGroups = document.getElementById('queue-back-to-groups');
     const backToEpisodes = document.getElementById('queue-back-to-episodes');
+    const queueTabActive = document.getElementById('queue-tab-active');
+    const queueTabCompleted = document.getElementById('queue-tab-completed');
+    const queueActivePanel = document.getElementById('queue-active-panel');
+    const queueCompletedPanel = document.getElementById('queue-completed-panel');
+    const queueCompletedList = document.getElementById('queue-completed-list');
+    const queueCompletedEmpty = document.getElementById('queue-completed-empty');
 
     let queueGroups = [];
+    let queueCompleted = [];
     let selectedGroup = null;
     let selectedEpisode = null;
+    let logFromCompleted = false;
     let queuePollInterval = null;
     let queueLogInterval = null;
     let queueEncodeInterval = null;
@@ -593,6 +601,44 @@ document.addEventListener('DOMContentLoaded', () => {
         queueGroupsView.classList.add('hidden');
         queueEpisodesView.classList.add('hidden');
         queueLogView.classList.add('hidden');
+    }
+
+    function switchQueueTab(tab) {
+        const isActive = tab === 'active';
+        queueTabActive.classList.toggle('active', isActive);
+        queueTabCompleted.classList.toggle('active', !isActive);
+        queueActivePanel.classList.toggle('hidden', !isActive);
+        queueCompletedPanel.classList.toggle('hidden', isActive);
+    }
+
+    if (queueTabActive && queueTabCompleted) {
+        queueTabActive.addEventListener('click', () => switchQueueTab('active'));
+        queueTabCompleted.addEventListener('click', () => switchQueueTab('completed'));
+    }
+
+    function renderCompleted(jobs) {
+        queueCompletedList.innerHTML = '';
+        if (jobs.length === 0) {
+            queueCompletedEmpty.classList.remove('hidden');
+            return;
+        }
+        queueCompletedEmpty.classList.add('hidden');
+
+        jobs.forEach(job => {
+            const info = getStatusInfo(job.status);
+            const card = document.createElement('div');
+            card.className = 'queue-card queue-completed-card';
+            card.innerHTML = `
+                <div class="queue-card-header">
+                    <h4 class="queue-card-title">${escapeHtml(job.anime_title)} · ${job.episode_number}회</h4>
+                    <span class="status-badge ${info.class}">${info.text}</span>
+                </div>
+                <div class="queue-card-meta">${escapeHtml(job.updated_at || '')}</div>
+                <div class="queue-card-message">${escapeHtml(job.message || '')}</div>
+            `;
+            card.addEventListener('click', () => showLog(job, job.anime_title, true));
+            queueCompletedList.appendChild(card);
+        });
     }
 
     function renderGroups(groups) {
@@ -716,11 +762,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    function showLog(episode) {
+    function showLog(episode, title = null, fromCompleted = false) {
         selectedEpisode = episode;
+        logFromCompleted = fromCompleted;
         hideQueueViews();
         queueLogView.classList.remove('hidden');
-        queueLogTitle.textContent = selectedGroup.title + ' · ' + episode.episode_number + '회';
+        queueLogTitle.textContent = (title || selectedGroup?.title || '') + ' · ' + episode.episode_number + '회';
         queueLogBox.textContent = '';
         queueLogOffset = 0;
         updateLogProgress(episode.progress, episode.status, episode.message);
@@ -729,12 +776,19 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(queueEncodeInterval);
         clearInterval(queueProgressInterval);
 
-        queueLogInterval = setInterval(() => fetchLog(episode.job_id), 2000);
-        queueEncodeInterval = setInterval(() => fetchEncodeProgress(episode.job_id), 3000);
-        queueProgressInterval = setInterval(() => fetchJobProgress(episode.job_id), 3000);
+        const done = episode.status === 'completed' || episode.status === 'failed';
+        if (!done) {
+            queueLogInterval = setInterval(() => fetchLog(episode.job_id), 2000);
+            queueEncodeInterval = setInterval(() => fetchEncodeProgress(episode.job_id), 3000);
+            queueProgressInterval = setInterval(() => fetchJobProgress(episode.job_id), 3000);
+        }
 
         fetchLog(episode.job_id);
-        fetchEncodeProgress(episode.job_id);
+        if (!done) {
+            fetchEncodeProgress(episode.job_id);
+        } else {
+            queueLogEncodeProgress.style.width = (episode.status === 'completed' ? 100 : 0) + '%';
+        }
     }
 
     function updateLogProgress(progress, status, message) {
@@ -792,6 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (!data.success) return;
             queueGroups = data.groups || [];
+            queueCompleted = data.completed || [];
 
             if (!queueEpisodesView.classList.contains('hidden')) {
                 const group = queueGroups.find(g => g.anime_id === selectedGroup?.anime_id);
@@ -805,6 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 로그 화면에서는 별도 폴리로 업데이트
             } else {
                 renderGroups(queueGroups);
+                renderCompleted(queueCompleted);
             }
         } catch (err) {
             console.error(err);
@@ -828,6 +884,7 @@ document.addEventListener('DOMContentLoaded', () => {
             queuePollInterval = null;
             hideQueueViews();
             queueGroupsView.classList.remove('hidden');
+            switchQueueTab('active');
         });
     }
 
@@ -845,8 +902,14 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(queueEncodeInterval);
             clearInterval(queueProgressInterval);
             hideQueueViews();
-            queueEpisodesView.classList.remove('hidden');
-            if (selectedGroup) renderEpisodes(selectedGroup.episodes);
+            if (logFromCompleted) {
+                queueGroupsView.classList.remove('hidden');
+                switchQueueTab('completed');
+                renderCompleted(queueCompleted);
+            } else {
+                queueEpisodesView.classList.remove('hidden');
+                if (selectedGroup) renderEpisodes(selectedGroup.episodes);
+            }
         });
     }
 

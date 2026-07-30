@@ -822,6 +822,34 @@ img {
     max-width: 640px;
 }
 
+.queue-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.queue-tab {
+    flex: 1;
+    padding: 8px 0;
+    background: var(--bg);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.queue-tab:hover {
+    color: var(--text);
+}
+
+.queue-tab.active {
+    background: var(--accent);
+    color: var(--bg);
+}
+
 .queue-list {
     display: flex;
     flex-direction: column;

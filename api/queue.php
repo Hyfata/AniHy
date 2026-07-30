@@ -78,4 +78,29 @@ if (!empty($animeIds)) {
     }
 }
 
-jsonResponse(true, ['groups' => array_values($groups)]);
+// 완료/실패된 작업 (최근 24시간)
+$stmt = $pdo->query("
+    SELECT j.id AS job_id, j.anime_id, j.episode_number, j.episode_title,
+           j.status, j.progress, j.message, j.updated_at,
+           a.title AS anime_title
+    FROM jobs j
+    JOIN animes a ON a.id = j.anime_id
+    WHERE j.status IN ('completed', 'failed')
+      AND j.created_at >= $recentWindow
+    ORDER BY j.updated_at DESC
+");
+$completedJobs = [];
+foreach ($stmt->fetchAll() as $job) {
+    $completedJobs[] = [
+        'job_id' => (int)$job['job_id'],
+        'anime_title' => $job['anime_title'],
+        'episode_number' => (string)$job['episode_number'],
+        'episode_title' => $job['episode_title'] ?: ($job['episode_number'] . '회'),
+        'status' => $job['status'],
+        'progress' => (int)$job['progress'],
+        'message' => $job['message'] ?: '',
+        'updated_at' => $job['updated_at'],
+    ];
+}
+
+jsonResponse(true, ['groups' => array_values($groups), 'completed' => $completedJobs]);
