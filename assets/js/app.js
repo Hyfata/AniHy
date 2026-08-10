@@ -112,12 +112,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const animeDesc = document.getElementById('anime-desc');
     const descMoreBtn = document.getElementById('desc-more-btn');
     if (animeInfo && animeDesc && descMoreBtn) {
-        if (animeDesc.scrollHeight > animeDesc.clientHeight) {
-            descMoreBtn.classList.remove('hidden');
-        }
+        const updateDescMoreVisibility = () => {
+            const overflowing = animeDesc.scrollHeight > animeDesc.clientHeight;
+            descMoreBtn.classList.toggle('hidden', !overflowing && !animeInfo.classList.contains('expanded'));
+        };
+        updateDescMoreVisibility();
+        window.addEventListener('resize', updateDescMoreVisibility);
         let descAnimating = false;
         descMoreBtn.addEventListener('click', () => {
-            const descWrap = animeInfo.querySelector('.anime-desc-wrap');
+            const descWrap = animeDesc.closest('.anime-desc-wrap');
             const collapsing = animeInfo.classList.contains('expanded');
             if (descAnimating) return;
 
@@ -212,6 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('edit-description').value = btn.dataset.description;
                 document.getElementById('edit-season-id').value = btn.dataset.seasonId || '';
                 document.getElementById('edit-is-hidive').value = btn.dataset.isHidive === '1' ? '1' : '0';
+                document.getElementById('edit-broadcast-year').value = btn.dataset.year || '';
+                document.getElementById('edit-broadcast-quarter').value = btn.dataset.quarter || '';
+                document.getElementById('edit-broadcast-day').value = btn.dataset.day || '';
+                document.getElementById('edit-download-url').value = btn.dataset.downloadUrl || '';
+                document.getElementById('edit-namuwiki-url').value = btn.dataset.namuwikiUrl || '';
                 document.getElementById('edit-cover-preview').src = btn.dataset.cover;
                 openModal('edit-anime-modal');
             });

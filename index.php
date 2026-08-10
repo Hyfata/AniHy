@@ -7,6 +7,24 @@ requireAccessAuth();
 
 $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC");
 $animes = $stmt->fetchAll();
+
+$tab = ($_GET['tab'] ?? 'home') === 'quarter' ? 'quarter' : 'home';
+
+// 분기별 애니 그룹핑 (년도/분기가 설정된 애니만)
+$quarterGroups = [];
+if ($tab === 'quarter') {
+    foreach ($animes as $a) {
+        if (empty($a['broadcast_year']) || empty($a['broadcast_quarter'])) continue;
+        $y = (int)$a['broadcast_year'];
+        $q = (int)$a['broadcast_quarter'];
+        $quarterGroups[$y][$q] = ($quarterGroups[$y][$q] ?? 0) + 1;
+    }
+    krsort($quarterGroups);
+    foreach ($quarterGroups as &$quarters) {
+        ksort($quarters);
+    }
+    unset($quarters);
+}
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -31,7 +49,32 @@ $animes = $stmt->fetchAll();
         </div>
     </nav>
 
-    <main class="container">
+    <main class="container has-tabbar">
+        <?php if ($tab === 'quarter'): ?>
+            <div class="page-header">
+                <h1 class="page-title">분기별 애니</h1>
+            </div>
+
+            <?php if (empty($quarterGroups)): ?>
+                <div class="empty-state">
+                    방영 년도/분기가 설정된 애니가 없습니다.
+                </div>
+            <?php else: ?>
+                <?php foreach ($quarterGroups as $year => $quarters): ?>
+                    <div class="quarter-year-section">
+                        <h2 class="quarter-year-title"><?= $year ?>년</h2>
+                        <div class="quarter-card-grid">
+                            <?php foreach ($quarters as $q => $count): ?>
+                                <a class="quarter-card" href="/anime/quarter.php?year=<?= $year ?>&quarter=<?= $q ?>">
+                                    <span class="quarter-card-title"><?= $q ?>분기</span>
+                                    <span class="quarter-card-count"><?= $count ?>개 작품</span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        <?php else: ?>
         <div class="page-header">
             <h1 class="page-title">전체 애니</h1>
         </div>
@@ -52,6 +95,11 @@ $animes = $stmt->fetchAll();
                                         data-description="<?= htmlspecialchars($anime['description'] ?? '', ENT_QUOTES) ?>"
                                         data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '', ENT_QUOTES) ?>"
                                         data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>"
+                                        data-year="<?= htmlspecialchars((string)($anime['broadcast_year'] ?? ''), ENT_QUOTES) ?>"
+                                        data-quarter="<?= htmlspecialchars((string)($anime['broadcast_quarter'] ?? ''), ENT_QUOTES) ?>"
+                                        data-day="<?= htmlspecialchars($anime['broadcast_day'] ?? '', ENT_QUOTES) ?>"
+                                        data-download-url="<?= htmlspecialchars($anime['download_url'] ?? '', ENT_QUOTES) ?>"
+                                        data-namuwiki-url="<?= htmlspecialchars($anime['namuwiki_url'] ?? '', ENT_QUOTES) ?>"
                                         data-cover="<?= coverUrl($anime['cover_image']) ?>"
                                         title="수정">✎</button>
                                 <button class="btn btn-danger btn-sm delete-anime-btn" data-id="<?= $anime['id'] ?>" title="삭제">×</button>
@@ -67,7 +115,23 @@ $animes = $stmt->fetchAll();
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+        <?php endif; ?>
     </main>
+
+    <nav class="bottom-tabbar">
+        <a href="/anime/" class="tab-item <?= $tab === 'home' ? 'active' : '' ?>">
+            <span class="tab-pill">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+                <span>홈</span>
+            </span>
+        </a>
+        <a href="/anime/?tab=quarter" class="tab-item <?= $tab === 'quarter' ? 'active' : '' ?>">
+            <span class="tab-pill">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/></svg>
+                <span>분기별 애니</span>
+            </span>
+        </a>
+    </nav>
 
     <?php if (isAdmin()): ?>
         <?php include __DIR__ . '/inc/queue_modal.php'; ?>
@@ -99,6 +163,42 @@ $animes = $stmt->fetchAll();
                                 <option value="0">Crunchyroll</option>
                                 <option value="1">Hidive</option>
                             </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="broadcast_year">방영 년도</label>
+                            <input type="number" id="broadcast_year" name="broadcast_year" min="1900" max="2100" placeholder="예: 2025">
+                        </div>
+                        <div class="form-group">
+                            <label for="broadcast_quarter">방영 분기</label>
+                            <select id="broadcast_quarter" name="broadcast_quarter">
+                                <option value="">선택 안 함</option>
+                                <option value="1">1분기</option>
+                                <option value="2">2분기</option>
+                                <option value="3">3분기</option>
+                                <option value="4">4분기</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="broadcast_day">방영 요일</label>
+                            <select id="broadcast_day" name="broadcast_day">
+                                <option value="">선택 안 함</option>
+                                <option>월</option>
+                                <option>화</option>
+                                <option>수</option>
+                                <option>목</option>
+                                <option>금</option>
+                                <option>토</option>
+                                <option>일</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="download_url">애니 다운로드 주소</label>
+                            <input type="url" id="download_url" name="download_url" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label for="namuwiki_url">나무위키 주소</label>
+                            <input type="url" id="namuwiki_url" name="namuwiki_url" placeholder="https://namu.wiki/...">
                         </div>
 
                         <div class="form-group">
@@ -155,6 +255,42 @@ $animes = $stmt->fetchAll();
                                 <option value="0">Crunchyroll</option>
                                 <option value="1">Hidive</option>
                             </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-broadcast-year">방영 년도</label>
+                            <input type="number" id="edit-broadcast-year" name="broadcast_year" min="1900" max="2100" placeholder="예: 2025">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-broadcast-quarter">방영 분기</label>
+                            <select id="edit-broadcast-quarter" name="broadcast_quarter">
+                                <option value="">선택 안 함</option>
+                                <option value="1">1분기</option>
+                                <option value="2">2분기</option>
+                                <option value="3">3분기</option>
+                                <option value="4">4분기</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-broadcast-day">방영 요일</label>
+                            <select id="edit-broadcast-day" name="broadcast_day">
+                                <option value="">선택 안 함</option>
+                                <option>월</option>
+                                <option>화</option>
+                                <option>수</option>
+                                <option>목</option>
+                                <option>금</option>
+                                <option>토</option>
+                                <option>일</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-download-url">애니 다운로드 주소</label>
+                            <input type="url" id="edit-download-url" name="download_url" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-namuwiki-url">나무위키 주소</label>
+                            <input type="url" id="edit-namuwiki-url" name="namuwiki_url" placeholder="https://namu.wiki/...">
                         </div>
 
                         <div class="form-group">

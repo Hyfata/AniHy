@@ -45,18 +45,63 @@ $episodes = $stmt->fetchAll();
         </div>
     </nav>
 
-    <main class="container">
+    <main class="container anime-page">
         <div class="anime-detail">
-            <div class="anime-poster">
-                <img src="<?= coverUrl($anime['cover_image']) ?>" alt="<?= htmlspecialchars($anime['title']) ?>">
+            <?php $hasDesc = trim($anime['description'] ?? '') !== ''; ?>
+            <div class="poster-col">
+                <div class="anime-poster">
+                    <img src="<?= coverUrl($anime['cover_image']) ?>" alt="<?= htmlspecialchars($anime['title']) ?>">
+                </div>
+                <div class="poster-actions">
+                    <?php if ($hasDesc): ?>
+                        <button type="button" class="poster-action synopsis-action" onclick="openModal('synopsis-modal')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                            <span>줄거리</span>
+                        </button>
+                    <?php endif; ?>
+                    <?php if (!empty($anime['namuwiki_url'])): ?>
+                        <a class="poster-action" href="<?= htmlspecialchars($anime['namuwiki_url']) ?>" target="_blank" rel="noopener noreferrer">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5a2 2 0 0 1 2-2h7v18H4a2 2 0 0 1-2-2z"/><path d="M22 5a2 2 0 0 0-2-2h-7v18h7a2 2 0 0 0 2-2z"/></svg>
+                            <span>나무위키</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (isAdmin() && !empty($anime['download_url'])): ?>
+                        <a class="poster-action" href="<?= htmlspecialchars($anime['download_url']) ?>" target="_blank" rel="noopener noreferrer">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
+                            <span>다운로드</span>
+                        </a>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="anime-info" id="anime-info">
                 <h1><?= htmlspecialchars($anime['title']) ?></h1>
-                <div class="anime-desc-wrap">
-                    <p class="anime-desc" id="anime-desc"><?= nl2br(htmlspecialchars($anime['description'] ?? '')) ?></p>
-                </div>
-                <button type="button" class="btn btn-sm desc-more-btn hidden" id="desc-more-btn">더보기</button>
+                <?php
+                $badges = [];
+                if (!empty($anime['broadcast_year'])) {
+                    $label = $anime['broadcast_year'] . '년';
+                    if (!empty($anime['broadcast_quarter'])) $label .= ' ' . $anime['broadcast_quarter'] . '분기';
+                    $badges[] = $label;
+                }
+                if (!empty($anime['broadcast_day'])) {
+                    $badges[] = $anime['broadcast_day'] . '요일';
+                }
+                ?>
+                <?php if ($badges): ?>
+                    <div class="anime-meta-row">
+                        <?php foreach ($badges as $b): ?>
+                            <span class="anime-badge"><?= htmlspecialchars($b) ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
+            <?php if ($hasDesc): ?>
+                <div class="anime-desc-box">
+                    <div class="anime-desc-wrap">
+                        <p class="anime-desc" id="anime-desc"><?= nl2br(htmlspecialchars($anime['description'] ?? '')) ?></p>
+                    </div>
+                    <button type="button" class="btn btn-sm desc-more-btn hidden" id="desc-more-btn">더보기</button>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="page-header">
@@ -187,6 +232,20 @@ $episodes = $stmt->fetchAll();
                         <h3 class="queue-anime-title" id="lookup-title">에피소드 조회</h3>
                         <div class="log-box" id="lookup-log-box"></div>
                     </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($hasDesc): ?>
+        <div class="modal-overlay" id="synopsis-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>줄거리</h2>
+                    <button class="modal-close" onclick="closeModal('synopsis-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="synopsis-text"><?= nl2br(htmlspecialchars($anime['description'] ?? '')) ?></p>
                 </div>
             </div>
         </div>
