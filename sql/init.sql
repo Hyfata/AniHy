@@ -10,6 +10,11 @@ CREATE TABLE IF NOT EXISTS animes (
     description TEXT,
     season_id VARCHAR(100),
     is_hidive BOOLEAN DEFAULT FALSE,
+    broadcast_year INT,
+    broadcast_quarter TINYINT,
+    broadcast_day VARCHAR(10),
+    download_url VARCHAR(500),
+    namuwiki_url VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
