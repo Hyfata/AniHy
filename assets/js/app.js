@@ -335,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const serverFileList = document.getElementById('server-file-list');
     const selectedServerFile = document.getElementById('selected-server-file');
     const extractSubtitleBtn = document.getElementById('extract-subtitle-btn');
+    const extractAudioBtn = document.getElementById('extract-audio-btn');
     const episodeSubmitBtn = episodeForm ? episodeForm.querySelector('button[type="submit"]') : null;
     const episodeSubmitDefaultText = episodeSubmitBtn ? episodeSubmitBtn.textContent : '다운로드 및 변환';
 
@@ -343,6 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (downloadEnBtn) downloadEnBtn.classList.toggle('hidden', isLocal);
         if (lookupBtn) lookupBtn.classList.toggle('hidden', isLocal);
         if (extractSubtitleBtn) extractSubtitleBtn.classList.toggle('hidden', !isServerFile);
+        if (extractAudioBtn) extractAudioBtn.classList.toggle('hidden', !isServerFile);
         if (episodeSubmitBtn) {
             if (isUpload) {
                 episodeSubmitBtn.textContent = '업로드 및 변환';
@@ -451,6 +453,44 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 extractSubtitleBtn.disabled = false;
                 extractSubtitleBtn.textContent = originalText;
+            }
+        });
+    }
+
+    if (extractAudioBtn) {
+        extractAudioBtn.addEventListener('click', async () => {
+            const videoPath = serverVideoPathInput ? serverVideoPathInput.value : '';
+            if (!videoPath) {
+                await modalAlert('서버 파일을 먼저 선택하세요.');
+                return;
+            }
+            extractAudioBtn.disabled = true;
+            const originalText = extractAudioBtn.textContent;
+            extractAudioBtn.textContent = '오디오 추출 중...';
+            try {
+                const res = await fetch('/anime/api/extract_audio.php?path=' + encodeURIComponent(videoPath));
+                const contentType = res.headers.get('Content-Type') || '';
+                if (!res.ok || contentType.includes('application/json')) {
+                    const data = await res.json().catch(() => null);
+                    throw new Error((data && data.message) || '오디오 추출에 실패했습니다.');
+                }
+                const blob = await res.blob();
+                const disposition = res.headers.get('Content-Disposition') || '';
+                const match = disposition.match(/filename="?([^";]+)"?/);
+                const filename = match ? match[1] : 'audio.mka';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                await modalAlert('오류: ' + err.message);
+            } finally {
+                extractAudioBtn.disabled = false;
+                extractAudioBtn.textContent = originalText;
             }
         });
     }
