@@ -300,16 +300,30 @@ img {
     padding: 4px 10px;
     min-width: 32px;
     min-height: 32px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
 }
 
 .card-edit {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(21, 23, 28, 0.72);
     color: #fff;
-    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .card-edit:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(31, 34, 43, 0.85);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.card-actions .btn-danger {
+    background: rgba(255, 77, 109, 0.72);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.card-actions .btn-danger:hover {
+    background: rgba(255, 77, 109, 0.88);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Anime detail page */
