@@ -21,6 +21,8 @@ $stmt = $pdo->prepare("SELECT DISTINCT a.* FROM animes a JOIN anime_broadcasts a
 $stmt->execute([$year, $quarter]);
 $animes = $stmt->fetchAll();
 
+$broadcastMap = fetchBroadcastMap($pdo);
+
 // 요일별 그룹핑 (미설정은 '기타')
 $byDay = [];
 foreach ($animes as $a) {
@@ -98,6 +100,23 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
                         ?>
                     <?php endif; ?>
                     <div class="card" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
+                        <?php if (isAdmin()): ?>
+                            <div class="card-actions">
+                                <button class="btn btn-sm card-edit edit-anime-btn"
+                                        data-id="<?= $anime['id'] ?>"
+                                        data-title="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>"
+                                        data-description="<?= htmlspecialchars($anime['description'] ?? '', ENT_QUOTES) ?>"
+                                        data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '', ENT_QUOTES) ?>"
+                                        data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>"
+                                        data-broadcasts="<?= htmlspecialchars(json_encode($broadcastMap[(int)$anime['id']] ?? []), ENT_QUOTES) ?>"
+                                        data-day="<?= htmlspecialchars($anime['broadcast_day'] ?? '', ENT_QUOTES) ?>"
+                                        data-download-url="<?= htmlspecialchars($anime['download_url'] ?? '', ENT_QUOTES) ?>"
+                                        data-namuwiki-url="<?= htmlspecialchars($anime['namuwiki_url'] ?? '', ENT_QUOTES) ?>"
+                                        data-cover="<?= coverUrl($anime['cover_image']) ?>"
+                                        title="수정">✎</button>
+                                <button class="btn btn-danger btn-sm delete-anime-btn" data-id="<?= $anime['id'] ?>" title="삭제">×</button>
+                            </div>
+                        <?php endif; ?>
                         <div class="card-poster">
                             <img src="<?= coverUrl($anime['cover_image']) ?>" alt="<?= htmlspecialchars($anime['title']) ?>" loading="lazy">
                         </div>
@@ -114,6 +133,23 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
                     <div class="card-grid compact">
                         <?php foreach ($list as $anime): ?>
                             <div class="card" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
+                                <?php if (isAdmin()): ?>
+                                    <div class="card-actions">
+                                        <button class="btn btn-sm card-edit edit-anime-btn"
+                                                data-id="<?= $anime['id'] ?>"
+                                                data-title="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>"
+                                                data-description="<?= htmlspecialchars($anime['description'] ?? '', ENT_QUOTES) ?>"
+                                                data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '', ENT_QUOTES) ?>"
+                                                data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>"
+                                                data-broadcasts="<?= htmlspecialchars(json_encode($broadcastMap[(int)$anime['id']] ?? []), ENT_QUOTES) ?>"
+                                                data-day="<?= htmlspecialchars($anime['broadcast_day'] ?? '', ENT_QUOTES) ?>"
+                                                data-download-url="<?= htmlspecialchars($anime['download_url'] ?? '', ENT_QUOTES) ?>"
+                                                data-namuwiki-url="<?= htmlspecialchars($anime['namuwiki_url'] ?? '', ENT_QUOTES) ?>"
+                                                data-cover="<?= coverUrl($anime['cover_image']) ?>"
+                                                title="수정">✎</button>
+                                        <button class="btn btn-danger btn-sm delete-anime-btn" data-id="<?= $anime['id'] ?>" title="삭제">×</button>
+                                    </div>
+                                <?php endif; ?>
                                 <div class="card-poster">
                                     <img src="<?= coverUrl($anime['cover_image']) ?>" alt="<?= htmlspecialchars($anime['title']) ?>" loading="lazy">
                                 </div>
@@ -130,6 +166,7 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
 
     <?php if (isAdmin()): ?>
         <?php include __DIR__ . '/inc/queue_modal.php'; ?>
+        <?php include __DIR__ . '/inc/edit_anime_modal.php'; ?>
     <?php endif; ?>
 
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>

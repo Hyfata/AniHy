@@ -63,6 +63,26 @@ $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
                     <img src="<?= coverUrl($anime['cover_image']) ?>" alt="<?= htmlspecialchars($anime['title']) ?>">
                 </div>
                 <div class="poster-actions">
+                    <?php if (isAdmin()): ?>
+                        <button type="button" class="poster-action edit-anime-btn"
+                                data-id="<?= $anime['id'] ?>"
+                                data-title="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>"
+                                data-description="<?= htmlspecialchars($anime['description'] ?? '', ENT_QUOTES) ?>"
+                                data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '', ENT_QUOTES) ?>"
+                                data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>"
+                                data-broadcasts="<?= htmlspecialchars(json_encode($broadcastMap[$aid] ?? []), ENT_QUOTES) ?>"
+                                data-day="<?= htmlspecialchars($anime['broadcast_day'] ?? '', ENT_QUOTES) ?>"
+                                data-download-url="<?= htmlspecialchars($anime['download_url'] ?? '', ENT_QUOTES) ?>"
+                                data-namuwiki-url="<?= htmlspecialchars($anime['namuwiki_url'] ?? '', ENT_QUOTES) ?>"
+                                data-cover="<?= coverUrl($anime['cover_image']) ?>">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                            <span>수정</span>
+                        </button>
+                        <button type="button" class="poster-action delete-anime-btn" data-id="<?= $anime['id'] ?>">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                            <span>삭제</span>
+                        </button>
+                    <?php endif; ?>
                     <?php if ($hasDesc): ?>
                         <button type="button" class="poster-action synopsis-action" onclick="openModal('synopsis-modal')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
@@ -157,6 +177,7 @@ $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
     <?php if (isAdmin()): ?>
         <?php include __DIR__ . '/inc/queue_modal.php'; ?>
         <?php include __DIR__ . '/inc/settings_float.php'; ?>
+        <?php include __DIR__ . '/inc/edit_anime_modal.php'; ?>
 
         <div class="modal-overlay" id="edit-episode-modal">
             <div class="modal">

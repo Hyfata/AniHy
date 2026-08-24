@@ -1118,7 +1118,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    btn.closest('.card').remove();
+                    const card = btn.closest('.card');
+                    if (card) {
+                        card.remove();
+                    } else {
+                        window.location.href = '/anime/';
+                    }
                 } else {
                     await modalAlert(data.message || '삭제 실패');
                 }
