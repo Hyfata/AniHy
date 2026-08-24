@@ -1928,3 +1928,49 @@ main.has-tabbar {
 .broadcast-row .broadcast-remove-btn {
     flex: 0 0 auto;
 }
+
+/* 애니 상세 제목 옆 관리자 버튼 */
+.anime-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.anime-title-row h1 {
+    flex: 1;
+    min-width: 0;
+}
+.anime-admin-actions {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
+    margin-top: 2px;
+}
+.admin-icon-btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.admin-icon-btn:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+.admin-icon-btn.admin-icon-danger:hover {
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+.admin-icon-btn svg {
+    width: 16px;
+    height: 16px;
+}

@@ -63,26 +63,6 @@ $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
                     <img src="<?= coverUrl($anime['cover_image']) ?>" alt="<?= htmlspecialchars($anime['title']) ?>">
                 </div>
                 <div class="poster-actions">
-                    <?php if (isAdmin()): ?>
-                        <button type="button" class="poster-action edit-anime-btn"
-                                data-id="<?= $anime['id'] ?>"
-                                data-title="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>"
-                                data-description="<?= htmlspecialchars($anime['description'] ?? '', ENT_QUOTES) ?>"
-                                data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '', ENT_QUOTES) ?>"
-                                data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>"
-                                data-broadcasts="<?= htmlspecialchars(json_encode($broadcastMap[$aid] ?? []), ENT_QUOTES) ?>"
-                                data-day="<?= htmlspecialchars($anime['broadcast_day'] ?? '', ENT_QUOTES) ?>"
-                                data-download-url="<?= htmlspecialchars($anime['download_url'] ?? '', ENT_QUOTES) ?>"
-                                data-namuwiki-url="<?= htmlspecialchars($anime['namuwiki_url'] ?? '', ENT_QUOTES) ?>"
-                                data-cover="<?= coverUrl($anime['cover_image']) ?>">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                            <span>수정</span>
-                        </button>
-                        <button type="button" class="poster-action delete-anime-btn" data-id="<?= $anime['id'] ?>">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                            <span>삭제</span>
-                        </button>
-                    <?php endif; ?>
                     <?php if ($hasDesc): ?>
                         <button type="button" class="poster-action synopsis-action" onclick="openModal('synopsis-modal')">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
@@ -95,12 +75,6 @@ $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
                             <span>나무위키</span>
                         </a>
                     <?php endif; ?>
-                    <?php if (isAdmin() && !empty($anime['download_url'])): ?>
-                        <a class="poster-action" href="<?= htmlspecialchars($anime['download_url']) ?>" target="_blank" rel="noopener noreferrer">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
-                            <span>다운로드</span>
-                        </a>
-                    <?php endif; ?>
                     <?php if ($downloadableCount > 0): ?>
                         <button type="button" class="poster-action" id="download-all-btn" data-aid="<?= $aid ?>">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
@@ -110,7 +84,31 @@ $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
                 </div>
             </div>
             <div class="anime-info" id="anime-info">
-                <h1><?= htmlspecialchars($anime['title']) ?></h1>
+                <div class="anime-title-row">
+                    <h1><?= htmlspecialchars($anime['title']) ?></h1>
+                    <?php if (isAdmin()): ?>
+                        <div class="anime-admin-actions">
+                            <?php if (!empty($anime['download_url'])): ?>
+                                <a class="admin-icon-btn" href="<?= htmlspecialchars($anime['download_url']) ?>" target="_blank" rel="noopener noreferrer" title="다운로드 주소 열기">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
+                                </a>
+                            <?php endif; ?>
+                            <button type="button" class="admin-icon-btn edit-anime-btn"
+                                    data-id="<?= $anime['id'] ?>"
+                                    data-title="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>"
+                                    data-description="<?= htmlspecialchars($anime['description'] ?? '', ENT_QUOTES) ?>"
+                                    data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '', ENT_QUOTES) ?>"
+                                    data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>"
+                                    data-broadcasts="<?= htmlspecialchars(json_encode($broadcastMap[$aid] ?? []), ENT_QUOTES) ?>"
+                                    data-day="<?= htmlspecialchars($anime['broadcast_day'] ?? '', ENT_QUOTES) ?>"
+                                    data-download-url="<?= htmlspecialchars($anime['download_url'] ?? '', ENT_QUOTES) ?>"
+                                    data-namuwiki-url="<?= htmlspecialchars($anime['namuwiki_url'] ?? '', ENT_QUOTES) ?>"
+                                    data-cover="<?= coverUrl($anime['cover_image']) ?>"
+                                    title="수정">✎</button>
+                            <button type="button" class="admin-icon-btn admin-icon-danger delete-anime-btn" data-id="<?= $anime['id'] ?>" title="삭제">×</button>
+                        </div>
+                    <?php endif; ?>
+                </div>
                 <?php
                 $badges = [];
                 foreach ($broadcastMap[$aid] ?? [] as [$by, $bq]) {
