@@ -1191,6 +1191,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Episode download confirm
+    document.querySelectorAll('.episode-dl-btn').forEach(btn => {
+        btn.addEventListener('click', async e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const title = btn.dataset.title || '에피소드';
+            const size = btn.dataset.size || '';
+            const msg = '"' + title + '"을(를) 다운로드하시겠습니까?' + (size ? '\n예상 용량: ' + size : '');
+            if (!(await modalConfirm(msg))) return;
+            window.location.href = btn.href;
+        });
+    });
+
     // Download all episodes as ZIP with ring progress
     const downloadAllBtn = document.getElementById('download-all-btn');
     if (downloadAllBtn) {
@@ -1249,6 +1262,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         downloadAllBtn.addEventListener('click', async () => {
             if (zipPollTimer) return;
+            const count = downloadAllBtn.dataset.count || '';
+            const size = downloadAllBtn.dataset.size || '';
+            const msg = '총 ' + count + '개의 에피소드(약 ' + size + ')를 다운로드하시겠습니까?\n\n'
+                + '압축이 완료된 후 다운로드가 시작됩니다.\n'
+                + '한번 시작된 압축 작업은 취소할 수 없습니다.';
+            if (!(await modalConfirm(msg))) return;
             downloadAllBtn.disabled = true;
             showZipProgress(0);
             try {

@@ -5,6 +5,10 @@ require_once __DIR__ . '/../inc/functions.php';
 
 requireAccessAuth();
 
+// 대용량 전송 중 세션 잠금으로 다른 요청이 멈추지 않도록 즉시 해제
+session_write_close();
+set_time_limit(0);
+
 $animeId = filter_input(INPUT_GET, 'aid', FILTER_VALIDATE_INT);
 if (!$animeId) {
     jsonResponse(false, [], '잘못된 요청입니다.');

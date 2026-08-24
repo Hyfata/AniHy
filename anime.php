@@ -28,9 +28,11 @@ $episodes = $stmt->fetchAll();
 
 foreach ($episodes as &$ep) {
     $ep['has_file'] = !empty($ep['file_path']) && is_file(__DIR__ . '/' . $ep['file_path']) && filesize(__DIR__ . '/' . $ep['file_path']) > 0;
+    $ep['file_size'] = $ep['has_file'] ? filesize(__DIR__ . '/' . $ep['file_path']) : 0;
 }
 unset($ep);
 $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
+$totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -76,7 +78,7 @@ $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
                         </a>
                     <?php endif; ?>
                     <?php if ($downloadableCount > 0): ?>
-                        <button type="button" class="poster-action" id="download-all-btn" data-aid="<?= $aid ?>">
+                        <button type="button" class="poster-action" id="download-all-btn" data-aid="<?= $aid ?>" data-count="<?= $downloadableCount ?>" data-size="<?= htmlspecialchars(formatBytes($totalDownloadSize)) ?>">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
                             <span>전체 다운로드</span>
                         </button>
@@ -154,7 +156,7 @@ $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
                         </div>
                         <div class="episode-actions">
                             <?php if ($ep['has_file']): ?>
-                                <a class="episode-dl-btn" href="/anime/api/download_episode.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>" title="다운로드" onclick="event.stopPropagation()">
+                                <a class="episode-dl-btn" href="/anime/api/download_episode.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>" title="다운로드" data-title="<?= htmlspecialchars($ep['episode_number'] . '화' . (!empty($ep['title']) ? ': ' . $ep['title'] : ''), ENT_QUOTES) ?>" data-size="<?= htmlspecialchars(formatBytes($ep['file_size'])) ?>" onclick="event.stopPropagation()">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
                                 </a>
                             <?php endif; ?>

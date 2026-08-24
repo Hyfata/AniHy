@@ -7,7 +7,7 @@ function baseUrl(): string {
 }
 
 function assetUrl(string $path): string {
-    return '/anime/assets/' . ltrim($path, '/') . '?v=88';
+    return '/anime/assets/' . ltrim($path, '/') . '?v=89';
 }
 
 function coverUrl(string $filename): string {
@@ -35,6 +35,18 @@ function jsonResponse(bool $success, array $data = [], string $message = ''): vo
 
 function sanitizeFilename(string $filename): string {
     return preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename);
+}
+
+// 바이트 크기를 사람이 읽기 좋은 문자열로 변환
+function formatBytes(int|float $bytes): string {
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $bytes = max(0, (float)$bytes);
+    $i = 0;
+    while ($bytes >= 1024 && $i < count($units) - 1) {
+        $bytes /= 1024;
+        $i++;
+    }
+    return ($i === 0 ? (string)(int)$bytes : number_format($bytes, 1)) . ' ' . $units[$i];
 }
 
 function allowedImageExt(string $ext): bool {

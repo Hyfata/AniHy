@@ -4,6 +4,9 @@ require_once __DIR__ . '/../inc/functions.php';
 
 requireAdmin();
 
+// SSE 장기 연결 중 세션 잠금으로 다른 요청이 멈추지 않도록 즉시 해제
+session_write_close();
+
 $seasonId = trim($_GET['season_id'] ?? '');
 $service = trim($_GET['service'] ?? 'crunchy');
 if ($seasonId === '') {

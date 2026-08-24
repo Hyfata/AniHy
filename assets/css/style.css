@@ -1495,6 +1495,7 @@ img {
     line-height: 1.5;
     word-break: keep-all;
     overflow-wrap: anywhere;
+    white-space: pre-line;
 }
 
 .alert-modal-actions {
