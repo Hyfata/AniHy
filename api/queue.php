@@ -25,7 +25,7 @@ $stmt = $pdo->query("
     JOIN animes a ON a.id = j.anime_id
     WHERE j.status NOT IN ('completed', 'failed')
       AND j.created_at >= $recentWindow
-    ORDER BY a.id ASC, j.episode_number ASC
+    ORDER BY a.id ASC, (j.episode_number LIKE 'S%') DESC, CASE WHEN j.episode_number LIKE 'S%' THEN CAST(SUBSTRING(j.episode_number, 2) AS DECIMAL(20,6)) ELSE NULL END ASC, CASE WHEN j.episode_number REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN 0 ELSE 1 END ASC, CASE WHEN j.episode_number REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN CAST(j.episode_number AS DECIMAL(20,6)) ELSE NULL END ASC, j.episode_number ASC
 ");
 $activeJobs = $stmt->fetchAll();
 

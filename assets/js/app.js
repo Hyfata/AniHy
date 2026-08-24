@@ -812,7 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'queue-card queue-completed-card';
             card.innerHTML = `
                 <div class="queue-card-header">
-                    <h4 class="queue-card-title">${escapeHtml(job.anime_title)} · ${job.episode_number}회</h4>
+                    <h4 class="queue-card-title">${escapeHtml(job.anime_title)} · ${job.episode_number}화</h4>
                     <span class="status-badge ${info.class}">${info.text}</span>
                 </div>
                 <div class="queue-card-meta">${escapeHtml(job.updated_at || '')}</div>
