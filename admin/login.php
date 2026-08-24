@@ -6,13 +6,14 @@ require_once __DIR__ . '/../inc/functions.php';
 requireAccessAuth();
 
 $error = '';
+$redirectTo = safeRedirectPath($_POST['redirect'] ?? $_GET['redirect'] ?? null);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
     if (loginAdmin($username, $password)) {
-        redirect('/anime/');
+        redirect($redirectTo);
     } else {
         $error = '아이디 또는 비밀번호가 올바르지 않습니다.';
     }
@@ -34,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p style="color:var(--danger);text-align:center;font-size:0.9rem"><?= htmlspecialchars($error) ?></p>
             <?php endif; ?>
             <form method="POST" action="">
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirectTo, ENT_QUOTES) ?>">
                 <div class="form-group">
                     <label for="username">아이디</label>
                     <input type="text" id="username" name="username" required autofocus>
@@ -45,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn btn-primary" style="width:100%">로그인</button>
             </form>
             <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--text-muted)">
-                <a href="/anime/">홈으로 돌아가기</a>
+                <a href="<?= htmlspecialchars($redirectTo, ENT_QUOTES) ?>">이전 페이지로 돌아가기</a>
             </p>
         </div>
     </main>

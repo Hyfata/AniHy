@@ -61,7 +61,7 @@ foreach ($episodes as $idx => $ep) {
                 <?php if (isAdmin()): ?>
                     <button class="btn btn-sm" onclick="openQueueModal()">대기열</button>
                 <?php else: ?>
-                    <a href="/anime/admin/login.php">관리자 로그인</a>
+                    <a href="/anime/admin/login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI'] ?? '/anime/') ?>">관리자 로그인</a>
                 <?php endif; ?>
             </div>
         </div>

@@ -18,7 +18,7 @@
                     <span class="settings-icon">🔐</span>
                     <span class="settings-label">접근 인증번호 변경</span>
                 </a>
-                <a href="/anime/admin/logout.php" class="settings-item settings-item-danger">
+                <a href="/anime/admin/logout.php?redirect=<?= urlencode($_SERVER['REQUEST_URI'] ?? '/anime/') ?>" class="settings-item settings-item-danger">
                     <span class="settings-icon">🚪</span>
                     <span class="settings-label">로그아웃</span>
                 </a>

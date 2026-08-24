@@ -51,7 +51,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                     <button class="btn btn-primary btn-sm" onclick="openModal('add-episode-modal')">에피소드 추가</button>
                     <button class="btn btn-sm" onclick="openQueueModal()">대기열</button>
                 <?php else: ?>
-                    <a href="/anime/admin/login.php">관리자 로그인</a>
+                    <a href="/anime/admin/login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI'] ?? '/anime/') ?>">관리자 로그인</a>
                 <?php endif; ?>
             </div>
         </div>

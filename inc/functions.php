@@ -27,6 +27,14 @@ function redirect(string $url): void {
     exit;
 }
 
+// 오픈 리다이렉트 방지: /anime 내부 경로만 허용
+function safeRedirectPath(?string $url): string {
+    if ($url && str_starts_with($url, '/anime') && !str_starts_with($url, '//')) {
+        return $url;
+    }
+    return '/anime/';
+}
+
 function jsonResponse(bool $success, array $data = [], string $message = ''): void {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(array_merge(['success' => $success, 'message' => $message], $data));
