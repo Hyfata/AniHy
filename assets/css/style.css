@@ -611,12 +611,15 @@ img {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
+    min-width: 0;
 }
 
 .episode-actions {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex: 0 0 auto;
 }
 
 .episode-actions:empty {
@@ -670,6 +673,7 @@ img {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 auto;
     width: 34px;
     height: 34px;
     border-radius: 50%;
@@ -687,6 +691,8 @@ img {
     font-weight: 500;
     word-break: keep-all;
     overflow-wrap: anywhere;
+    min-width: 0;
+    flex: 1;
 }
 
 .episode-progress-bar {
