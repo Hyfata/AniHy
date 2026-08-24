@@ -18,6 +18,10 @@ if (!$anime) {
     redirect('/anime/');
 }
 
+$stmt = $pdo->prepare("SELECT broadcast_year, broadcast_quarter FROM anime_broadcasts WHERE anime_id = ? ORDER BY broadcast_year, broadcast_quarter");
+$stmt->execute([$aid]);
+$broadcastMap = [$aid => array_map(fn($r) => [(int)$r['broadcast_year'], (int)$r['broadcast_quarter']], $stmt->fetchAll())];
+
 $stmt = $pdo->prepare("SELECT * FROM episodes WHERE anime_id = ? ORDER BY (episode_number LIKE 'S%') DESC, CASE WHEN episode_number LIKE 'S%' THEN CAST(SUBSTRING(episode_number, 2) AS DECIMAL(20,6)) ELSE NULL END ASC, CASE WHEN episode_number REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN 0 ELSE 1 END ASC, CASE WHEN episode_number REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN CAST(episode_number AS DECIMAL(20,6)) ELSE NULL END ASC, episode_number ASC");
 $stmt->execute([$aid]);
 $episodes = $stmt->fetchAll();
@@ -89,10 +93,8 @@ $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
                 <h1><?= htmlspecialchars($anime['title']) ?></h1>
                 <?php
                 $badges = [];
-                if (!empty($anime['broadcast_year'])) {
-                    $label = $anime['broadcast_year'] . '년';
-                    if (!empty($anime['broadcast_quarter'])) $label .= ' ' . $anime['broadcast_quarter'] . '분기';
-                    $badges[] = $label;
+                foreach ($broadcastMap[$aid] ?? [] as [$by, $bq]) {
+                    $badges[] = $by . '년 ' . $bq . '분기';
                 }
                 if (!empty($anime['broadcast_day'])) {
                     $badges[] = $anime['broadcast_day'] . '요일';

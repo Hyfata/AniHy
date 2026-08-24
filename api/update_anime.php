@@ -15,10 +15,10 @@ $seasonId = trim($_POST['season_id'] ?? '');
 $isHidive = filter_input(INPUT_POST, 'is_hidive', FILTER_VALIDATE_INT) ?: 0;
 $isHidive = $isHidive ? 1 : 0;
 
-$broadcastYear = filter_input(INPUT_POST, 'broadcast_year', FILTER_VALIDATE_INT);
-$broadcastYear = ($broadcastYear && $broadcastYear >= 1900 && $broadcastYear <= 2100) ? $broadcastYear : null;
-$broadcastQuarter = filter_input(INPUT_POST, 'broadcast_quarter', FILTER_VALIDATE_INT);
-$broadcastQuarter = in_array($broadcastQuarter, [1, 2, 3, 4], true) ? $broadcastQuarter : null;
+$broadcastPairs = parseBroadcastPairs(
+    (array)($_POST['broadcast_year'] ?? []),
+    (array)($_POST['broadcast_quarter'] ?? [])
+);
 $broadcastDay = trim($_POST['broadcast_day'] ?? '');
 $broadcastDay = in_array($broadcastDay, ['월', '화', '수', '목', '금', '토', '일'], true) ? $broadcastDay : null;
 $downloadUrl = trim($_POST['download_url'] ?? '');
@@ -61,7 +61,10 @@ if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
     $coverImage = $newFilename;
 }
 
+$firstPair = $broadcastPairs[0] ?? [null, null];
 $stmt = $pdo->prepare("UPDATE animes SET title = ?, cover_image = ?, description = ?, season_id = ?, is_hidive = ?, broadcast_year = ?, broadcast_quarter = ?, broadcast_day = ?, download_url = ?, namuwiki_url = ? WHERE id = ?");
-$stmt->execute([$title, $coverImage, $description, $seasonId ?: null, $isHidive, $broadcastYear, $broadcastQuarter, $broadcastDay, $downloadUrl ?: null, $namuwikiUrl ?: null, $id]);
+$stmt->execute([$title, $coverImage, $description, $seasonId ?: null, $isHidive, $firstPair[0], $firstPair[1], $broadcastDay, $downloadUrl ?: null, $namuwikiUrl ?: null, $id]);
+
+saveBroadcastPairs($pdo, $id, $broadcastPairs);
 
 jsonResponse(true, ['id' => $id], '애니 정보가 수정되었습니다.');

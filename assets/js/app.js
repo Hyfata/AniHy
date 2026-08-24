@@ -184,6 +184,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Broadcast (year/quarter) repeatable rows
+    function createBroadcastRow(year = '', quarter = '') {
+        const row = document.createElement('div');
+        row.className = 'broadcast-row';
+        row.innerHTML = `
+            <input type="number" name="broadcast_year[]" min="1900" max="2100" placeholder="년도" value="${year}">
+            <select name="broadcast_quarter[]">
+                <option value="">분기</option>
+                <option value="1">1분기</option>
+                <option value="2">2분기</option>
+                <option value="3">3분기</option>
+                <option value="4">4분기</option>
+            </select>
+            <button type="button" class="btn btn-danger btn-sm broadcast-remove-btn" title="삭제">×</button>
+        `;
+        if (quarter !== '') row.querySelector('select').value = String(quarter);
+        row.querySelector('.broadcast-remove-btn').addEventListener('click', () => row.remove());
+        return row;
+    }
+
+    function setBroadcastRows(listId, pairs) {
+        const list = document.getElementById(listId);
+        if (!list) return;
+        list.innerHTML = '';
+        (pairs && pairs.length ? pairs : [['', '']]).forEach(([y, q]) => {
+            list.appendChild(createBroadcastRow(y, q));
+        });
+    }
+
+    document.querySelectorAll('.add-broadcast-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const list = document.getElementById(btn.dataset.target);
+            if (list) list.appendChild(createBroadcastRow());
+        });
+    });
+
+    setBroadcastRows('broadcast-list', null);
+
     // Anime add form
     const animeForm = document.getElementById('anime-form');
     if (animeForm) {
@@ -215,8 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('edit-description').value = btn.dataset.description;
                 document.getElementById('edit-season-id').value = btn.dataset.seasonId || '';
                 document.getElementById('edit-is-hidive').value = btn.dataset.isHidive === '1' ? '1' : '0';
-                document.getElementById('edit-broadcast-year').value = btn.dataset.year || '';
-                document.getElementById('edit-broadcast-quarter').value = btn.dataset.quarter || '';
+                let broadcasts = [];
+                try { broadcasts = JSON.parse(btn.dataset.broadcasts || '[]'); } catch (err) { broadcasts = []; }
+                setBroadcastRows('edit-broadcast-list', broadcasts);
                 document.getElementById('edit-broadcast-day').value = btn.dataset.day || '';
                 document.getElementById('edit-download-url').value = btn.dataset.downloadUrl || '';
                 document.getElementById('edit-namuwiki-url').value = btn.dataset.namuwikiUrl || '';

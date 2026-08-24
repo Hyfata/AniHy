@@ -17,7 +17,7 @@ if ($dayFilter !== '' && $dayFilter !== '기타' && !in_array($dayFilter, $days,
     $dayFilter = '';
 }
 
-$stmt = $pdo->prepare("SELECT * FROM animes WHERE broadcast_year = ? AND broadcast_quarter = ? ORDER BY title ASC");
+$stmt = $pdo->prepare("SELECT DISTINCT a.* FROM animes a JOIN anime_broadcasts ab ON ab.anime_id = a.id WHERE ab.broadcast_year = ? AND ab.broadcast_quarter = ? ORDER BY a.title ASC");
 $stmt->execute([$year, $quarter]);
 $animes = $stmt->fetchAll();
 

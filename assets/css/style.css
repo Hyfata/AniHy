@@ -1907,3 +1907,24 @@ main.has-tabbar {
     transform: translateX(14px);
     background: #fff;
 }
+
+/* 방영 분기 다중 입력 행 */
+.broadcast-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.broadcast-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.broadcast-row input,
+.broadcast-row select {
+    flex: 1;
+    min-width: 0;
+}
+.broadcast-row .broadcast-remove-btn {
+    flex: 0 0 auto;
+}

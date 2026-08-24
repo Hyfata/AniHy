@@ -8,16 +8,17 @@ requireAccessAuth();
 $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC");
 $animes = $stmt->fetchAll();
 
+$broadcastMap = fetchBroadcastMap($pdo);
+
 $tab = ($_GET['tab'] ?? 'home') === 'quarter' ? 'quarter' : 'home';
 
-// 분기별 애니 그룹핑 (년도/분기가 설정된 애니만)
+// 분기별 애니 그룹핑 (년도/분기가 설정된 애니만, 분기가 여러 개면 각각 집계)
 $quarterGroups = [];
 if ($tab === 'quarter') {
     foreach ($animes as $a) {
-        if (empty($a['broadcast_year']) || empty($a['broadcast_quarter'])) continue;
-        $y = (int)$a['broadcast_year'];
-        $q = (int)$a['broadcast_quarter'];
-        $quarterGroups[$y][$q] = ($quarterGroups[$y][$q] ?? 0) + 1;
+        foreach ($broadcastMap[(int)$a['id']] ?? [] as [$y, $q]) {
+            $quarterGroups[$y][$q] = ($quarterGroups[$y][$q] ?? 0) + 1;
+        }
     }
     krsort($quarterGroups);
     foreach ($quarterGroups as &$quarters) {
@@ -95,8 +96,7 @@ if ($tab === 'quarter') {
                                         data-description="<?= htmlspecialchars($anime['description'] ?? '', ENT_QUOTES) ?>"
                                         data-season-id="<?= htmlspecialchars($anime['season_id'] ?? '', ENT_QUOTES) ?>"
                                         data-is-hidive="<?= !empty($anime['is_hidive']) ? '1' : '0' ?>"
-                                        data-year="<?= htmlspecialchars((string)($anime['broadcast_year'] ?? ''), ENT_QUOTES) ?>"
-                                        data-quarter="<?= htmlspecialchars((string)($anime['broadcast_quarter'] ?? ''), ENT_QUOTES) ?>"
+                                        data-broadcasts="<?= htmlspecialchars(json_encode($broadcastMap[(int)$anime['id']] ?? []), ENT_QUOTES) ?>"
                                         data-day="<?= htmlspecialchars($anime['broadcast_day'] ?? '', ENT_QUOTES) ?>"
                                         data-download-url="<?= htmlspecialchars($anime['download_url'] ?? '', ENT_QUOTES) ?>"
                                         data-namuwiki-url="<?= htmlspecialchars($anime['namuwiki_url'] ?? '', ENT_QUOTES) ?>"
@@ -166,18 +166,9 @@ if ($tab === 'quarter') {
                         </div>
 
                         <div class="form-group">
-                            <label for="broadcast_year">방영 년도</label>
-                            <input type="number" id="broadcast_year" name="broadcast_year" min="1900" max="2100" placeholder="예: 2025">
-                        </div>
-                        <div class="form-group">
-                            <label for="broadcast_quarter">방영 분기</label>
-                            <select id="broadcast_quarter" name="broadcast_quarter">
-                                <option value="">선택 안 함</option>
-                                <option value="1">1분기</option>
-                                <option value="2">2분기</option>
-                                <option value="3">3분기</option>
-                                <option value="4">4분기</option>
-                            </select>
+                            <label>방영 분기</label>
+                            <div class="broadcast-list" id="broadcast-list"></div>
+                            <button type="button" class="btn btn-secondary btn-sm add-broadcast-btn" data-target="broadcast-list">분기 추가</button>
                         </div>
                         <div class="form-group">
                             <label for="broadcast_day">방영 요일</label>
@@ -258,18 +249,9 @@ if ($tab === 'quarter') {
                         </div>
 
                         <div class="form-group">
-                            <label for="edit-broadcast-year">방영 년도</label>
-                            <input type="number" id="edit-broadcast-year" name="broadcast_year" min="1900" max="2100" placeholder="예: 2025">
-                        </div>
-                        <div class="form-group">
-                            <label for="edit-broadcast-quarter">방영 분기</label>
-                            <select id="edit-broadcast-quarter" name="broadcast_quarter">
-                                <option value="">선택 안 함</option>
-                                <option value="1">1분기</option>
-                                <option value="2">2분기</option>
-                                <option value="3">3분기</option>
-                                <option value="4">4분기</option>
-                            </select>
+                            <label>방영 분기</label>
+                            <div class="broadcast-list" id="edit-broadcast-list"></div>
+                            <button type="button" class="btn btn-secondary btn-sm add-broadcast-btn" data-target="edit-broadcast-list">분기 추가</button>
                         </div>
                         <div class="form-group">
                             <label for="edit-broadcast-day">방영 요일</label>

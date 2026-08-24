@@ -14,10 +14,10 @@ $seasonId = trim($_POST['season_id'] ?? '');
 $isHidive = filter_input(INPUT_POST, 'is_hidive', FILTER_VALIDATE_INT) ?: 0;
 $isHidive = $isHidive ? 1 : 0;
 
-$broadcastYear = filter_input(INPUT_POST, 'broadcast_year', FILTER_VALIDATE_INT);
-$broadcastYear = ($broadcastYear && $broadcastYear >= 1900 && $broadcastYear <= 2100) ? $broadcastYear : null;
-$broadcastQuarter = filter_input(INPUT_POST, 'broadcast_quarter', FILTER_VALIDATE_INT);
-$broadcastQuarter = in_array($broadcastQuarter, [1, 2, 3, 4], true) ? $broadcastQuarter : null;
+$broadcastPairs = parseBroadcastPairs(
+    (array)($_POST['broadcast_year'] ?? []),
+    (array)($_POST['broadcast_quarter'] ?? [])
+);
 $broadcastDay = trim($_POST['broadcast_day'] ?? '');
 $broadcastDay = in_array($broadcastDay, ['월', '화', '수', '목', '금', '토', '일'], true) ? $broadcastDay : null;
 $downloadUrl = trim($_POST['download_url'] ?? '');
@@ -43,7 +43,11 @@ if (!move_uploaded_file($_FILES['cover']['tmp_name'], $dest)) {
     jsonResponse(false, [], '이미지 저장에 실패했습니다.');
 }
 
+$firstPair = $broadcastPairs[0] ?? [null, null];
 $stmt = $pdo->prepare("INSERT INTO animes (title, cover_image, description, season_id, is_hidive, broadcast_year, broadcast_quarter, broadcast_day, download_url, namuwiki_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-$stmt->execute([$title, $filename, $description, $seasonId ?: null, $isHidive, $broadcastYear, $broadcastQuarter, $broadcastDay, $downloadUrl ?: null, $namuwikiUrl ?: null]);
+$stmt->execute([$title, $filename, $description, $seasonId ?: null, $isHidive, $firstPair[0], $firstPair[1], $broadcastDay, $downloadUrl ?: null, $namuwikiUrl ?: null]);
 
-jsonResponse(true, ['id' => $pdo->lastInsertId()], '애니가 추가되었습니다.');
+$animeId = (int)$pdo->lastInsertId();
+saveBroadcastPairs($pdo, $animeId, $broadcastPairs);
+
+jsonResponse(true, ['id' => $animeId], '애니가 추가되었습니다.');
