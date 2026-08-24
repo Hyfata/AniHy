@@ -152,7 +152,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                     <div class="episode-item" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number']) ?>" onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>'">
                         <div class="episode-meta">
                             <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
-                            <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '회')) ?></span>
+                            <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '화')) ?></span>
                         </div>
                         <div class="episode-actions">
                             <?php if ($ep['has_file']): ?>

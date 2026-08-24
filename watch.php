@@ -49,7 +49,7 @@ foreach ($episodes as $idx => $ep) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($anime['title']) ?> <?= htmlspecialchars($epNum) ?>회 - AniHy</title>
+    <title><?= htmlspecialchars($anime['title']) ?> <?= htmlspecialchars($epNum) ?>화 - AniHy</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css?v=2" rel="stylesheet">
     <link rel="stylesheet" href="<?= assetUrl('css/style.css') ?>">
 </head>
@@ -90,7 +90,7 @@ foreach ($episodes as $idx => $ep) {
                 <div class="watch-info">
                     <div class="watch-title-row">
                         <div>
-                            <h1 class="watch-episode-title"><?= htmlspecialchars($epNum) ?>회 <?= htmlspecialchars($currentEp['title'] ? '| ' . $currentEp['title'] : '') ?></h1>
+                            <h1 class="watch-episode-title"><?= htmlspecialchars($epNum) ?>화 <?= htmlspecialchars($currentEp['title'] ? '| ' . $currentEp['title'] : '') ?></h1>
                             <a href="/anime/anime.php?aid=<?= $aid ?>" class="watch-anime-title"><?= htmlspecialchars($anime['title']) ?></a>
                         </div>
                     </div>
@@ -111,7 +111,7 @@ foreach ($episodes as $idx => $ep) {
                              onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>'">
                             <div class="episode-meta">
                                 <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
-                                <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '회')) ?></span>
+                                <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '화')) ?></span>
                             </div>
                         </div>
                     <?php endforeach; ?>

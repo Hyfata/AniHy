@@ -862,7 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.dataset.jobId = ep.job_id;
         card.innerHTML = `
             <div class="queue-card-header">
-                <h4 class="queue-card-title">${ep.episode_number}회 ${escapeHtml(ep.episode_title !== ep.episode_number + '회' ? ' · ' + ep.episode_title : '')}</h4>
+                <h4 class="queue-card-title">${ep.episode_number}화 ${escapeHtml(ep.episode_title !== ep.episode_number + '화' ? ' · ' + ep.episode_title : '')}</h4>
                 <div class="queue-card-actions">
                     <button type="button" class="btn btn-danger btn-xs queue-stop-btn" data-job-id="${ep.job_id}">중지</button>
                     <span class="status-badge ${info.class}">${info.text}</span>
@@ -949,7 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logFromCompleted = fromCompleted;
         hideQueueViews();
         queueLogView.classList.remove('hidden');
-        queueLogTitle.textContent = (title || selectedGroup?.title || '') + ' · ' + episode.episode_number + '회';
+        queueLogTitle.textContent = (title || selectedGroup?.title || '') + ' · ' + episode.episode_number + '화';
         queueLogBox.textContent = '';
         queueLogOffset = 0;
         updateLogProgress(episode.progress, episode.status, episode.message);

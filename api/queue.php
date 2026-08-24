@@ -47,7 +47,7 @@ foreach ($activeJobs as $job) {
     $groups[$aid]['episodes'][] = [
         'job_id' => (int)$job['job_id'],
         'episode_number' => (string)$job['episode_number'],
-        'episode_title' => $job['episode_title'] ?: ($job['episode_number'] . '회'),
+        'episode_title' => $job['episode_title'] ?: ($job['episode_number'] . '화'),
         'status' => $job['status'],
         'progress' => (int)$job['progress'],
         'message' => $job['message'] ?: '',
@@ -95,7 +95,7 @@ foreach ($stmt->fetchAll() as $job) {
         'job_id' => (int)$job['job_id'],
         'anime_title' => $job['anime_title'],
         'episode_number' => (string)$job['episode_number'],
-        'episode_title' => $job['episode_title'] ?: ($job['episode_number'] . '회'),
+        'episode_title' => $job['episode_title'] ?: ($job['episode_number'] . '화'),
         'status' => $job['status'],
         'progress' => (int)$job['progress'],
         'message' => $job['message'] ?: '',
