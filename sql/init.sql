@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     episode_title VARCHAR(255),
     subtitle_file VARCHAR(500),
     trim_seconds DECIMAL(10,3) DEFAULT 0,
+    subtitle_offset DECIMAL(10,3) DEFAULT 0,
     source_type ENUM('download','upload') NOT NULL DEFAULT 'download',
     source_file VARCHAR(500) DEFAULT NULL,
     status ENUM('pending','downloading','downloading_subs','preparing','encoding','remuxing','subtitling','completed','failed')

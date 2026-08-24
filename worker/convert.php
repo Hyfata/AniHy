@@ -67,6 +67,7 @@ $sourceFile = $job['source_file'] ?? null;
 if ($trimSeconds < 0) {
     $trimSeconds = 0;
 }
+$subtitleOffset = (float)($job['subtitle_offset'] ?? 0);
 
 $stmt = $pdo->prepare("SELECT is_hidive FROM animes WHERE id = ?");
 $stmt->execute([$animeId]);
@@ -75,7 +76,7 @@ $isHidive = !empty($anime['is_hidive']);
 $script = $isHidive ? './hidn.sh' : './crdn.sh';
 $serviceName = $isHidive ? 'Hidive' : 'Crunchyroll';
 
-logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId source=$sourceType service=$serviceName trim=$trimSeconds");
+logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId source=$sourceType service=$serviceName trim=$trimSeconds sync=$subtitleOffset");
 
 $mkvPath = "$videosDir/{$seasonId}_{$safeEpisode}.mkv";
 
@@ -176,6 +177,25 @@ if (file_exists($assPath) && filesize($assPath) > 0) {
     logMsg("No subtitle available, will encode without burn-in");
     @unlink($assPath);
     $subtitleRelativePath = null;
+}
+
+// Apply subtitle sync offset: ffmpeg로 자막만 먼저 변환해 타임스탬프를 시프트
+if ($hasSubtitle && $subtitleOffset != 0.0) {
+    $shiftedPath = "$assDir/{$safeEpisode}_synced.ass";
+    $shiftCmd = sprintf(
+        'ffmpeg -y -itsoffset %s -i %s -c:s ass %s 2>&1',
+        escapeshellarg((string)$subtitleOffset),
+        escapeshellarg($assPath),
+        escapeshellarg($shiftedPath)
+    );
+    shellExecLogged($shiftCmd);
+    if (file_exists($shiftedPath) && filesize($shiftedPath) > 0) {
+        rename($shiftedPath, $assPath);
+        logMsg("Subtitle sync offset applied via ffmpeg: {$subtitleOffset}s");
+    } else {
+        logMsg("WARNING: subtitle sync shift failed, using original ASS");
+        @unlink($shiftedPath);
+    }
 }
 
 // Get duration for progress calculation

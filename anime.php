@@ -21,6 +21,12 @@ if (!$anime) {
 $stmt = $pdo->prepare("SELECT * FROM episodes WHERE anime_id = ? ORDER BY (episode_number LIKE 'S%') DESC, CASE WHEN episode_number LIKE 'S%' THEN CAST(SUBSTRING(episode_number, 2) AS DECIMAL(20,6)) ELSE NULL END ASC, CASE WHEN episode_number REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN 0 ELSE 1 END ASC, CASE WHEN episode_number REGEXP '^[0-9]+(\\.[0-9]+)?$' THEN CAST(episode_number AS DECIMAL(20,6)) ELSE NULL END ASC, episode_number ASC");
 $stmt->execute([$aid]);
 $episodes = $stmt->fetchAll();
+
+foreach ($episodes as &$ep) {
+    $ep['has_file'] = !empty($ep['file_path']) && is_file(__DIR__ . '/' . $ep['file_path']) && filesize(__DIR__ . '/' . $ep['file_path']) > 0;
+}
+unset($ep);
+$downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -71,6 +77,12 @@ $episodes = $stmt->fetchAll();
                             <span>다운로드</span>
                         </a>
                     <?php endif; ?>
+                    <?php if ($downloadableCount > 0): ?>
+                        <button type="button" class="poster-action" id="download-all-btn" data-aid="<?= $aid ?>">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
+                            <span>전체 다운로드</span>
+                        </button>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="anime-info" id="anime-info">
@@ -120,12 +132,17 @@ $episodes = $stmt->fetchAll();
                             <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
                             <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '회')) ?></span>
                         </div>
-                        <?php if (isAdmin()): ?>
-                            <div class="episode-actions">
+                        <div class="episode-actions">
+                            <?php if ($ep['has_file']): ?>
+                                <a class="episode-dl-btn" href="/anime/api/download_episode.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>" title="다운로드" onclick="event.stopPropagation()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
+                                </a>
+                            <?php endif; ?>
+                            <?php if (isAdmin()): ?>
                                 <button class="btn btn-sm edit-episode-btn" data-id="<?= $ep['id'] ?>" data-title="<?= htmlspecialchars($ep['title'] ?? '') ?>" title="제목 수정">수정</button>
                                 <button class="btn btn-danger btn-sm delete-episode-btn" data-id="<?= $ep['id'] ?>" title="삭제">삭제</button>
-                            </div>
-                        <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="episode-progress-bar">
                             <div class="episode-progress-fill"></div>
                         </div>
@@ -204,6 +221,14 @@ $episodes = $stmt->fetchAll();
                                     앞부분 자르기
                                 </label>
                                 <input type="number" id="trim_seconds" name="trim_seconds" value="7.5" step="0.1" min="0" disabled>
+                            </div>
+
+                            <div class="form-group trim-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="sync_enabled" name="sync_enabled">
+                                    자막 싱크 조절 (초)
+                                </label>
+                                <input type="number" id="subtitle_offset" name="subtitle_offset" value="0" step="any" min="-86400" disabled>
                             </div>
 
                             <div class="form-group">

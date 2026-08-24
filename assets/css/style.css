@@ -619,6 +619,53 @@ img {
     gap: 8px;
 }
 
+.episode-actions:empty {
+    display: none;
+}
+
+.episode-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-light);
+    color: var(--text-muted);
+    transition: color 0.15s, background 0.15s;
+}
+
+.episode-dl-btn svg {
+    width: 17px;
+    height: 17px;
+}
+
+.episode-dl-btn:hover {
+    color: var(--primary);
+    background: rgba(124, 92, 255, 0.15);
+}
+
+.zip-ring {
+    transform: rotate(-90deg);
+}
+
+.zip-ring circle {
+    fill: none;
+    stroke-width: 2.5;
+}
+
+.zip-ring .zip-ring-bg {
+    stroke: rgba(255, 255, 255, 0.15);
+}
+
+.zip-ring .zip-ring-fg {
+    stroke: var(--primary);
+    stroke-linecap: round;
+    stroke-dasharray: 56.55;
+    stroke-dashoffset: 56.55;
+    transition: stroke-dashoffset 0.3s;
+}
+
 .episode-number {
     display: inline-flex;
     align-items: center;

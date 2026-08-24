@@ -329,6 +329,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const syncEnabled = document.getElementById('sync_enabled');
+    const subtitleOffset = document.getElementById('subtitle_offset');
+
+    if (syncEnabled && subtitleOffset) {
+        syncEnabled.addEventListener('change', () => {
+            subtitleOffset.disabled = !syncEnabled.checked;
+        });
+    }
+
     const sourceVideoInput = document.getElementById('source_video');
     const serverVideoPathInput = document.getElementById('server_video_path');
     const selectServerFileBtn = document.getElementById('select-server-file-btn');
@@ -1133,6 +1142,83 @@ document.addEventListener('DOMContentLoaded', () => {
                     await modalAlert(data.message || '수정 실패');
                 }
             } catch (err) {
+                await modalAlert('오류: ' + err.message);
+            }
+        });
+    }
+
+    // Download all episodes as ZIP with ring progress
+    const downloadAllBtn = document.getElementById('download-all-btn');
+    if (downloadAllBtn) {
+        const zipAid = downloadAllBtn.dataset.aid;
+        const iconEl = () => downloadAllBtn.querySelector('svg');
+        const labelEl = downloadAllBtn.querySelector('span');
+        const origIcon = iconEl().outerHTML;
+        const origLabel = labelEl.textContent;
+        const RING_LEN = 56.55;
+        let zipPollTimer = null;
+
+        const showZipProgress = pct => {
+            const offset = (RING_LEN * (1 - Math.min(100, Math.max(0, pct)) / 100)).toFixed(2);
+            iconEl().outerHTML =
+                '<svg viewBox="0 0 24 24" class="zip-ring">' +
+                '<circle class="zip-ring-bg" cx="12" cy="12" r="9"/>' +
+                '<circle class="zip-ring-fg" cx="12" cy="12" r="9" style="stroke-dashoffset:' + offset + '"/>' +
+                '</svg>';
+            labelEl.textContent = Math.round(pct) + '%';
+        };
+
+        const resetZipButton = () => {
+            iconEl().outerHTML = origIcon;
+            labelEl.textContent = origLabel;
+            downloadAllBtn.disabled = false;
+        };
+
+        const stopZipPolling = () => {
+            if (zipPollTimer) {
+                clearInterval(zipPollTimer);
+                zipPollTimer = null;
+            }
+        };
+
+        const pollZipProgress = async () => {
+            try {
+                const res = await fetch('/anime/api/download_all.php?aid=' + encodeURIComponent(zipAid) + '&progress=1');
+                const data = await res.json();
+                const job = data.job || {};
+                if (job.status === 'done') {
+                    stopZipPolling();
+                    showZipProgress(100);
+                    window.location.href = '/anime/api/download_all.php?aid=' + encodeURIComponent(zipAid) + '&file=1';
+                    setTimeout(resetZipButton, 1500);
+                } else if (job.status === 'failed') {
+                    stopZipPolling();
+                    resetZipButton();
+                    await modalAlert(job.message || '압축에 실패했습니다.');
+                } else {
+                    showZipProgress(parseFloat(job.percent) || 0);
+                }
+            } catch (err) {
+                // 일시적 네트워크 오류는 다음 폴에서 재시도
+            }
+        };
+
+        downloadAllBtn.addEventListener('click', async () => {
+            if (zipPollTimer) return;
+            downloadAllBtn.disabled = true;
+            showZipProgress(0);
+            try {
+                const res = await fetch('/anime/api/download_all.php?aid=' + encodeURIComponent(zipAid), { method: 'POST' });
+                const data = await res.json();
+                if (!data.success) {
+                    resetZipButton();
+                    await modalAlert(data.message || '압축을 시작할 수 없습니다.');
+                    return;
+                }
+                zipPollTimer = setInterval(pollZipProgress, 1000);
+                pollZipProgress();
+            } catch (err) {
+                resetZipButton();
                 await modalAlert('오류: ' + err.message);
             }
         });
