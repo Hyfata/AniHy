@@ -216,6 +216,27 @@ if (is_numeric($durationOutput) && (float)$durationOutput > 0) {
     logMsg("Duration: " . round($durationMs / 1000, 2) . "s");
 }
 
+// Select audio stream: prefer Japanese audio, fallback to first
+$audioStreamIndex = 0;
+$audioProbeCmd = sprintf(
+    'ffprobe -v error -select_streams a -show_entries stream=index:stream_tags=language -of json %s 2>&1',
+    escapeshellarg($mkvPath)
+);
+$audioProbeOutput = shellExecLogged($audioProbeCmd);
+$audioProbe = json_decode($audioProbeOutput, true);
+if (is_array($audioProbe) && !empty($audioProbe['streams']) && is_array($audioProbe['streams'])) {
+    foreach (array_values($audioProbe['streams']) as $i => $stream) {
+        $lang = strtolower($stream['tags']['language'] ?? '');
+        if ($lang === 'jpn' || $lang === 'ja') {
+            $audioStreamIndex = $i;
+            break;
+        }
+    }
+    logMsg("Audio stream selected: 0:a:{$audioStreamIndex} (language: " . strtolower($audioProbe['streams'][$audioStreamIndex]['tags']['language'] ?? 'unknown') . ")");
+} else {
+    logMsg("WARNING: audio probe failed, falling back to first audio stream (0:a:0)");
+}
+
 // Encode / burn-in
 $encodeMessage = $hasSubtitle ? '자막을 영상에 입히는 중...' : 'MP4로 변환 중...';
 $encodeBaseProgress = 15;
@@ -234,6 +255,8 @@ if ($hasSubtitle) {
     $cmdParts = array_merge($cmdParts, [
         '-vaapi_device', '/dev/dri/renderD128',
         '-i', $mkvPath,
+        '-map', '0:v:0',
+        '-map', '0:a:' . $audioStreamIndex,
         '-vf', 'ass=' . $assPath . ',format=nv12,hwupload',
         '-c:a', 'copy',
         '-sn',
@@ -256,6 +279,8 @@ if ($hasSubtitle) {
     }
     $cmdParts = array_merge($cmdParts, [
         '-i', $mkvPath,
+        '-map', '0:v:0',
+        '-map', '0:a:' . $audioStreamIndex,
         '-c:v', 'copy',
         '-c:a', 'copy',
         '-sn',
