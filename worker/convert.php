@@ -139,6 +139,14 @@ if ($subtitleFile && file_exists("$subtitlesDir/$subtitleFile")) {
     $subtitlePath = "$subtitlesDir/$subtitleFile";
     $subtitleExt = strtolower(pathinfo($subtitlePath, PATHINFO_EXTENSION));
     if ($subtitleExt === 'smi') {
+        // 확장자는 .smi인데 실제 내용이 ASS인 파일(잘못된 확장자)은 변환 없이 그대로 사용
+        $smiHead = ltrim((string)file_get_contents($subtitlePath, false, null, 0, 64), "\xEF\xBB\xBF \t\r\n");
+        if (str_starts_with($smiHead, '[Script Info]')) {
+            logMsg("Subtitle labelled .smi is actually ASS, using as-is");
+            $subtitleExt = 'ass';
+        }
+    }
+    if ($subtitleExt === 'smi') {
         $smiFilename = basename($subtitlePath);
         $smiBasename = pathinfo($subtitlePath, PATHINFO_FILENAME);
         $smi2assCmd = sprintf(
