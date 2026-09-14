@@ -24,6 +24,13 @@ putenv('FONTCONFIG_FILE=' . $baseDir . '/assets/fonts/fonts.conf');
 // Enable Intel VA-API driver for hardware acceleration
 putenv('LIBVA_DRIVER_NAME=iHD');
 
+// smi2ass는 frozen Python이라 Apache의 LANG=C를 물려받으면
+// non-ASCII(한글/BOM)가 든 경고 출력 중 UnicodeEncodeError로 죽는다. UTF-8 강제.
+putenv('LC_ALL=C.UTF-8');
+putenv('LANG=C.UTF-8');
+putenv('PYTHONUTF8=1');
+putenv('PYTHONIOENCODING=utf-8');
+
 function logMsg(string $msg): void {
     global $logFile;
     file_put_contents($logFile, date('[Y-m-d H:i:s] ') . $msg . PHP_EOL, FILE_APPEND);
@@ -141,16 +148,48 @@ if ($subtitleFile && file_exists("$subtitlesDir/$subtitleFile")) {
             escapeshellarg($smiFilename),
             escapeshellarg($assDir)
         );
-        shellExecLogged($smi2assCmd);
-        $smi2assOutput = "$assDir/{$smiBasename}.ass";
-        if (file_exists($smi2assOutput)) {
+        $smi2assLog = shellExecLogged($smi2assCmd);
+        // 단일 언어면 {basename}.ass, 복수 언어면 {basename}-{LANG}.ass 생성됨.
+        // 단, Traceback이 있으면 변환이 중간에 죽은 것(부분 .ass가 남을 수 있음)으로 간주.
+        $cleanConvert = !str_contains($smi2assLog, 'Traceback');
+        $smi2assCandidates = glob("$assDir/{$smiBasename}*.ass") ?: [];
+        $smi2assOutput = null;
+        foreach ($smi2assCandidates as $candidate) {
+            if (str_ends_with($candidate, '-KOR.ass')) {
+                $smi2assOutput = $candidate;
+                break;
+            }
+            $smi2assOutput ??= $candidate;
+        }
+        if ($cleanConvert && $smi2assOutput && file_exists($smi2assOutput) && filesize($smi2assOutput) > 0) {
+            foreach ($smi2assCandidates as $candidate) {
+                if ($candidate !== $smi2assOutput) {
+                    @unlink($candidate);
+                }
+            }
             $sourceAssPath = $smi2assOutput;
+            @unlink($subtitlePath);
+        } else {
+            // 변환 실패: 원본 SMI 보존 후 job 실패. 조용한 무자막 완성 방지.
+            $failedDir = "$subtitlesDir/failed";
+            if (!is_dir($failedDir)) {
+                mkdir($failedDir, 0777, true);
+            }
+            $keptPath = "$failedDir/job_{$jobId}_{$smiFilename}";
+            @rename($subtitlePath, $keptPath);
+            foreach ($smi2assCandidates as $candidate) {
+                @unlink($candidate); // 부분 변환 산출물 제거
+            }
+            $failMsg = "자막 변환 실패 (SMI→ASS). 원본은 {$keptPath}에 보존됨. logs/job_{$jobId}.log의 smi2ass Traceback 확인 후 SMI를 고쳐 다시 등록하세요.";
+            updateJob($pdo, $jobId, 'failed', 0, $failMsg);
+            logMsg($failMsg);
+            exit;
         }
     } else {
         copy($subtitlePath, $assPath);
         $sourceAssPath = $assPath;
+        @unlink($subtitlePath);
     }
-    @unlink($subtitlePath);
 } else {
     // Extract first subtitle stream from MKV
     $extractCmd = sprintf(
