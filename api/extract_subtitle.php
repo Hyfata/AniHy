@@ -5,6 +5,7 @@ require_once __DIR__ . '/../inc/functions.php';
 requireAdmin();
 
 $videoPath = isset($_GET['path']) ? trim((string)$_GET['path']) : '';
+$action = isset($_GET['action']) ? trim((string)$_GET['action']) : 'download';
 
 if ($videoPath === '') {
     jsonResponse(false, [], '영상 경로가 필요합니다.');
@@ -23,25 +24,80 @@ if (!is_file($realPath)) {
     jsonResponse(false, [], '파일을 찾을 수 없습니다.');
 }
 
-// 영상에 자막 스트림이 있는지 확인
-$probeCmd = sprintf(
-    'ffprobe -v error -select_streams s -show_entries stream=index,codec_name -of csv=p=0 %s 2>&1',
-    escapeshellarg($realPath)
-);
-$probeOutput = trim((string)shell_exec($probeCmd));
+// mbstring 없이 동작하는 UTF-8 안전 자르기 (Apache PHP에 mbstring 미설치)
+function utf8Truncate(string $s, int $maxChars, string $ellipsis = '…'): string {
+    $chars = preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY);
+    if ($chars === false) return substr($s, 0, $maxChars * 4);
+    if (count($chars) <= $maxChars) return $s;
+    return implode('', array_slice($chars, 0, $maxChars)) . $ellipsis;
+}
 
-if ($probeOutput === '') {
+// 자막 스트림 목록 조회 (ffprobe JSON)
+function probeSubtitleStreams(string $realPath): array {
+    $probeCmd = sprintf(
+        'ffprobe -v error -select_streams s -show_entries stream=index,codec_name:stream_tags=language,title -of json %s 2>&1',
+        escapeshellarg($realPath)
+    );
+    $raw = (string)shell_exec($probeCmd);
+    $data = json_decode($raw, true);
+    $streams = [];
+    if (is_array($data) && isset($data['streams']) && is_array($data['streams'])) {
+        foreach (array_values($data['streams']) as $i => $s) {
+            $tags = (isset($s['tags']) && is_array($s['tags'])) ? $s['tags'] : [];
+            $lang = isset($tags['language']) ? trim((string)$tags['language']) : '';
+            $title = isset($tags['title']) ? trim((string)$tags['title']) : '';
+            $codec = isset($s['codec_name']) ? trim((string)$s['codec_name']) : 'unknown';
+            if ($codec === '') $codec = 'unknown';
+            $label = '#' . ($i + 1) . ' (' . $codec . ')';
+            if ($lang !== '') $label .= ' [' . $lang . ']';
+            if ($title !== '') $label .= ' ' . utf8Truncate($title, 40);
+            $streams[] = [
+                'index' => $i,
+                'stream_index' => isset($s['index']) ? (int)$s['index'] : $i,
+                'codec' => $codec,
+                'language' => $lang,
+                'title' => $title,
+                'label' => $label,
+            ];
+        }
+    }
+    return $streams;
+}
+
+$streams = probeSubtitleStreams($realPath);
+
+if ($streams === []) {
     jsonResponse(false, [], '영상에 자막 스트림이 없습니다.');
+}
+
+// 목록 조회 모드: 다운로드 전에 트랙 선택용으로 사용
+if ($action === 'list') {
+    jsonResponse(true, ['streams' => $streams, 'count' => count($streams)]);
+}
+
+$trackIndex = filter_input(INPUT_GET, 'index', FILTER_VALIDATE_INT);
+if ($trackIndex === false || $trackIndex === null) {
+    $trackIndex = 0;
+}
+if ($trackIndex < 0 || $trackIndex >= count($streams)) {
+    jsonResponse(false, [], '선택한 자막 트랙이 없습니다.');
 }
 
 $tmpDir = sys_get_temp_dir();
 $baseName = pathinfo($realPath, PATHINFO_FILENAME);
-$downloadName = sanitizeFilename($baseName) . '.ass';
+$suffix = '';
+if (count($streams) > 1) {
+    $suffix = '.s' . $trackIndex;
+    $lang = preg_replace('/[^a-zA-Z0-9-]/', '', (string)($streams[$trackIndex]['language'] ?? ''));
+    if ($lang !== '') $suffix .= '.' . $lang;
+}
+$downloadName = sanitizeFilename($baseName . $suffix) . '.ass';
 $outPath = $tmpDir . '/sub_extract_' . uniqid() . '.ass';
 
 $cmd = sprintf(
-    'ffmpeg -y -v error -i %s -map 0:s:0 -c:s ass %s 2>&1',
+    'ffmpeg -y -v error -i %s -map 0:s:%d -c:s ass %s 2>&1',
     escapeshellarg($realPath),
+    $trackIndex,
     escapeshellarg($outPath)
 );
 $output = shell_exec($cmd);

@@ -393,6 +393,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lookupBtn) lookupBtn.classList.toggle('hidden', isLocal);
         if (extractSubtitleBtn) extractSubtitleBtn.classList.toggle('hidden', !isServerFile);
         if (extractAudioBtn) extractAudioBtn.classList.toggle('hidden', !isServerFile);
+        if (!isServerFile) {
+            const stalePicker = document.getElementById('subtitle-track-picker');
+            if (stalePicker) stalePicker.remove();
+            if (extractSubtitleBtn) extractSubtitleBtn.textContent = '자막 다운로드';
+        }
         if (episodeSubmitBtn) {
             if (isUpload) {
                 episodeSubmitBtn.textContent = '업로드 및 변환';
@@ -410,6 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedServerFile.classList.add('hidden');
             selectedServerFile.innerHTML = '';
         }
+        const stalePicker = document.getElementById('subtitle-track-picker');
+        if (stalePicker) stalePicker.remove();
+        if (extractSubtitleBtn) extractSubtitleBtn.textContent = '자막 다운로드';
     }
 
     function renderServerFileList(files) {
@@ -426,6 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
             item.addEventListener('click', () => {
                 if (serverVideoPathInput) serverVideoPathInput.value = file.path;
                 if (sourceVideoInput) sourceVideoInput.value = '';
+                const stalePicker = document.getElementById('subtitle-track-picker');
+                if (stalePicker) stalePicker.remove();
+                if (extractSubtitleBtn) extractSubtitleBtn.textContent = '자막 다운로드';
                 setLocalSourceMode(false, true);
                 if (serverFileList) serverFileList.classList.add('hidden');
                 if (selectedServerFile) {
@@ -468,39 +479,109 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (extractSubtitleBtn) {
+        let subtitleTracks = [];
+        let subtitleTrackPath = '';
+        const getSubtitlePicker = () => document.getElementById('subtitle-track-picker');
+        const getSubtitleSelect = () => document.getElementById('subtitle-track-select');
+        function clearSubtitlePicker(resetLabel = true) {
+            const picker = getSubtitlePicker();
+            if (picker) picker.remove();
+            subtitleTracks = [];
+            subtitleTrackPath = '';
+            if (resetLabel && extractSubtitleBtn) extractSubtitleBtn.textContent = '자막 다운로드';
+        }
+        function renderSubtitlePicker(tracks, videoPath) {
+            clearSubtitlePicker(false);
+            subtitleTracks = tracks;
+            subtitleTrackPath = videoPath;
+            const picker = document.createElement('div');
+            picker.id = 'subtitle-track-picker';
+            picker.className = 'subtitle-track-picker';
+            const select = document.createElement('select');
+            select.id = 'subtitle-track-select';
+            tracks.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = String(t.index);
+                opt.textContent = t.label || ('자막 #' + (t.index + 1));
+                select.appendChild(opt);
+            });
+            const hint = document.createElement('div');
+            hint.className = 'subtitle-track-hint';
+            hint.textContent = tracks.length + '개의 자막 중 내보낼 트랙을 선택 후 다시 눌러주세요.';
+            picker.appendChild(select);
+            picker.appendChild(hint);
+            extractSubtitleBtn.insertAdjacentElement('afterend', picker);
+            extractSubtitleBtn.textContent = '선택한 자막 다운로드';
+        }
+        async function downloadSubtitleTrack(videoPath, trackIndex) {
+            const res = await fetch('/anime/api/extract_subtitle.php?path=' + encodeURIComponent(videoPath) + '&index=' + encodeURIComponent(trackIndex));
+            const contentType = res.headers.get('Content-Type') || '';
+            if (!res.ok || contentType.includes('application/json')) {
+                const data = await res.json().catch(() => null);
+                throw new Error((data && data.message) || '자막 추출에 실패했습니다.');
+            }
+            const blob = await res.blob();
+            const disposition = res.headers.get('Content-Disposition') || '';
+            const match = disposition.match(/filename="?([^";]+)"?/);
+            const filename = match ? match[1] : 'subtitle.ass';
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+        // 서버 파일이 바뀌면 기존 트랙 선택 UI는 무효 (setLocalSourceMode/clearServerFileSelection에서 제거됨)
         extractSubtitleBtn.addEventListener('click', async () => {
             const videoPath = serverVideoPathInput ? serverVideoPathInput.value : '';
             if (!videoPath) {
                 await modalAlert('서버 파일을 먼저 선택하세요.');
                 return;
             }
+            // 이미 목록이 표시된 상태에서 같은 파일이면 선택된 트랙 다운로드
+            const sel = getSubtitleSelect();
+            if (sel && subtitleTrackPath === videoPath) {
+                const trackIndex = parseInt(sel.value, 10) || 0;
+                extractSubtitleBtn.disabled = true;
+                const originalText = extractSubtitleBtn.textContent;
+                extractSubtitleBtn.textContent = '자막 추출 중...';
+                try {
+                    await downloadSubtitleTrack(videoPath, trackIndex);
+                } catch (err) {
+                    await modalAlert('오류: ' + err.message);
+                } finally {
+                    extractSubtitleBtn.disabled = false;
+                    extractSubtitleBtn.textContent = originalText;
+                }
+                return;
+            }
             extractSubtitleBtn.disabled = true;
             const originalText = extractSubtitleBtn.textContent;
-            extractSubtitleBtn.textContent = '자막 추출 중...';
+            extractSubtitleBtn.textContent = '자막 확인 중...';
             try {
-                const res = await fetch('/anime/api/extract_subtitle.php?path=' + encodeURIComponent(videoPath));
-                const contentType = res.headers.get('Content-Type') || '';
-                if (!res.ok || contentType.includes('application/json')) {
-                    const data = await res.json().catch(() => null);
-                    throw new Error((data && data.message) || '자막 추출에 실패했습니다.');
+                const listRes = await fetch('/anime/api/extract_subtitle.php?action=list&path=' + encodeURIComponent(videoPath));
+                const listData = await listRes.json().catch(() => null);
+                if (!listRes.ok || !listData || !listData.success) {
+                    throw new Error((listData && listData.message) || '자막 추출에 실패했습니다.');
                 }
-                const blob = await res.blob();
-                const disposition = res.headers.get('Content-Disposition') || '';
-                const match = disposition.match(/filename="?([^";]+)"?/);
-                const filename = match ? match[1] : 'subtitle.ass';
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
+                const tracks = listData.streams || [];
+                if (tracks.length === 0) {
+                    throw new Error('영상에 자막 스트림이 없습니다.');
+                }
+                if (tracks.length === 1) {
+                    extractSubtitleBtn.textContent = '자막 추출 중...';
+                    await downloadSubtitleTrack(videoPath, 0);
+                    return;
+                }
+                renderSubtitlePicker(tracks, videoPath);
+                await modalAlert(tracks.length + '개의 자막이 있습니다. 목록에서 내보낼 자막을 선택한 뒤 버튼을 다시 눌러주세요.');
             } catch (err) {
                 await modalAlert('오류: ' + err.message);
             } finally {
                 extractSubtitleBtn.disabled = false;
-                extractSubtitleBtn.textContent = originalText;
+                if (!getSubtitlePicker()) extractSubtitleBtn.textContent = originalText;
             }
         });
     }
