@@ -507,7 +507,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const hint = document.createElement('div');
             hint.className = 'subtitle-track-hint';
-            hint.textContent = tracks.length + '개의 자막 중 내보낼 트랙을 선택 후 다시 눌러주세요.';
+            let hintText = tracks.length + '개의 자막 중 내보낼 트랙을 선택 후 다시 눌러주세요.';
+            if (tracks.some(t => t.kind === 'bitmap')) {
+                hintText += ' (이미지 자막은 sup/mks로 저장됩니다)';
+            }
+            hint.textContent = hintText;
             picker.appendChild(select);
             picker.appendChild(hint);
             extractSubtitleBtn.insertAdjacentElement('afterend', picker);

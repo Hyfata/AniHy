@@ -32,6 +32,21 @@ function utf8Truncate(string $s, int $maxChars, string $ellipsis = '…'): strin
     return implode('', array_slice($chars, 0, $maxChars)) . $ellipsis;
 }
 
+// 코덱별 내보내기 방식: 텍스트는 ASS로 변환, 비트맵(PGS 등)은 변환 불가라 원본 복사.
+// ffmpeg는 bitmap→text 변환을 지원하지 않음
+// ("Subtitle encoding currently only possible from text to text or bitmap to bitmap")
+function subtitleExportFormat(string $codec): array {
+    $codec = strtolower($codec);
+    if ($codec === 'hdmv_pgs_subtitle') {
+        return ['kind' => 'bitmap', 'format' => 'sup', 'ext' => 'sup'];
+    }
+    $bitmapCopy = ['dvd_subtitle', 'dvdsub', 'dvb_subtitle', 'dvb_teletext', 'xsub'];
+    if (in_array($codec, $bitmapCopy, true)) {
+        return ['kind' => 'bitmap', 'format' => 'mks', 'ext' => 'mks'];
+    }
+    return ['kind' => 'text', 'format' => 'ass', 'ext' => 'ass'];
+}
+
 // 자막 스트림 목록 조회 (ffprobe JSON)
 function probeSubtitleStreams(string $realPath): array {
     $probeCmd = sprintf(
@@ -48,7 +63,8 @@ function probeSubtitleStreams(string $realPath): array {
             $title = isset($tags['title']) ? trim((string)$tags['title']) : '';
             $codec = isset($s['codec_name']) ? trim((string)$s['codec_name']) : 'unknown';
             if ($codec === '') $codec = 'unknown';
-            $label = '#' . ($i + 1) . ' (' . $codec . ')';
+            $fmt = subtitleExportFormat($codec);
+            $label = '#' . ($i + 1) . ' (' . $codec . ($fmt['kind'] === 'bitmap' ? ', 이미지' : '') . ')';
             if ($lang !== '') $label .= ' [' . $lang . ']';
             if ($title !== '') $label .= ' ' . utf8Truncate($title, 40);
             $streams[] = [
@@ -58,6 +74,8 @@ function probeSubtitleStreams(string $realPath): array {
                 'language' => $lang,
                 'title' => $title,
                 'label' => $label,
+                'kind' => $fmt['kind'],
+                'format' => $fmt['ext'],
             ];
         }
     }
@@ -83,23 +101,45 @@ if ($trackIndex < 0 || $trackIndex >= count($streams)) {
     jsonResponse(false, [], '선택한 자막 트랙이 없습니다.');
 }
 
+$sel = $streams[$trackIndex];
+$fmt = subtitleExportFormat((string)($sel['codec'] ?? ''));
+$ext = $fmt['ext'];
+
 $tmpDir = sys_get_temp_dir();
 $baseName = pathinfo($realPath, PATHINFO_FILENAME);
 $suffix = '';
 if (count($streams) > 1) {
     $suffix = '.s' . $trackIndex;
-    $lang = preg_replace('/[^a-zA-Z0-9-]/', '', (string)($streams[$trackIndex]['language'] ?? ''));
+    $lang = preg_replace('/[^a-zA-Z0-9-]/', '', (string)($sel['language'] ?? ''));
     if ($lang !== '') $suffix .= '.' . $lang;
 }
-$downloadName = sanitizeFilename($baseName . $suffix) . '.ass';
-$outPath = $tmpDir . '/sub_extract_' . uniqid() . '.ass';
+$downloadName = sanitizeFilename($baseName . $suffix) . '.' . $ext;
+$outPath = $tmpDir . '/sub_extract_' . uniqid() . '.' . $ext;
 
-$cmd = sprintf(
-    'ffmpeg -y -v error -i %s -map 0:s:%d -c:s ass %s 2>&1',
-    escapeshellarg($realPath),
-    $trackIndex,
-    escapeshellarg($outPath)
-);
+if ($fmt['format'] === 'ass') {
+    $cmd = sprintf(
+        'ffmpeg -y -v error -i %s -map 0:s:%d -c:s ass %s 2>&1',
+        escapeshellarg($realPath),
+        $trackIndex,
+        escapeshellarg($outPath)
+    );
+} elseif ($fmt['format'] === 'sup') {
+    // PGS 이미지 자막: 텍스트 변환 불가, 스트림 복사
+    $cmd = sprintf(
+        'ffmpeg -y -v error -i %s -map 0:s:%d -c:s copy %s 2>&1',
+        escapeshellarg($realPath),
+        $trackIndex,
+        escapeshellarg($outPath)
+    );
+} else {
+    // 기타 이미지 자막(dvd/dvb 등): matroska 컨테이너에 복사
+    $cmd = sprintf(
+        'ffmpeg -y -v error -i %s -map 0:s:%d -c:s copy -f matroska %s 2>&1',
+        escapeshellarg($realPath),
+        $trackIndex,
+        escapeshellarg($outPath)
+    );
+}
 $output = shell_exec($cmd);
 
 if (!file_exists($outPath) || filesize($outPath) === 0) {

@@ -199,14 +199,50 @@ if ($subtitleFile && file_exists("$subtitlesDir/$subtitleFile")) {
         @unlink($subtitlePath);
     }
 } else {
-    // Extract first subtitle stream from MKV
-    $extractCmd = sprintf(
-        'ffmpeg -y -i %s -map 0:s:0 %s 2>&1',
-        escapeshellarg($mkvPath),
-        escapeshellarg($assPath)
+    // 자막 자동 선택: 텍스트 자막(ASS 우선) 사용. PGS 같은 이미지 자막은
+    // ASS로 변환 불가라 burn-in이 안 됨. 무조건 0:s:0이면 PGS가 첫 트랙인
+    // 파일에서 변환 실패 → 무자막 인코딩되므로 텍스트 트랙을 찾아서 사용.
+    @unlink($assPath);
+    $subProbeCmd = sprintf(
+        'ffprobe -v error -select_streams s -show_entries stream=codec_name -of json %s 2>&1',
+        escapeshellarg($mkvPath)
     );
-    shellExecLogged($extractCmd);
-    $sourceAssPath = $assPath;
+    $subProbe = json_decode(shellExecLogged($subProbeCmd), true);
+    $subCodecs = [];
+    if (is_array($subProbe) && isset($subProbe['streams']) && is_array($subProbe['streams'])) {
+        foreach (array_values($subProbe['streams']) as $s) {
+            $subCodecs[] = strtolower(trim((string)($s['codec_name'] ?? '')));
+        }
+    }
+    $bitmapCodecs = ['hdmv_pgs_subtitle', 'dvd_subtitle', 'dvdsub', 'dvb_subtitle', 'dvb_teletext', 'xsub'];
+    $subStreamIndex = null;
+    foreach ($subCodecs as $i => $c) {
+        if ($c === 'ass' || $c === 'ssa') {
+            $subStreamIndex = $i;
+            break;
+        }
+    }
+    if ($subStreamIndex === null) {
+        foreach ($subCodecs as $i => $c) {
+            if (!in_array($c, $bitmapCodecs, true)) {
+                $subStreamIndex = $i;
+                break;
+            }
+        }
+    }
+    if ($subStreamIndex === null) {
+        logMsg("No text subtitle stream found (all bitmap or none), will encode without burn-in");
+    } else {
+        logMsg("Subtitle stream selected: 0:s:{$subStreamIndex} (codec: " . ($subCodecs[$subStreamIndex] !== '' ? $subCodecs[$subStreamIndex] : 'unknown') . ")");
+        $extractCmd = sprintf(
+            'ffmpeg -y -i %s -map 0:s:%d -c:s ass %s 2>&1',
+            escapeshellarg($mkvPath),
+            $subStreamIndex,
+            escapeshellarg($assPath)
+        );
+        shellExecLogged($extractCmd);
+        $sourceAssPath = $assPath;
+    }
 }
 
 // Move prepared ASS to final path
