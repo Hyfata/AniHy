@@ -160,6 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!/^\d+$/.test(String(aid))) return;
         animeModalAid = String(aid);
+        const closeBtn = animeModal.querySelector('.anime-modal-close');
+        if (closeBtn) closeBtn.classList.remove('hidden');
         setAnimeFrame('/anime/anime.php?aid=' + encodeURIComponent(aid) + '&embed=1');
         openModal('anime-modal');
         document.body.classList.add('modal-open');
@@ -204,6 +206,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // iframe 안에서 모달이 열리면 애니 모달 닫기 버튼 숨김 (겹침 방지)
+    window.animeModalChildChanged = (openCount) => {
+        const btn = document.querySelector('#anime-modal .anime-modal-close');
+        if (btn) btn.classList.toggle('hidden', openCount > 0);
+    };
+
+    // iframe 컨텍스트에서만: 모달 오버레이 상태 변화를 감지해 부모에 알림
+    if (window !== window.top) {
+        const notifyParentModal = () => {
+            try {
+                if (typeof window.top.animeModalChildChanged === 'function') {
+                    const openCount = document.querySelectorAll('.modal-overlay.active').length;
+                    window.top.animeModalChildChanged(openCount);
+                }
+            } catch (e) {
+                // cross-origin, ignore
+            }
+        };
+        const modalObserver = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.target.classList && m.target.classList.contains('modal-overlay')) {
+                    notifyParentModal();
+                    break;
+                }
+            }
+        });
+        modalObserver.observe(document.documentElement, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    }
     // 모달 iframe 안에서 에피소드 클릭 시 최상위 창에서 watch.php로 이동 (복귀 URL 포함)
     // 복귀 URL에는 modal 파라미터를 명시 (목록 URL에 없을 수도 있어서)
     window.goWatchEmbed = (aid, ep) => {
