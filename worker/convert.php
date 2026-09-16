@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../inc/functions.php';
+require_once __DIR__ . '/../inc/chapters.php';
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
@@ -450,6 +451,16 @@ if (!rename($outputPath, $targetPath)) {
     exit;
 }
 logMsg("Moved to: $targetPath");
+
+// Chapters sidecar for browsers without native MP4 chapter support (best-effort)
+$vttPath = "$targetDir/" . chapterVttFilename($safeEpisode);
+if (exportChaptersVtt($targetPath, $vttPath)) {
+    logMsg("Chapters VTT written: $vttPath");
+} else {
+    // 챕터가 없으면(또는 추출 실패) 구 영상 기준의 stale VTT가 남지 않도록 제거
+    @unlink($vttPath);
+    logMsg("No chapters found, skipped VTT export");
+}
 
 // Cleanup
 @unlink($mkvPath);

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/access_auth.php';
 require_once __DIR__ . '/inc/functions.php';
+require_once __DIR__ . '/inc/chapters.php';
 
 requireAccessAuth();
 
@@ -33,6 +34,10 @@ $stmt->execute([$aid]);
 $episodes = $stmt->fetchAll();
 
 $videoUrl = animeVideoUrl($aid, $epNum);
+// Chrome/Firefox는 MP4 내장 챕터를 노출하지 않으므로 VTT 사이드카 사용 (Safari는 네이티브 폴백)
+$safeEp = sanitizeFilename($epNum);
+$chapterVttFile = __DIR__ . '/animes/' . $aid . '/' . $safeEp . '.chapters.vtt';
+$hasChapterVtt = is_file($chapterVttFile) && filesize($chapterVttFile) > 0;
 $enSubtitlePath = __DIR__ . '/subtitles/' . $aid . '/' . $epNum . '_en.ass';
 $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
 
@@ -81,6 +86,9 @@ foreach ($episodes as $idx => $ep) {
                         data-ep="<?= htmlspecialchars($epNum) ?>"
                         data-next-ep="<?= $nextEp !== null ? htmlspecialchars($nextEp) : '' ?>">
                         <source src="<?= $videoUrl ?>" type="video/mp4">
+                        <?php if ($hasChapterVtt): ?>
+                            <track kind="chapters" src="<?= htmlspecialchars(chapterVttUrl($aid, $safeEp)) ?>" srclang="ko" label="챕터" default>
+                        <?php endif; ?>
                         <p class="vjs-no-js">
                             JavaScript를 활성화하거나 HTML5 video를 지원하는 브라우저를 사용하세요.
                         </p>
