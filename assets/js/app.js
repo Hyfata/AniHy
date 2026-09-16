@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!animeModal || !animeModal.classList.contains('active')) return;
         setAnimeFrame('about:blank');
         closeModal('anime-modal');
+        document.body.classList.remove('modal-open');
         animeModalAid = null;
     }
 
@@ -161,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         animeModalAid = String(aid);
         setAnimeFrame('/anime/anime.php?aid=' + encodeURIComponent(aid) + '&embed=1');
         openModal('anime-modal');
+        document.body.classList.add('modal-open');
     };
 
     window.closeAnimeModal = () => {

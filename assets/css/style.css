@@ -17,6 +17,10 @@
     box-sizing: border-box;
 }
 
+html {
+    scrollbar-gutter: stable;
+}
+
 html, body {
     margin: 0;
     padding: 0;
@@ -925,6 +929,10 @@ img {
 }
 
 /* Anime detail modal (iframe) */
+body.modal-open {
+    overflow: hidden;
+}
+
 .modal.anime-modal {
     position: relative;
     max-width: 960px;
