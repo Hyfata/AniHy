@@ -63,10 +63,12 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
         </div>
     </nav>
 
-    <main class="container quarter-page">
-        <div class="page-header">
+    <main class="container quarter-page has-tabbar wide">
+        <div class="quarter-sticky-header">
+            <div class="quarter-back-row">
+                <a href="/anime/?tab=quarter" class="btn btn-sm">&larr; 분기 목록</a>
+            </div>
             <h1 class="page-title"><?= $year ?>년 <?= $quarter ?>분기</h1>
-            <a href="/anime/?tab=quarter" class="btn btn-sm">&larr; 분기 목록</a>
         </div>
 
         <div class="day-filter-tabs">
@@ -169,6 +171,21 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
         <?php include __DIR__ . '/inc/settings_float.php'; ?>
         <?php include __DIR__ . '/inc/edit_anime_modal.php'; ?>
     <?php endif; ?>
+
+    <nav class="bottom-tabbar">
+        <a href="/anime/" class="tab-item">
+            <span class="tab-pill">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+                <span>홈</span>
+            </span>
+        </a>
+        <a href="/anime/?tab=quarter" class="tab-item active">
+            <span class="tab-pill">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/></svg>
+                <span>분기별 애니</span>
+            </span>
+        </a>
+    </nav>
 
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>

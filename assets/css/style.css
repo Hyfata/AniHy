@@ -58,6 +58,26 @@ img {
     align-items: center;
     justify-content: space-between;
     height: 64px;
+    max-width: none;
+}
+
+/* iOS rubber-band(overscroll) 때 sticky가 풀리는 문제 대응 */
+@supports (-webkit-touch-callout: none) {
+    .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+    }
+    body:has(.navbar) {
+        padding-top: 64px;
+    }
+}
+
+@media (min-width: 768px) {
+    .navbar .container {
+        padding: 0 28px;
+    }
 }
 
 .logo {
@@ -205,9 +225,15 @@ img {
     }
 }
 
-@media (min-width: 1400px) {
+/* Wide viewport: fluid layout so rows always fill the screen (열 수 고정 없음) */
+@media (min-width: 1280px) {
+    main.container.wide {
+        max-width: none;
+        padding: 0 28px;
+    }
+
     .card-grid {
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     }
 }
 
@@ -1832,6 +1858,32 @@ main.has-tabbar {
 }
 
 /* Quarter cards */
+.quarter-sticky-header {
+    position: sticky;
+    top: 64px;
+    z-index: 50;
+    background: linear-gradient(to bottom, var(--bg) 55%, rgba(11, 12, 15, 0.55));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 20px 0 4px;
+    transition: transform 0.25s ease;
+}
+
+.quarter-sticky-header.header-hidden {
+    transform: translateY(-115%);
+}
+
+.quarter-sticky-header.header-gone {
+    visibility: hidden;
+}
+
+.quarter-back-row {
+    margin-bottom: 10px;
+}
+
+.quarter-sticky-header .page-title {
+    margin-bottom: 14px;
+}
 .quarter-year-section {
     margin-bottom: 28px;
 }
@@ -1903,6 +1955,7 @@ main.has-tabbar {
 
 @media (min-width: 768px) {
     .day-filter-tabs {
+        justify-content: flex-start;
         gap: 8px;
     }
 

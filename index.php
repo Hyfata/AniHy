@@ -50,7 +50,7 @@ if ($tab === 'quarter') {
         </div>
     </nav>
 
-    <main class="container has-tabbar">
+    <main class="container has-tabbar wide">
         <?php if ($tab === 'quarter'): ?>
             <div class="page-header">
                 <h1 class="page-title">분기별 애니</h1>

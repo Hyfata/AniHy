@@ -1637,4 +1637,62 @@ document.addEventListener('DOMContentLoaded', () => {
             skippedCueStarts.add(cue.startTime);
         });
     }
+
+    // quarter.php 헤더: 항상 fixed로 고정해 iOS overscroll에서도 안 떨어지게 함.
+    // 위치 지정은 로드/리사이즈 때만 하고 스크롤 중에는 classes만 토글 (동기화 어긋남 원천 차단)
+    const quarterHeader = document.querySelector('.quarter-sticky-header');
+    if (quarterHeader) {
+        let lastY = window.scrollY;
+        let ticking = false;
+        let upTravel = 0;
+        let goneTimer = null;
+
+        // 숨김: 위로 슬라이드 후에는 그려지지 않게 visibility까지 꺼서 깜빡임 원천 차단
+        const markHidden = () => {
+            quarterHeader.classList.add('header-hidden');
+            clearTimeout(goneTimer);
+            goneTimer = setTimeout(() => {
+                if (quarterHeader.classList.contains('header-hidden')) {
+                    quarterHeader.classList.add('header-gone');
+                }
+            }, 280);
+        };
+
+        // 표시: 다시 그려지도록 한 뒤 슬라이드 다운
+        const markShown = () => {
+            clearTimeout(goneTimer);
+            if (!quarterHeader.classList.contains('header-hidden')
+                && !quarterHeader.classList.contains('header-gone')) return;
+            quarterHeader.classList.remove('header-gone');
+            void quarterHeader.offsetWidth;
+            quarterHeader.classList.remove('header-hidden');
+        };
+
+        const onQuarterScroll = () => {
+            ticking = false;
+            const y = window.scrollY;
+            if (y > lastY + 4 && y > 48) {
+                // 붙은 상태에서만 숨김: 자연 위치(y≈0)에서 숨기면
+                // transform 특성상 빈 공간이 남음. 48px부터 숨기면
+                // 스크롤 시작하자마자 곧바로 따라 사라지는 느낌 유지
+                upTravel = 0;
+                markHidden();
+            } else if (y < lastY - 1) {
+                // 1~2px 지터에 곧바로 반응하면 깜빡이므로,
+                // 위로 24px 이상 누적 이동할 때만 표시
+                upTravel += lastY - y;
+                if (upTravel >= 24) {
+                    markShown();
+                }
+            }
+            lastY = y;
+        };
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                ticking = true;
+                requestAnimationFrame(onQuarterScroll);
+            }
+        }, { passive: true });
+    }
 });
