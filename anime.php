@@ -9,6 +9,8 @@ $aid = filter_input(INPUT_GET, 'aid', FILTER_VALIDATE_INT);
 if (!$aid) {
     redirect('/anime/');
 }
+// 모달 iframe용 임베드 모드: 네브바 없이 본문만 렌더
+$embed = ($_GET['embed'] ?? '') === '1';
 
 $stmt = $pdo->prepare("SELECT * FROM animes WHERE id = ?");
 $stmt->execute([$aid]);
@@ -42,7 +44,8 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
     <title><?= htmlspecialchars($anime['title']) ?> - AniHy</title>
     <link rel="stylesheet" href="<?= assetUrl('css/style.css') ?>">
 </head>
-<body>
+<body<?= $embed ? ' class="embed"' : '' ?>>
+    <?php if (!$embed): ?>
     <nav class="navbar">
         <div class="container">
             <a href="/anime/" class="logo">AniHy</a>
@@ -56,8 +59,9 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
             </div>
         </div>
     </nav>
+    <?php endif; ?>
 
-    <main class="container anime-page">
+    <main class="container anime-page<?= $embed ? ' embed-page' : '' ?>">
         <div class="anime-detail">
             <?php $hasDesc = trim($anime['description'] ?? '') !== ''; ?>
             <div class="poster-col">
@@ -140,6 +144,9 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
 
         <div class="page-header">
             <h2 class="page-title">에피소드</h2>
+            <?php if ($embed && isAdmin()): ?>
+                <button class="btn btn-primary btn-sm" onclick="openModal('add-episode-modal')">에피소드 추가</button>
+            <?php endif; ?>
         </div>
 
         <?php if (empty($episodes)): ?>
@@ -149,7 +156,13 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
         <?php else: ?>
             <div class="episode-list">
                 <?php foreach ($episodes as $ep): ?>
-                    <div class="episode-item" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number']) ?>" onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>'">
+                    <?php
+                    $watchUrl = '/anime/watch.php?aid=' . $aid . '&ep=' . rawurlencode($ep['episode_number']);
+                    $watchOnclick = $embed
+                        ? 'goWatchEmbed(' . $aid . ', ' . json_encode($ep['episode_number']) . ')'
+                        : 'location.href=' . json_encode($watchUrl);
+                    ?>
+                    <div class="episode-item" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number']) ?>" onclick="<?= htmlspecialchars($watchOnclick, ENT_QUOTES) ?>">
                         <div class="episode-meta">
                             <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
                             <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '화')) ?></span>

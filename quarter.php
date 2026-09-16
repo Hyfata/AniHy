@@ -101,7 +101,7 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
                         if ($ad !== $dayFilter) continue;
                         ?>
                     <?php endif; ?>
-                    <div class="card" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
+                    <div class="card" data-aid="<?= $anime['id'] ?>" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
                         <?php if (isAdmin()): ?>
                             <div class="card-actions">
                                 <button class="btn btn-sm card-edit edit-anime-btn"
@@ -134,7 +134,7 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
                     <h2 class="day-section-title"><?= htmlspecialchars($day === '기타' ? '기타' : $day . '요일') ?></h2>
                     <div class="card-grid compact">
                         <?php foreach ($list as $anime): ?>
-                            <div class="card" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
+                            <div class="card" data-aid="<?= $anime['id'] ?>" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
                                 <?php if (isAdmin()): ?>
                                     <div class="card-actions">
                                         <button class="btn btn-sm card-edit edit-anime-btn"
@@ -187,6 +187,7 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
         </a>
     </nav>
 
+    <?php include __DIR__ . '/inc/anime_modal.php'; ?>
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
 </body>

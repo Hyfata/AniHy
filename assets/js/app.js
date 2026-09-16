@@ -87,13 +87,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', e => {
-            if (e.target === overlay) closeModal(overlay.id);
+            if (e.target !== overlay) return;
+            if (overlay.id === 'anime-modal') {
+                window.closeAnimeModal();
+            } else {
+                closeModal(overlay.id);
+            }
         });
     });
 
-    // Home card click: 다른 카드가 사라지는 전환 애니메이션 후 이동
+    // Home/quarter card click: data-aid가 있으면 상세 모달, 없으면 기존처럼 페이지 이동
     document.querySelectorAll('.card-grid .card[data-href]').forEach(card => {
         card.addEventListener('click', () => {
+            if (card.dataset.aid) {
+                window.openAnimeModal(card.dataset.aid);
+                return;
+            }
             const grid = card.closest('.card-grid');
             if (!grid || grid.classList.contains('leaving')) return;
             grid.classList.add('leaving');
@@ -103,6 +112,124 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 320);
         });
     });
+
+    // Anime detail modal (iframe으로 anime.php embed 로드)
+    const animeModal = document.getElementById('anime-modal');
+    const animeModalFrame = document.getElementById('anime-modal-frame');
+    let animeModalAid = null;
+    let animeModalPushed = false;
+
+    function animeModalUrl(aid) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('modal', String(aid));
+        url.searchParams.delete('ly');
+        return url.pathname + url.search + url.hash;
+    }
+
+    function stripModalParam() {
+        const url = new URL(window.location.href);
+        let changed = false;
+        if (url.searchParams.has('modal')) {
+            url.searchParams.delete('modal');
+            changed = true;
+        }
+        if (url.searchParams.has('ly')) {
+            url.searchParams.delete('ly');
+            changed = true;
+        }
+        if (changed) {
+            history.replaceState(null, '', url.pathname + url.search + url.hash);
+        }
+    }
+
+    function hideAnimeModal() {
+        if (!animeModal || !animeModal.classList.contains('active')) return;
+        if (animeModalFrame) animeModalFrame.src = 'about:blank';
+        closeModal('anime-modal');
+        document.body.classList.remove('modal-open');
+        animeModalAid = null;
+    }
+
+    window.openAnimeModal = (aid, options = {}) => {
+        if (!animeModal || !animeModalFrame) {
+            window.location.href = '/anime/anime.php?aid=' + encodeURIComponent(aid);
+            return;
+        }
+        if (!/^\d+$/.test(String(aid))) return;
+        animeModalAid = String(aid);
+        animeModalFrame.src = '/anime/anime.php?aid=' + encodeURIComponent(aid) + '&embed=1';
+        openModal('anime-modal');
+        document.body.classList.add('modal-open');
+        const current = new URL(window.location.href).searchParams.get('modal');
+        if (options.push !== false && current !== animeModalAid) {
+            history.pushState({ animeModal: animeModalAid }, '', animeModalUrl(aid));
+            animeModalPushed = true;
+        }
+    };
+
+    window.closeAnimeModal = () => {
+        if (!animeModal || !animeModal.classList.contains('active')) return;
+        const wasPushed = animeModalPushed;
+        animeModalPushed = false;
+        hideAnimeModal();
+        if (wasPushed) {
+            history.back();
+        } else {
+            stripModalParam();
+        }
+    };
+
+    window.addEventListener('popstate', () => {
+        const aid = new URL(window.location.href).searchParams.get('modal');
+        if (aid) {
+            window.openAnimeModal(aid, { push: false });
+        } else {
+            animeModalPushed = false;
+            hideAnimeModal();
+        }
+    });
+
+    // ?modal= 직접 접속 시 모달 자동 오픈
+    if (animeModal) {
+        const initialAid = new URL(window.location.href).searchParams.get('modal');
+        if (initialAid && /^\d+$/.test(initialAid)) {
+            window.openAnimeModal(initialAid, { push: false });
+        } else if (initialAid) {
+            stripModalParam();
+        }
+    }
+
+    // watch.php에서 복귀 시 전달된 목록 스크롤 위치 복원 (?ly=, 1회성, 모달 있는 목록 페이지 전용)
+    if (animeModal) {
+        const lyParam = new URL(window.location.href).searchParams.get('ly');
+        if (lyParam && /^\d+$/.test(lyParam)) {
+            const targetY = parseInt(lyParam, 10);
+            const urlNoLy = new URL(window.location.href);
+            urlNoLy.searchParams.delete('ly');
+            history.replaceState(null, '', urlNoLy.pathname + urlNoLy.search + urlNoLy.hash);
+            const restoreListScroll = () => window.scrollTo(0, targetY);
+            requestAnimationFrame(() => requestAnimationFrame(restoreListScroll));
+            window.addEventListener('load', restoreListScroll);
+        }
+    }
+
+    // 모달 iframe 안에서 에피소드 클릭 시 최상위 창에서 watch.php로 이동 (복귀 URL 포함)
+    window.goWatchEmbed = (aid, ep) => {
+        let ret = '';
+        let listY = 0;
+        try {
+            // watch.php 검증이 경로 형태를 기대하므로 origin 제외하고 전달
+            ret = window.top.location.pathname + window.top.location.search + window.top.location.hash;
+            listY = Math.max(0, Math.round(window.top.scrollY || 0));
+        } catch (e) {
+            ret = '';
+        }
+        let url = '/anime/watch.php?aid=' + encodeURIComponent(aid) + '&ep=' + encodeURIComponent(ep);
+        if (ret) {
+            url += '&from=' + encodeURIComponent(ret) + '&ly=' + listY;
+        }
+        window.top.location.href = url;
+    };
 
     // Generic confirm delete
     window.confirmDelete = (message) => modalConfirm(message || '정말 삭제하시겠습니까?');
@@ -1207,7 +1334,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (card) {
                         card.remove();
                     } else {
-                        window.location.href = '/anime/';
+                        // 모달 iframe에서 삭제한 경우 최상위 창으로 이동
+                        window.top.location.href = '/anime/';
                     }
                 } else {
                     await modalAlert(data.message || '삭제 실패');
@@ -1482,7 +1610,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const nextEp = playerEl.dataset.nextEp;
             if (nextEp) {
-                window.location.href = '/anime/watch.php?aid=' + encodeURIComponent(aid) + '&ep=' + encodeURIComponent(nextEp);
+                let url = '/anime/watch.php?aid=' + encodeURIComponent(aid) + '&ep=' + encodeURIComponent(nextEp);
+                if (playerEl.dataset.from) {
+                    url += '&from=' + encodeURIComponent(playerEl.dataset.from);
+                }
+                window.location.href = url;
             }
         });
 

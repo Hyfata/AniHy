@@ -87,7 +87,7 @@ if ($tab === 'quarter') {
         <?php else: ?>
             <div class="card-grid">
                 <?php foreach ($animes as $anime): ?>
-                    <div class="card" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
+                    <div class="card" data-aid="<?= $anime['id'] ?>" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
                         <?php if (isAdmin()): ?>
                             <div class="card-actions">
                                 <button class="btn btn-sm card-edit edit-anime-btn"
@@ -219,6 +219,7 @@ if ($tab === 'quarter') {
 
     <?php endif; ?>
 
+    <?php include __DIR__ . '/inc/anime_modal.php'; ?>
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
 </body>

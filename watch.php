@@ -48,6 +48,17 @@ foreach ($episodes as $idx => $ep) {
         break;
     }
 }
+
+// 모달에서 넘어온 경우 복귀 URL (오픈 리다이렉트 방지: /anime 내부 + watch.php 제외)
+$from = isset($_GET['from']) ? trim((string)$_GET['from']) : '';
+$validFrom = ($from !== '' && str_starts_with($from, '/anime') && !str_starts_with($from, '//') && strpos($from, 'watch.php') === false) ? $from : '';
+$backUrl = $validFrom !== '' ? $validFrom : '/anime/anime.php?aid=' . $aid;
+$fromParam = $validFrom !== '' ? '&from=' . urlencode($validFrom) : '';
+// 목록 스크롤 위치 전달 (?ly=, 복귀 링크에만)
+$ly = filter_input(INPUT_GET, 'ly', FILTER_VALIDATE_INT);
+if ($validFrom !== '' && is_int($ly) && $ly > 0) {
+    $backUrl .= (strpos($backUrl, '?') === false ? '?' : '&') . 'ly=' . $ly;
+}
 ?>
 <!DOCTYPE html>
 <html lang="ko">
@@ -84,6 +95,7 @@ foreach ($episodes as $idx => $ep) {
                         playsinline
                         data-aid="<?= $aid ?>"
                         data-ep="<?= htmlspecialchars($epNum) ?>"
+                        data-from="<?= htmlspecialchars($validFrom) ?>"
                         data-next-ep="<?= $nextEp !== null ? htmlspecialchars($nextEp) : '' ?>">
                         <source src="<?= $videoUrl ?>" type="video/mp4">
                         <?php if ($hasChapterVtt): ?>
@@ -99,7 +111,7 @@ foreach ($episodes as $idx => $ep) {
                     <div class="watch-title-row">
                         <div>
                             <h1 class="watch-episode-title"><?= htmlspecialchars($epNum) ?>화 <?= htmlspecialchars($currentEp['title'] ? '| ' . $currentEp['title'] : '') ?></h1>
-                            <a href="/anime/anime.php?aid=<?= $aid ?>" class="watch-anime-title"><?= htmlspecialchars($anime['title']) ?></a>
+                            <a href="<?= htmlspecialchars($backUrl) ?>" class="watch-anime-title"><?= htmlspecialchars($anime['title']) ?></a>
                         </div>
                     </div>
                     <div class="watch-actions">
@@ -116,7 +128,7 @@ foreach ($episodes as $idx => $ep) {
                 <div class="episode-list" style="margin:0">
                     <?php foreach ($episodes as $ep): ?>
                         <div class="episode-item <?= $ep['episode_number'] === $epNum ? 'active' : '' ?>"
-                             onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>'">
+                             onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?><?= $fromParam ?>'">
                             <div class="episode-meta">
                                 <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
                                 <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '화')) ?></span>
