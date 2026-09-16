@@ -114,17 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Anime detail modal (iframe으로 anime.php embed 로드)
+    // 열기/닫기는 히스토리에 영향을 주지 않음 (push/back 없음)
     const animeModal = document.getElementById('anime-modal');
     const animeModalFrame = document.getElementById('anime-modal-frame');
     let animeModalAid = null;
-    let animeModalPushed = false;
-
-    function animeModalUrl(aid) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('modal', String(aid));
-        url.searchParams.delete('ly');
-        return url.pathname + url.search + url.hash;
-    }
 
     function stripModalParam() {
         const url = new URL(window.location.href);
@@ -144,47 +137,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideAnimeModal() {
         if (!animeModal || !animeModal.classList.contains('active')) return;
-        if (animeModalFrame) animeModalFrame.src = 'about:blank';
+        setAnimeFrame('about:blank');
         closeModal('anime-modal');
-        document.body.classList.remove('modal-open');
         animeModalAid = null;
     }
 
-    window.openAnimeModal = (aid, options = {}) => {
+    // iframe 이동은 히스토리 항목을 남기지 않게 replace로만 (뒤로가기 하이재킹 방지)
+    function setAnimeFrame(url) {
+        if (!animeModalFrame) return;
+        try {
+            animeModalFrame.contentWindow.location.replace(url);
+        } catch (e) {
+            animeModalFrame.src = url;
+        }
+    }
+
+    window.openAnimeModal = (aid) => {
         if (!animeModal || !animeModalFrame) {
             window.location.href = '/anime/anime.php?aid=' + encodeURIComponent(aid);
             return;
         }
         if (!/^\d+$/.test(String(aid))) return;
         animeModalAid = String(aid);
-        animeModalFrame.src = '/anime/anime.php?aid=' + encodeURIComponent(aid) + '&embed=1';
+        setAnimeFrame('/anime/anime.php?aid=' + encodeURIComponent(aid) + '&embed=1');
         openModal('anime-modal');
-        document.body.classList.add('modal-open');
-        const current = new URL(window.location.href).searchParams.get('modal');
-        if (options.push !== false && current !== animeModalAid) {
-            history.pushState({ animeModal: animeModalAid }, '', animeModalUrl(aid));
-            animeModalPushed = true;
-        }
     };
 
     window.closeAnimeModal = () => {
         if (!animeModal || !animeModal.classList.contains('active')) return;
-        const wasPushed = animeModalPushed;
-        animeModalPushed = false;
         hideAnimeModal();
-        if (wasPushed) {
-            history.back();
-        } else {
-            stripModalParam();
-        }
+        stripModalParam();
     };
 
     window.addEventListener('popstate', () => {
         const aid = new URL(window.location.href).searchParams.get('modal');
         if (aid) {
-            window.openAnimeModal(aid, { push: false });
+            window.openAnimeModal(aid);
         } else {
-            animeModalPushed = false;
             hideAnimeModal();
         }
     });
@@ -193,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (animeModal) {
         const initialAid = new URL(window.location.href).searchParams.get('modal');
         if (initialAid && /^\d+$/.test(initialAid)) {
-            window.openAnimeModal(initialAid, { push: false });
+            window.openAnimeModal(initialAid);
         } else if (initialAid) {
             stripModalParam();
         }
@@ -214,12 +203,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 모달 iframe 안에서 에피소드 클릭 시 최상위 창에서 watch.php로 이동 (복귀 URL 포함)
+    // 복귀 URL에는 modal 파라미터를 명시 (목록 URL에 없을 수도 있어서)
     window.goWatchEmbed = (aid, ep) => {
         let ret = '';
         let listY = 0;
         try {
+            const topUrl = new URL(window.top.location.href);
+            topUrl.searchParams.set('modal', String(aid));
             // watch.php 검증이 경로 형태를 기대하므로 origin 제외하고 전달
-            ret = window.top.location.pathname + window.top.location.search + window.top.location.hash;
+            ret = topUrl.pathname + topUrl.search + topUrl.hash;
             listY = Math.max(0, Math.round(window.top.scrollY || 0));
         } catch (e) {
             ret = '';

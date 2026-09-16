@@ -851,6 +851,7 @@ img {
     max-width: 560px;
     max-height: 90vh;
     overflow-y: auto;
+    overscroll-behavior: contain;
     box-shadow: var(--shadow);
 }
 
@@ -924,10 +925,6 @@ img {
 }
 
 /* Anime detail modal (iframe) */
-body.modal-open {
-    overflow: hidden;
-}
-
 .modal.anime-modal {
     position: relative;
     max-width: 960px;
