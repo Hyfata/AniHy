@@ -1518,10 +1518,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return title === 'credits' || title === 'ending';
         }
 
-        function isEpisodeCue(title) {
-            return title === 'episode';
-        }
-
         function getChaptersTrack() {
             const tracks = player.textTracks ? player.textTracks() : [];
             for (let i = 0; i < tracks.length; i++) {
@@ -1602,21 +1598,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let targetTime = null;
             const cues = chaptersTrack.cues;
-            for (let i = 0; i < cues.length; i++) {
-                const other = cues[i];
-                if (other.startTime > cue.startTime && isEpisodeCue(normalizeChapterTitle(other.text))) {
-                    targetTime = other.startTime;
-                    break;
+            if (isIntro) {
+                // OP 다음 챕터가 episode라는 보장이 없음 (Part A, Opening 등)
+                // → intro/opening 구간이 끝나는 지점(다음 일반 챕터 시작)으로 이동
+                for (let i = 0; i < cues.length; i++) {
+                    const other = cues[i];
+                    if (other.startTime > cue.startTime && !isIntroCue(normalizeChapterTitle(other.text))) {
+                        targetTime = other.startTime;
+                        break;
+                    }
+                }
+                if (targetTime === null && cue.endTime > cue.startTime) {
+                    targetTime = cue.endTime;
+                }
+            } else {
+                // ED 다음 챕터가 episode라는 보장이 없음 (Preview, Epilogue 등)
+                // → credits/ending 구간이 끝나는 지점(다음 일반 챕터 시작)으로 이동.
+                // 뒤에 챕터가 없으면 영상 끝으로 이동해 다음 화로 넘어감
+                for (let i = 0; i < cues.length; i++) {
+                    const other = cues[i];
+                    if (other.startTime > cue.startTime && !isCreditsCue(normalizeChapterTitle(other.text))) {
+                        targetTime = other.startTime;
+                        break;
+                    }
+                }
+                if (targetTime === null) {
+                    const duration = player.duration();
+                    if (duration && isFinite(duration)) {
+                        targetTime = duration;
+                    }
                 }
             }
 
             if (targetTime !== null) {
                 player.currentTime(targetTime);
-            } else if (isCredits) {
-                const duration = player.duration();
-                if (duration && isFinite(duration)) {
-                    player.currentTime(duration);
-                }
             }
 
             skippedCueStarts.add(cue.startTime);
