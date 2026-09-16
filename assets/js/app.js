@@ -212,22 +212,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.classList.toggle('hidden', openCount > 0);
     };
 
-    // iframe 컨텍스트에서만: 모달 오버레이 상태 변화를 감지해 부모에 알림
+    // iframe 컨텍스트에서만: 모달 오버레이 상태 변화를 감지해
+    // 부모 닫기 버튼 토글 + iframe 본문 스크롤 잠금
     if (window !== window.top) {
-        const notifyParentModal = () => {
+        const syncInnerModals = () => {
+            const openCount = document.querySelectorAll('.modal-overlay.active, .alert-modal-overlay.active').length;
+            document.body.classList.toggle('modal-open', openCount > 0);
             try {
                 if (typeof window.top.animeModalChildChanged === 'function') {
-                    const openCount = document.querySelectorAll('.modal-overlay.active').length;
                     window.top.animeModalChildChanged(openCount);
                 }
             } catch (e) {
                 // cross-origin, ignore
             }
         };
+        const isOverlay = (el) => el.classList
+            && (el.classList.contains('modal-overlay') || el.classList.contains('alert-modal-overlay'));
         const modalObserver = new MutationObserver((mutations) => {
             for (const m of mutations) {
-                if (m.target.classList && m.target.classList.contains('modal-overlay')) {
-                    notifyParentModal();
+                if (isOverlay(m.target)) {
+                    syncInnerModals();
                     break;
                 }
             }

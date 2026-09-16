@@ -854,7 +854,9 @@ img {
     width: 100%;
     max-width: 560px;
     max-height: 90vh;
-    overflow-y: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     overscroll-behavior: contain;
     box-shadow: var(--shadow);
 }
@@ -905,6 +907,7 @@ img {
     justify-content: space-between;
     padding: 18px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex: none;
 }
 
 .modal-header h2 {
@@ -922,6 +925,9 @@ img {
 
 .modal-body {
     padding: 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal-sm {
@@ -945,6 +951,7 @@ body.modal-open {
 .anime-modal-frame {
     width: 100%;
     height: 100%;
+    min-height: 0;
     border: 0;
     display: block;
     background: var(--bg);
