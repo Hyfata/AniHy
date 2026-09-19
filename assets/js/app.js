@@ -96,22 +96,115 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Home/quarter card click: data-aid가 있으면 상세 모달, 없으면 기존처럼 페이지 이동
-    document.querySelectorAll('.card-grid .card[data-href]').forEach(card => {
-        card.addEventListener('click', () => {
-            if (card.dataset.aid) {
-                window.openAnimeModal(card.dataset.aid);
-                return;
-            }
-            const grid = card.closest('.card-grid');
-            if (!grid || grid.classList.contains('leaving')) return;
-            grid.classList.add('leaving');
-            card.classList.add('card-leave-target');
-            setTimeout(() => {
-                window.location.href = card.dataset.href;
-            }, 320);
-        });
+    // Home/quarter card click + card admin buttons (이벤트 위임: 무한스크롤로 추가된 카드도 동일 동작)
+    document.addEventListener('click', e => {
+        const editBtn = e.target.closest('.edit-anime-btn');
+        if (editBtn) {
+            fillEditAnimeForm(editBtn);
+            return;
+        }
+        const delBtn = e.target.closest('.delete-anime-btn');
+        if (delBtn) {
+            handleDeleteAnime(delBtn);
+            return;
+        }
+        const card = e.target.closest('.card-grid .card[data-href]');
+        if (!card) return;
+        if (card.dataset.aid) {
+            window.openAnimeModal(card.dataset.aid);
+            return;
+        }
+        const grid = card.closest('.card-grid');
+        if (!grid || grid.classList.contains('leaving')) return;
+        grid.classList.add('leaving');
+        card.classList.add('card-leave-target');
+        setTimeout(() => {
+            window.location.href = card.dataset.href;
+        }, 320);
     });
+
+    // Home infinite scroll (IntersectionObserver)
+    const homeGrid = document.getElementById('home-card-grid');
+    if (homeGrid) {
+        const homePageSize = parseInt(homeGrid.dataset.pageSize, 10) || 30;
+        let homeOffset = homeGrid.querySelectorAll('.card').length;
+        let homeHasMore = homeGrid.dataset.hasMore === '1';
+        let homeLoading = false;
+        const homeLoader = document.getElementById('home-grid-loader');
+        const homeSentinel = document.getElementById('home-grid-sentinel');
+        const homeEnd = document.getElementById('home-grid-end');
+        const homeObserver = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting) loadMoreHome();
+        }, { rootMargin: '600px 0px' });
+
+        const escHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+
+        // 서버 렌더(index.php 카드 마크업)와 동일한 구조로 생성
+        function homeCardHTML(a, admin) {
+            const title = escHtml(a.title);
+            let actions = '';
+            if (admin) {
+                actions = '<div class="card-actions">'
+                    + '<button class="btn btn-sm card-edit edit-anime-btn"'
+                    + ' data-id="' + a.id + '"'
+                    + ' data-title="' + escHtml(a.title) + '"'
+                    + ' data-description="' + escHtml(a.description) + '"'
+                    + ' data-season-id="' + escHtml(a.season_id) + '"'
+                    + ' data-is-hidive="' + (a.is_hidive === '1' ? '1' : '0') + '"'
+                    + ' data-broadcasts="' + escHtml(JSON.stringify(a.broadcasts || [])) + '"'
+                    + ' data-day="' + escHtml(a.broadcast_day) + '"'
+                    + ' data-download-url="' + escHtml(a.download_url) + '"'
+                    + ' data-namuwiki-url="' + escHtml(a.namuwiki_url) + '"'
+                    + ' data-cover="' + escHtml(a.cover) + '"'
+                    + ' title="수정">✎</button>'
+                    + '<button class="btn btn-danger btn-sm delete-anime-btn" data-id="' + a.id + '" title="삭제">×</button>'
+                    + '</div>';
+            }
+            return '<div class="card" data-aid="' + a.id + '" data-href="' + escHtml(a.href) + '">'
+                + actions
+                + '<div class="card-poster"><img src="' + escHtml(a.cover) + '" alt="' + title + '" loading="lazy"></div>'
+                + '<div class="card-body"><h3 class="card-title">' + title + '</h3></div>'
+                + '</div>';
+        }
+
+        async function loadMoreHome() {
+            if (homeLoading || !homeHasMore) return;
+            homeLoading = true;
+            if (homeLoader) homeLoader.classList.remove('hidden');
+            if (homeEnd) homeEnd.classList.add('hidden');
+            try {
+                const res = await fetch('/anime/api/list_animes.php?offset=' + homeOffset + '&limit=' + homePageSize);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'load failed');
+                let html = '';
+                for (const a of (data.animes || [])) html += homeCardHTML(a, !!data.is_admin);
+                homeGrid.insertAdjacentHTML('beforeend', html);
+                homeOffset += (data.animes || []).length;
+                homeHasMore = !!data.has_more;
+                if (!homeHasMore) {
+                    homeObserver.disconnect();
+                    if (homeSentinel) homeSentinel.remove();
+                    if (homeEnd) {
+                        homeEnd.textContent = '모든 작품을 불러왔습니다.' + (data.total ? ' (전체 ' + data.total + '개)' : '');
+                        homeEnd.classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                if (homeEnd) {
+                    homeEnd.textContent = '불러오기에 실패했습니다. 탭하여 다시 시도하세요.';
+                    homeEnd.classList.remove('hidden');
+                }
+            } finally {
+                homeLoading = false;
+                if (homeLoader) homeLoader.classList.add('hidden');
+            }
+        }
+
+        if (homeEnd) homeEnd.addEventListener('click', () => {
+            if (homeHasMore && !homeLoading) loadMoreHome();
+        });
+        if (homeSentinel && homeHasMore) homeObserver.observe(homeSentinel);
+    }
 
     // Anime detail modal (iframe으로 anime.php embed 로드)
     // 열기/닫기는 히스토리에 영향을 주지 않음 (push/back 없음)
@@ -401,27 +494,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Anime edit form
+    // Anime edit form (위임 리스너에서 호출: 초기 + 무한스크롤 카드 공통)
     const editAnimeForm = document.getElementById('edit-anime-form');
+    function fillEditAnimeForm(btn) {
+        if (!editAnimeForm) return;
+        document.getElementById('edit-id').value = btn.dataset.id;
+        document.getElementById('edit-title').value = btn.dataset.title;
+        document.getElementById('edit-description').value = btn.dataset.description;
+        document.getElementById('edit-season-id').value = btn.dataset.seasonId || '';
+        document.getElementById('edit-is-hidive').value = btn.dataset.isHidive === '1' ? '1' : '0';
+        let broadcasts = [];
+        try { broadcasts = JSON.parse(btn.dataset.broadcasts || '[]'); } catch (err) { broadcasts = []; }
+        setBroadcastRows('edit-broadcast-list', broadcasts);
+        document.getElementById('edit-broadcast-day').value = btn.dataset.day || '';
+        document.getElementById('edit-download-url').value = btn.dataset.downloadUrl || '';
+        document.getElementById('edit-namuwiki-url').value = btn.dataset.namuwikiUrl || '';
+        document.getElementById('edit-cover-preview').src = btn.dataset.cover;
+        openModal('edit-anime-modal');
+    }
     if (editAnimeForm) {
-        document.querySelectorAll('.edit-anime-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.stopPropagation();
-                document.getElementById('edit-id').value = btn.dataset.id;
-                document.getElementById('edit-title').value = btn.dataset.title;
-                document.getElementById('edit-description').value = btn.dataset.description;
-                document.getElementById('edit-season-id').value = btn.dataset.seasonId || '';
-                document.getElementById('edit-is-hidive').value = btn.dataset.isHidive === '1' ? '1' : '0';
-                let broadcasts = [];
-                try { broadcasts = JSON.parse(btn.dataset.broadcasts || '[]'); } catch (err) { broadcasts = []; }
-                setBroadcastRows('edit-broadcast-list', broadcasts);
-                document.getElementById('edit-broadcast-day').value = btn.dataset.day || '';
-                document.getElementById('edit-download-url').value = btn.dataset.downloadUrl || '';
-                document.getElementById('edit-namuwiki-url').value = btn.dataset.namuwikiUrl || '';
-                document.getElementById('edit-cover-preview').src = btn.dataset.cover;
-                openModal('edit-anime-modal');
-            });
-        });
 
         editAnimeForm.addEventListener('submit', async e => {
             e.preventDefault();
@@ -1348,35 +1439,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Delete anime
-    document.querySelectorAll('.delete-anime-btn').forEach(btn => {
-        btn.addEventListener('click', async e => {
-            e.stopPropagation();
-            if (!(await confirmDelete('이 애니와 모든 에피소드를 삭제하시겠습니까?'))) return;
-            const id = btn.dataset.id;
-            try {
-                const res = await fetch('/anime/api/delete_anime.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'id=' + encodeURIComponent(id)
-                });
-                const data = await res.json();
-                if (data.success) {
-                    const card = btn.closest('.card');
-                    if (card) {
-                        card.remove();
-                    } else {
-                        // 모달 iframe에서 삭제한 경우 최상위 창으로 이동
-                        window.top.location.href = '/anime/';
-                    }
+    // Delete anime (위임 리스너에서 호출: 초기 + 무한스크롤 카드 공통)
+    async function handleDeleteAnime(btn) {
+        if (!(await confirmDelete('이 애니와 모든 에피소드를 삭제하시겠습니까?'))) return;
+        const id = btn.dataset.id;
+        try {
+            const res = await fetch('/anime/api/delete_anime.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id=' + encodeURIComponent(id)
+            });
+            const data = await res.json();
+            if (data.success) {
+                const card = btn.closest('.card');
+                if (card) {
+                    card.remove();
                 } else {
-                    await modalAlert(data.message || '삭제 실패');
+                    // 모달 iframe에서 삭제한 경우 최상위 창으로 이동
+                    window.top.location.href = '/anime/';
                 }
-            } catch (err) {
-                await modalAlert('오류: ' + err.message);
+            } else {
+                await modalAlert(data.message || '삭제 실패');
             }
-        });
-    });
+        } catch (err) {
+            await modalAlert('오류: ' + err.message);
+        }
+    }
 
     // Delete episode
     document.querySelectorAll('.delete-episode-btn').forEach(btn => {

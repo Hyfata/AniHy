@@ -8,12 +8,22 @@ requireAccessAuth();
 // 세션은 isAdmin() 읽기용으로만 쓰므로 잠금을 즉시 해제 (모달 iframe 등 동시 요청 블로킹 방지, $_SESSION 읽기는 유지됨)
 session_write_close();
 
-$stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC");
-$animes = $stmt->fetchAll();
+$tab = ($_GET['tab'] ?? 'home') === 'quarter' ? 'quarter' : 'home';
+
+// 분기 탭은 집계용으로 전체가 필요, 홈 탭은 무한스크롤이라 첫 페이지만 (LIMIT+1로 다음 페이지 존재 판별)
+$homePageSize = 30;
+if ($tab === 'quarter') {
+    $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC");
+    $animes = $stmt->fetchAll();
+    $homeHasMore = false;
+} else {
+    $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC LIMIT " . ($homePageSize + 1));
+    $rows = $stmt->fetchAll();
+    $homeHasMore = count($rows) > $homePageSize;
+    $animes = array_slice($rows, 0, $homePageSize);
+}
 
 $broadcastMap = fetchBroadcastMap($pdo);
-
-$tab = ($_GET['tab'] ?? 'home') === 'quarter' ? 'quarter' : 'home';
 
 // 분기별 애니 그룹핑 (년도/분기가 설정된 애니만, 분기가 여러 개면 각각 집계)
 $quarterGroups = [];
@@ -88,7 +98,7 @@ if ($tab === 'quarter') {
                 등록된 애니가 없습니다. 관리자 로그인 후 추가해 보세요.
             </div>
         <?php else: ?>
-            <div class="card-grid">
+            <div class="card-grid" id="home-card-grid" data-page-size="<?= $homePageSize ?>" data-has-more="<?= $homeHasMore ? '1' : '0' ?>">
                 <?php foreach ($animes as $anime): ?>
                     <div class="card" data-aid="<?= $anime['id'] ?>" data-href="/anime/anime.php?aid=<?= $anime['id'] ?>">
                         <?php if (isAdmin()): ?>
@@ -117,6 +127,13 @@ if ($tab === 'quarter') {
                     </div>
                 <?php endforeach; ?>
             </div>
+            <?php if ($homeHasMore): ?>
+                <div class="home-grid-loader hidden" id="home-grid-loader">
+                    <div class="home-grid-spinner"></div>
+                </div>
+                <div id="home-grid-sentinel"></div>
+                <div class="home-grid-end hidden" id="home-grid-end"></div>
+            <?php endif; ?>
         <?php endif; ?>
         <?php endif; ?>
     </main>
