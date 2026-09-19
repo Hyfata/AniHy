@@ -230,10 +230,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideAnimeModal() {
         if (!animeModal || !animeModal.classList.contains('active')) return;
-        setAnimeFrame('about:blank');
         closeModal('anime-modal');
         document.body.classList.remove('modal-open');
         animeModalAid = null;
+        // 닫힘 애니메이션(0.18s) 동안은 기존 다크 화면을 유지하고,
+        // 오버레이가 사라진 뒤에 iframe을 비워 about:blank 흰 화면이 비치지 않게 함
+        setTimeout(() => {
+            if (animeModalAid !== null || (animeModal && animeModal.classList.contains('active'))) return;
+            setAnimeFrame('about:blank');
+        }, 200);
     }
 
     // iframe 이동은 히스토리 항목을 남기지 않게 replace로만 (뒤로가기 하이재킹 방지)
