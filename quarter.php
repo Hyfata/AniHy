@@ -5,6 +5,9 @@ require_once __DIR__ . '/inc/functions.php';
 
 requireAccessAuth();
 
+// 세션은 isAdmin() 읽기용으로만 쓰므로 잠금을 즉시 해제 (모달 iframe 등 동시 요청 블로킹 방지, $_SESSION 읽기는 유지됨)
+session_write_close();
+
 $year = filter_input(INPUT_GET, 'year', FILTER_VALIDATE_INT);
 $quarter = filter_input(INPUT_GET, 'quarter', FILTER_VALIDATE_INT);
 if (!$year || !in_array($quarter, [1, 2, 3, 4], true)) {
