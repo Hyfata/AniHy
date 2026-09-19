@@ -850,8 +850,9 @@ img {
     animation: overlay-fade-out 0.18s ease forwards;
 }
 
-/* 설정 모달은 애니 상세 모달(#anime-modal, z-index 200)보다 위에 (DOM 순서상 뒤인 애니 모달에 가려지는 문제 방지) */
-#settings-modal {
+/* 설정/대기열 모달은 애니 상세 모달(#anime-modal, z-index 200)보다 위에 (DOM 순서상 뒤인 애니 모달에 가려지는 문제 방지) */
+#settings-modal,
+#queue-modal {
     z-index: 300;
 }
 
