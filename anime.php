@@ -192,7 +192,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
 
     <?php if (isAdmin()): ?>
         <?php include __DIR__ . '/inc/queue_modal.php'; ?>
-        <?php include __DIR__ . '/inc/settings_float.php'; ?>
+        <?php if (!$embed) include __DIR__ . '/inc/settings_float.php'; ?>
         <?php include __DIR__ . '/inc/edit_anime_modal.php'; ?>
 
         <div class="modal-overlay" id="edit-episode-modal">
