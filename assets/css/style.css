@@ -1035,6 +1035,10 @@ body.modal-open {
         width: 22px;
         height: 22px;
     }
+    /* 바텀 탭바가 있는 페이지에서는 기어가 탭바에 가려지지 않게 위로 */
+    body:has(.bottom-tabbar) .fab-settings {
+        bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+    }
 }
 
 /* Settings modal list */
