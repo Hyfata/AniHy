@@ -80,13 +80,6 @@ img {
     }
 }
 
-/* iOS Safari: 입력 필드 포커스 시 자동 확대 방지 (16px 미만이면 줌됨) */
-@supports (-webkit-touch-callout: none) {
-    input, textarea, select {
-        font-size: 16px;
-    }
-}
-
 @media (min-width: 768px) {
     .navbar .container {
         padding: 0 28px;
@@ -2158,4 +2151,16 @@ main.has-tabbar {
 .admin-icon-btn svg {
     width: 16px;
     height: 16px;
+}
+
+/* iOS Safari: 입력 필드 포커스 시 자동 확대 방지 (16px 미만이면 줌됨) */
+/* 기존 .form-group 규칙(0.95rem)보다 우선하도록 동일 명시도로 파일 끝에 재정의 */
+@supports (-webkit-touch-callout: none) {
+    .form-group input,
+    .form-group textarea,
+    .form-group select,
+    .subtitle-track-picker select,
+    input, textarea, select {
+        font-size: 16px;
+    }
 }
