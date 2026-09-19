@@ -4,6 +4,9 @@ require_once __DIR__ . '/../inc/functions.php';
 
 requireAdmin();
 
+// 세션은 인증 확인용으로만 쓰므로 잠금을 즉시 해제 (폴링 중 모달 iframe 등 다른 요청 블로킹 방지)
+session_write_close();
+
 // 죽은 워커 프로세스가 남긴 작업을 실패로 정리
 $stmt = $pdo->query("SELECT id, worker_pid FROM jobs WHERE status NOT IN ('completed', 'failed') AND worker_pid IS NOT NULL");
 foreach ($stmt->fetchAll() as $job) {
