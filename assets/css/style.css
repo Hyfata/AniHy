@@ -2014,44 +2014,391 @@ main.has-tabbar {
 .quarter-sticky-header .page-title {
     margin-bottom: 14px;
 }
+.page-subtitle {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+/* Quarter archive (index ?tab=quarter): flat year rows */
 .quarter-year-section {
-    margin-bottom: 28px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.quarter-year-section:last-child {
+    border-bottom: none;
+}
+
+.quarter-year-head {
+    margin-bottom: 12px;
 }
 
 .quarter-year-title {
-    font-size: 1.15rem;
-    margin: 0 0 12px;
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.quarter-year-title span {
+    margin-left: 2px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.quarter-year-total {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 .quarter-card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.quarter-card-grid > * {
+    min-width: 0;
 }
 
 .quarter-card {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 16px;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px 14px;
     background: var(--surface);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius);
-    transition: transform 0.15s, border-color 0.15s;
+    border-radius: 10px;
+    transition: border-color 0.15s, background 0.15s;
 }
 
 .quarter-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--primary);
+    border-color: rgba(124, 92, 255, 0.5);
+    background: var(--surface-light);
+}
+
+.quarter-card.current {
+    border-color: rgba(124, 92, 255, 0.55);
+}
+
+.quarter-card.empty {
+    background: transparent;
+    border-style: dashed;
+    cursor: default;
+}
+
+.quarter-card.empty .quarter-card-title,
+.quarter-card.empty .quarter-card-count,
+.quarter-card.empty .quarter-card-months {
+    color: var(--text-muted);
+    opacity: 0.55;
+}
+
+.quarter-card-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
 }
 
 .quarter-card-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.95rem;
     font-weight: 600;
 }
 
 .quarter-card-count {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* PC 전용 표시 요소 (모바일·태블릿에서는 숨김) */
+.quarter-card-months,
+.quarter-card-thumbs,
+.quarter-card-glow {
+    display: none;
+}
+
+.quarter-now {
+    flex: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #b7a6ff;
+    background: rgba(124, 92, 255, 0.14);
+    padding: 3px 8px;
+    border-radius: 999px;
+}
+
+.quarter-card-arrow {
+    flex: none;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.quarter-card:hover .quarter-card-arrow {
+    color: var(--text);
+}
+
+/* 좁은 화면: 배지·화살표가 텍스트와 다투지 않게 점 표시로 축소 */
+@media (max-width: 480px) {
+    .quarter-card-arrow {
+        display: none;
+    }
+
+    .quarter-card-title {
+        flex-wrap: nowrap;
+    }
+
+    .quarter-now {
+        font-size: 0;
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        border-radius: 50%;
+        background: var(--primary);
+    }
+}
+
+/* PC: 연도 헤더 행 + 분기 4열 스탯 카드 (커버 썸네일 포함) */
+@media (min-width: 1024px) {
+    /* 사이드바 오른쪽 영역에서 중앙 정렬 + 홈처럼 넓은 폭 (1600px 캡) */
+    main.container.quarter-index {
+        max-width: 1600px;
+        margin-left: max(200px, calc(50vw - 700px));
+        padding: 0 28px;
+    }
+
+    .quarter-index .page-header {
+        margin-bottom: 6px;
+    }
+
+    .quarter-year-section {
+        padding: 24px 0;
+        border-bottom: none;
+    }
+
+    .quarter-year-head {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: 0 0 16px;
+    }
+
+    .quarter-year-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+
+    .quarter-year-title span {
+        font-size: 1rem;
+    }
+
+    .quarter-year-total {
+        order: 2;
+        margin-top: 0;
+        font-size: 0.85rem;
+    }
+
+    .quarter-year-head::after {
+        content: '';
+        order: 1;
+        flex: 1;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.07);
+    }
+
+    .quarter-card-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+
+    .quarter-card {
+        position: relative;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        min-height: 190px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        overflow: hidden;
+        transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1.15), border-color 0.18s, background 0.18s, box-shadow 0.22s ease;
+    }
+
+    a.quarter-card:hover {
+        transform: translateY(-4px) scale(1.04);
+        z-index: 2;
+        border-color: rgba(124, 92, 255, 0.55);
+        background: var(--surface-light);
+        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.45);
+    }
+
+    .quarter-card:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+
+    .quarter-card-text {
+        position: relative;
+        z-index: 1;
+        gap: 2px;
+    }
+
+    .quarter-card-title {
+        font-size: 1.02rem;
+        padding-right: 20px;
+    }
+
+    .quarter-card-months {
+        display: block;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+    }
+
+    .quarter-card-count {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        padding-top: 10px;
+        overflow: visible;
+    }
+
+    .quarter-card-num {
+        font-size: 1.7rem;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* 하단 포스터 레일: 3등분으로 크게 표시, 초과분은 호버 시 슬라이드 공개 */
+    .quarter-card-thumbs {
+        display: block;
+        margin: auto 0 0;
+        padding-top: 14px;
+        overflow: hidden;
+    }
+
+    .quarter-card-thumbs-track {
+        display: flex;
+        gap: 6px;
+        transition: transform 0.35s ease;
+    }
+
+    .quarter-card-thumb {
+        position: relative;
+        flex: none;
+        width: calc((100% - 12px) / 3);
+        aspect-ratio: 2 / 3;
+        overflow: hidden;
+        border-radius: var(--radius-sm);
+        background: var(--surface-light);
+    }
+
+    /* 포스터 위 얇은 링으로 아트와 카드 배경을 분리 */
+    .quarter-card-thumb::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+    }
+
+    .quarter-card-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .quarter-card-thumb-more {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(11, 12, 15, 0.62);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        color: var(--text);
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    /* 호버/키보드 포커스: 포스터 줌 + 숨겨둔 포스터가 슬라이드로 공개 (--x = 추가 슬롯 수) */
+    :is(a.quarter-card:hover, a.quarter-card:focus-visible) .quarter-card-thumb img {
+        transform: scale(1.08);
+    }
+
+    :is(a.quarter-card:hover, a.quarter-card:focus-visible) .quarter-card-thumbs-track {
+        transform: translateX(calc(var(--x, 0) * (-100% / 3 - 2px)));
+    }
+
+    /* 포스터 색이 카드 하단에서 블러로 번져 올라오는 앰비언트 글로우 */
+    .quarter-card-glow {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        gap: 6px;
+        opacity: 0.3;
+        filter: blur(42px) saturate(1.5);
+        transform: scale(1.6);
+        pointer-events: none;
+        -webkit-mask-image: linear-gradient(to top, #000 15%, transparent 80%);
+        mask-image: linear-gradient(to top, #000 15%, transparent 80%);
+        transition: opacity 0.25s ease;
+    }
+
+    .quarter-card-glow img {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    :is(a.quarter-card:hover, a.quarter-card:focus-visible) .quarter-card-glow {
+        opacity: 0.42;
+    }
+
+    .quarter-card.current .quarter-card-num {
+        color: #b7a6ff;
+    }
+
+    .quarter-card.empty,
+    .quarter-card.empty:hover {
+        background: transparent;
+        border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .quarter-card-arrow {
+        position: absolute;
+        top: 15px;
+        right: 16px;
+        opacity: 0;
+        transform: translateX(-5px);
+        transition: opacity 0.18s, transform 0.18s, color 0.18s;
+    }
+
+    .quarter-card:hover .quarter-card-arrow {
+        opacity: 1;
+        transform: none;
+        color: #b7a6ff;
+    }
 }
 
 /* Day filter tabs + sections (quarter.php) */

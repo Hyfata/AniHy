@@ -27,10 +27,16 @@ $broadcastMap = fetchBroadcastMap($pdo);
 
 // 분기별 애니 그룹핑 (년도/분기가 설정된 애니만, 분기가 여러 개면 각각 집계)
 $quarterGroups = [];
+$quarterCovers = [];
+$quarterMonths = [1 => '1–3월', 2 => '4–6월', 3 => '7–9월', 4 => '10–12월'];
 if ($tab === 'quarter') {
     foreach ($animes as $a) {
         foreach ($broadcastMap[(int)$a['id']] ?? [] as [$y, $q]) {
             $quarterGroups[$y][$q] = ($quarterGroups[$y][$q] ?? 0) + 1;
+            // PC 카드 포스터 스트립용 커버 최대 6장 ($animes는 created_at DESC라 최신순, 4장째부터 호버 슬라이드로 공개)
+            if (!empty($a['cover_image']) && count($quarterCovers[$y][$q] ?? []) < 6) {
+                $quarterCovers[$y][$q][] = $a['cover_image'];
+            }
         }
     }
     krsort($quarterGroups);
@@ -63,10 +69,24 @@ if ($tab === 'quarter') {
         </div>
     </nav>
 
-    <main class="container has-tabbar wide">
+    <main class="container has-tabbar<?= $tab === 'quarter' ? ' quarter-index' : ' wide' ?>">
         <?php if ($tab === 'quarter'): ?>
+            <?php
+            $archiveYears = array_keys($quarterGroups);
+            $archiveTotal = 0;
+            foreach ($animes as $a) {
+                if (!empty($broadcastMap[(int)$a['id']])) $archiveTotal++;
+            }
+            $nowY = (int)date('Y');
+            $nowQ = (int)ceil(((int)date('n')) / 3);
+            ?>
             <div class="page-header">
-                <h1 class="page-title">분기별 애니</h1>
+                <div>
+                    <h1 class="page-title">분기별 애니</h1>
+                    <?php if (!empty($archiveYears)): ?>
+                        <p class="page-subtitle"><?= min($archiveYears) ?>–<?= max($archiveYears) ?> · 총 <?= $archiveTotal ?>개 작품</p>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <?php if (empty($quarterGroups)): ?>
@@ -75,15 +95,55 @@ if ($tab === 'quarter') {
                 </div>
             <?php else: ?>
                 <?php foreach ($quarterGroups as $year => $quarters): ?>
+                    <?php $yearTotal = array_sum($quarters); ?>
                     <div class="quarter-year-section">
-                        <h2 class="quarter-year-title"><?= $year ?>년</h2>
+                        <div class="quarter-year-head">
+                            <h2 class="quarter-year-title"><?= $year ?><span>년</span></h2>
+                            <span class="quarter-year-total"><?= $yearTotal ?>개 작품</span>
+                        </div>
                         <div class="quarter-card-grid">
-                            <?php foreach ($quarters as $q => $count): ?>
-                                <a class="quarter-card" href="/anime/quarter.php?year=<?= $year ?>&quarter=<?= $q ?>">
-                                    <span class="quarter-card-title"><?= $q ?>분기</span>
-                                    <span class="quarter-card-count"><?= $count ?>개 작품</span>
-                                </a>
-                            <?php endforeach; ?>
+                            <?php for ($q = 1; $q <= 4; $q++): ?>
+                                <?php if (isset($quarters[$q])): ?>
+                                    <a class="quarter-card<?= ($year === $nowY && $q === $nowQ) ? ' current' : '' ?>" href="/anime/quarter.php?year=<?= $year ?>&quarter=<?= $q ?>">
+                                        <?php if (!empty($quarterCovers[$year][$q])): ?>
+                                            <span class="quarter-card-glow" aria-hidden="true">
+                                                <?php foreach (array_slice($quarterCovers[$year][$q], 0, 3) as $cover): ?>
+                                                    <img src="<?= coverUrl($cover) ?>" alt="" loading="lazy">
+                                                <?php endforeach; ?>
+                                            </span>
+                                        <?php endif; ?>
+                                        <span class="quarter-card-text">
+                                            <span class="quarter-card-title"><?= $q ?>분기<?php if ($year === $nowY && $q === $nowQ): ?> <span class="quarter-now" title="이번 분기">이번 분기</span><?php endif; ?></span>
+                                            <span class="quarter-card-months"><?= $quarterMonths[$q] ?></span>
+                                            <span class="quarter-card-count"><span class="quarter-card-num"><?= $quarters[$q] ?></span>개 작품</span>
+                                            <?php if (!empty($quarterCovers[$year][$q])): ?>
+                                                <?php $coverCount = count($quarterCovers[$year][$q]); ?>
+                                                <span class="quarter-card-thumbs" aria-hidden="true" style="--x: <?= max(0, $coverCount - 3) ?>">
+                                                    <span class="quarter-card-thumbs-track">
+                                                        <?php foreach ($quarterCovers[$year][$q] as $i => $cover): ?>
+                                                            <span class="quarter-card-thumb">
+                                                                <img src="<?= coverUrl($cover) ?>" alt="" loading="lazy">
+                                                                <?php if ($i === 5 && $quarters[$q] > 6): ?>
+                                                                    <span class="quarter-card-thumb-more">+<?= $quarters[$q] - 6 ?></span>
+                                                                <?php endif; ?>
+                                                            </span>
+                                                        <?php endforeach; ?>
+                                                    </span>
+                                                </span>
+                                            <?php endif; ?>
+                                        </span>
+                                        <span class="quarter-card-arrow" aria-hidden="true">→</span>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="quarter-card empty" aria-hidden="true">
+                                        <span class="quarter-card-text">
+                                            <span class="quarter-card-title"><?= $q ?>분기</span>
+                                            <span class="quarter-card-months"><?= $quarterMonths[$q] ?></span>
+                                            <span class="quarter-card-count">작품 없음</span>
+                                        </span>
+                                    </span>
+                                <?php endif; ?>
+                            <?php endfor; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
