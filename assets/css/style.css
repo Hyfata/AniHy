@@ -80,6 +80,13 @@ img {
     }
 }
 
+/* iOS Safari: 입력 필드 포커스 시 자동 확대 방지 (16px 미만이면 줌됨) */
+@supports (-webkit-touch-callout: none) {
+    input, textarea, select {
+        font-size: 16px;
+    }
+}
+
 @media (min-width: 768px) {
     .navbar .container {
         padding: 0 28px;
