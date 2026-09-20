@@ -2325,6 +2325,7 @@ main.has-tabbar {
         height: 100%;
         object-fit: cover;
         transition: transform 0.3s ease;
+	overflow-clip-margin: unset;
     }
 
     .quarter-card-thumb-more {
