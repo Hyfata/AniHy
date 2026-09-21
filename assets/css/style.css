@@ -296,6 +296,12 @@ img {
     animation: anime-modal-spin 0.8s linear infinite;
 }
 
+@keyframes anime-modal-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .home-grid-end {
     text-align: center;
     color: var(--text-muted);
@@ -1015,15 +1021,39 @@ body.modal-open {
     max-height: none;
     padding: 0;
     overflow: hidden;
+    background: var(--bg);
 }
 
 .anime-modal-frame {
+    position: relative;
+    z-index: 2;
     width: 100%;
     height: 100%;
     min-height: 0;
     border: 0;
     display: block;
     background: var(--bg);
+    color-scheme: dark;
+}
+
+/* 로딩 중에는 흰 about:blank 등이 비치지 않게 iframe을 숨기고 다크 로더만 표시 */
+.anime-modal-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+}
+
+.modal.anime-modal.is-loading .anime-modal-loader {
+    display: flex;
+}
+
+.modal.anime-modal.is-loading .anime-modal-frame {
+    opacity: 0;
+    visibility: hidden;
 }
 
 .anime-modal-close {

@@ -234,14 +234,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('modal-open');
         animeModalAid = null;
         // 닫힘 애니메이션(0.18s) 동안은 기존 다크 화면을 유지하고,
-        // 오버레이가 사라진 뒤에 iframe을 비워 about:blank 흰 화면이 비치지 않게 함
+        // 오버레이가 사라진 뒤에 iframe을 비움 (다음 오픈 시 로더가 가리므로 흰 플래시 없음)
         setTimeout(() => {
             if (animeModalAid !== null || (animeModal && animeModal.classList.contains('active'))) return;
             setAnimeFrame('about:blank');
+            if (animeModal) animeModal.classList.remove('is-loading');
         }, 200);
     }
 
     // iframe 이동은 히스토리 항목을 남기지 않게 replace로만 (뒤로가기 하이재킹 방지)
+    // src/srcdoc 대입은 joint session history에 쌓일 수 있어 사용 금지
     function setAnimeFrame(url) {
         if (!animeModalFrame) return;
         try {
@@ -249,6 +251,44 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             animeModalFrame.src = url;
         }
+    }
+
+    // about:blank 문서 자체를 다크로 칠함 (히스토리 추가 없는 DOM 조작)
+    // 다음 오픈 시 is-loading 로더가 가려주므로, 만약을 위한 이중 안전장치
+    function darkenAnimeBlank() {
+        try {
+            const doc = animeModalFrame && animeModalFrame.contentDocument;
+            if (!doc) return;
+            if (doc.documentElement) {
+                doc.documentElement.style.background = '#0b0c0f';
+                doc.documentElement.style.colorScheme = 'dark';
+            }
+            if (doc.body) doc.body.style.background = '#0b0c0f';
+        } catch (e) {
+            // cross-origin, ignore
+        }
+    }
+
+    // embed 로드 완료 시 로더를 걷고 iframe 표시 (active일 때만 해제)
+    // about:blank load에는 반응하지 않고 다크 칠하기만 함
+    function isAnimeFrameBlank() {
+        try {
+            const href = String((animeModalFrame && animeModalFrame.contentWindow && animeModalFrame.contentWindow.location.href) || '');
+            if (href === 'about:blank') return true;
+        } catch (e) {
+            // cross-origin 접근 실패 시 blank 아님으로 간주
+        }
+        return false;
+    }
+    if (animeModalFrame) {
+        animeModalFrame.addEventListener('load', () => {
+            if (isAnimeFrameBlank()) {
+                darkenAnimeBlank();
+                return;
+            }
+            if (!animeModal || !animeModal.classList.contains('active')) return;
+            animeModal.classList.remove('is-loading');
+        });
     }
 
     window.openAnimeModal = (aid) => {
@@ -260,6 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
         animeModalAid = String(aid);
         const closeBtn = animeModal.querySelector('.anime-modal-close');
         if (closeBtn) closeBtn.classList.remove('hidden');
+        // 로드 전 흰 화면 대신 다크 로더 표시 (load 이벤트에서 해제)
+        animeModal.classList.add('is-loading');
         setAnimeFrame('/anime/anime.php?aid=' + encodeURIComponent(aid) + '&embed=1');
         openModal('anime-modal');
         document.body.classList.add('modal-open');

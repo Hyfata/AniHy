@@ -4,6 +4,7 @@
 <div class="modal-overlay" id="anime-modal">
     <div class="modal anime-modal">
         <button type="button" class="modal-close anime-modal-close" onclick="closeAnimeModal()" aria-label="닫기">&times;</button>
+        <div class="anime-modal-loader" aria-hidden="true"><div class="home-grid-spinner"></div></div>
         <iframe id="anime-modal-frame" class="anime-modal-frame" title="애니 상세"></iframe>
     </div>
 </div>
