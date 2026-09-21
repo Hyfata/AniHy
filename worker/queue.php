@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/functions.php';
+require_once __DIR__ . '/../inc/encoding.php';
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
@@ -12,9 +13,9 @@ $worker = __DIR__ . '/convert.php';
 $lockFile = "$baseDir/logs/queue.lock";
 $queueLog = "$baseDir/logs/queue.log";
 
-const MAX_WORKERS = 1; // VAAPI는 순차 처리. NVIDIA GPU 추가 시 2~4로 조정.
 const IDLE_EXIT_SECONDS = 30;
 const LOOP_SLEEP_MS = 1500;
+// 동시 인코딩 수: inc/configuration.php의 max_workers (매 루프마다 다시 읽어 hot-reload)
 
 function logQueue(string $msg): void {
     global $queueLog;
@@ -142,18 +143,25 @@ register_shutdown_function(static function () use ($lockFile) {
     releaseLock($lockFile);
 });
 
-logQueue('Queue manager started (MAX_WORKERS=' . MAX_WORKERS . ')');
+$maxWorkers = loadEncodingConfig()['max_workers'];
+logQueue('Queue manager started (max_workers=' . $maxWorkers . ')');
 
 $running = cleanupOrphanWorkers($pdo);
 $idleSince = null;
 
 while (true) {
+    // 설정 변경을 실행 중 매니저에도 반영 (다음 job 투입부터 적용)
+    $newMax = loadEncodingConfig()['max_workers'];
+    if ($newMax !== $maxWorkers) {
+        logQueue("max_workers changed: $maxWorkers -> $newMax");
+        $maxWorkers = $newMax;
+    }
     reapWorkers($running, $pdo);
 
     $started = 0;
     $busyKeys = getBusyKeys($running, $pdo);
 
-    while (count($running) < MAX_WORKERS) {
+    while (count($running) < $maxWorkers) {
         $pending = fetchPendingJobs($pdo);
         if (empty($pending)) {
             break;

@@ -18,7 +18,7 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 | 데이터베이스 | MariaDB / MySQL |
 | 웹 서버 | Apache |
 | 프론트엔드 | Vanilla JS, CSS3, Video.js 8.10.0 |
-| 미디어 처리 | ffmpeg 6.x, Bento4(mp4decrypt), Intel VA-API |
+| 미디어 처리 | ffmpeg 6.x, Bento4(mp4decrypt), 인코딩 백엔드 선택 가능(CPU libx264 / Intel VA-API / AMD VA-API / NVIDIA NVENC) |
 | 다운로더 | [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 5.7.4 (Crunchyroll/Hidive 지원) |
 | 자막 변환 | [smi2ass](https://github.com/najoan125/smi2ass) (SMI → ASS) |
 
@@ -122,12 +122,25 @@ cp -r /tmp/multi-downloader-nx/* /var/www/html/anime/downloader/
 
 ```bash
 cd /var/www/html/anime/inc
-mv db.php.inc db.php
-mv auth.php.inc auth.php
-mv functions.php.inc functions.php
+cp db.php.inc db.php
+cp auth.php.inc auth.php
+cp configuration.php.inc configuration.php
 ```
 
-이후 `db.php`의 데이터베이스 접속 정보와 `auth.php`의 관리자 계정 정보를 실제 값으로 변경합니다.
+이후 `db.php`의 데이터베이스 접속 정보와 `auth.php`의 관리자 계정 정보를 실제 값으로 변경합니다. `configuration.php`의 인코딩 설정은 아래 "인코딩 설정"을 참고하세요.
+
+### 인코딩 설정
+
+`inc/configuration.php`에서 인코딩 하드웨어와 동시 인코딩 수를 설정합니다 (파일이 없으면 Intel VA-API / 1개 기본값으로 동작).
+
+| 항목 | 값 | 설명 |
+|------|-----|------|
+| `encoder` | `software` \| `intel` \| `radeon` \| `nvidia` | CPU libx264 / Intel VA-API / AMD VA-API / NVIDIA NVENC |
+| `max_workers` | 1 이상 | 동시에 돌릴 인코딩 수. VA-API 1, NVENC 2~4 권장 |
+| `vaapi_device` | 경로 | VA-API 렌더 노드 (intel/radeon만 사용, 기본 `/dev/dri/renderD128`) |
+| `quality` | 0~51 | 낮을수록 고화질 (intel/radeon `-qp`, software `-crf`, nvidia `-cq`) |
+
+값 변경은 다음 job부터 반영됩니다 (실행 중인 큐 매니저도 매 루프마다 설정을 다시 읽음).
 
 ## 주요 기능
 
@@ -146,7 +159,7 @@ mv functions.php.inc functions.php
 1. 애니 상세 페이지에서 에피소드 번호 입력
 2. `api/add_episode.php`에서 `animes.season_id`와 `is_hidive`를 조회
 3. `jobs` 테이블에 `pending` 상태로 INSERT
-4. 백그라운드로 `php worker/convert.php {job_id}` 실행
+4. `worker/queue.php` 매니저가 백그라운드(nohup)로 기동되어 job마다 `worker/convert.php {job_id}` 워커 실행 (동시 실행 수는 `inc/configuration.php`의 `max_workers`)
 5. 다운로드 → 복호화 → 자막 처리 → MP4 변환 → `animes/{anime_id}/{ep}.mp4` 저장
 6. `episodes` 테이블 UPSERT
 

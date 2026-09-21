@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../inc/functions.php';
 require_once __DIR__ . '/../inc/chapters.php';
+require_once __DIR__ . '/../inc/encoding.php';
 
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
@@ -22,8 +23,9 @@ $logFile = "$baseDir/logs/job_{$jobId}.log";
 // Use bundled Korean fonts for libass burn-in
 putenv('FONTCONFIG_FILE=' . $baseDir . '/assets/fonts/fonts.conf');
 
-// Enable Intel VA-API driver for hardware acceleration
-putenv('LIBVA_DRIVER_NAME=iHD');
+// 인코딩 백엔드 설정 (inc/configuration.php, 없으면 intel/1 기본값)
+$encCfg = loadEncodingConfig();
+applyEncodingEnv($encCfg);
 
 // smi2ass는 frozen Python이라 Apache의 LANG=C를 물려받으면
 // non-ASCII(한글/BOM)가 든 경고 출력 중 UnicodeEncodeError로 죽는다. UTF-8 강제.
@@ -84,7 +86,7 @@ $isHidive = !empty($anime['is_hidive']);
 $script = $isHidive ? './hidn.sh' : './crdn.sh';
 $serviceName = $isHidive ? 'Hidive' : 'Crunchyroll';
 
-logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId source=$sourceType service=$serviceName trim=$trimSeconds sync=$subtitleOffset");
+logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId source=$sourceType service=$serviceName trim=$trimSeconds sync=$subtitleOffset encoder={$encCfg['encoder']} quality={$encCfg['quality']}");
 
 $mkvPath = "$videosDir/{$seasonId}_{$safeEpisode}.mkv";
 
@@ -328,6 +330,7 @@ updateJob($pdo, $jobId, 'encoding', $encodeBaseProgress, $encodeMessage);
 $outputPath = "$videosDir/job_{$jobId}_result.mp4";
 
 if ($hasSubtitle) {
+    $encArgs = ffmpegEncodeArgs($encCfg, $assPath);
     $cmdParts = [
         'ffmpeg',
         '-y',
@@ -336,16 +339,14 @@ if ($hasSubtitle) {
         $cmdParts[] = '-ss';
         $cmdParts[] = (string)$trimSeconds;
     }
-    $cmdParts = array_merge($cmdParts, [
-        '-vaapi_device', '/dev/dri/renderD128',
+    $cmdParts = array_merge($cmdParts, $encArgs['pre_input'], [
         '-i', $mkvPath,
         '-map', '0:v:0',
         '-map', '0:a:' . $audioStreamIndex,
-        '-vf', 'ass=' . $assPath . ',format=nv12,hwupload',
+        '-vf', $encArgs['vf'],
         '-c:a', 'copy',
         '-sn',
-        '-c:v', 'h264_vaapi',
-        '-qp', '23',
+    ], $encArgs['codec'], [
         '-movflags', '+faststart',
         '-progress', 'pipe:2',
         '-nostats',
