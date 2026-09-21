@@ -1780,6 +1780,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 let url = '/anime/watch.php?aid=' + encodeURIComponent(aid) + '&ep=' + encodeURIComponent(nextEp);
                 if (playerEl.dataset.from) {
                     url += '&from=' + encodeURIComponent(playerEl.dataset.from);
+                    if (playerEl.dataset.ly && /^\d+$/.test(playerEl.dataset.ly) && parseInt(playerEl.dataset.ly, 10) > 0) {
+                        url += '&ly=' + encodeURIComponent(playerEl.dataset.ly);
+                    }
                 }
                 window.location.href = url;
             }

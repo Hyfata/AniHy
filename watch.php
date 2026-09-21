@@ -57,10 +57,13 @@ $from = isset($_GET['from']) ? trim((string)$_GET['from']) : '';
 $validFrom = ($from !== '' && str_starts_with($from, '/anime') && !str_starts_with($from, '//') && strpos($from, 'watch.php') === false) ? $from : '';
 $backUrl = $validFrom !== '' ? $validFrom : '/anime/anime.php?aid=' . $aid;
 $fromParam = $validFrom !== '' ? '&from=' . urlencode($validFrom) : '';
-// 목록 스크롤 위치 전달 (?ly=, 복귀 링크에만)
+// 목록 스크롤 위치 전달 (?ly=, 복귀 링크 + 회차 이동 링크에 유지)
 $ly = filter_input(INPUT_GET, 'ly', FILTER_VALIDATE_INT);
+$lyParam = '';
 if ($validFrom !== '' && is_int($ly) && $ly > 0) {
     $backUrl .= (strpos($backUrl, '?') === false ? '?' : '&') . 'ly=' . $ly;
+    $lyParam = '&ly=' . $ly;
+    $fromParam .= $lyParam;
 }
 ?>
 <!DOCTYPE html>
@@ -99,6 +102,7 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
                         data-aid="<?= $aid ?>"
                         data-ep="<?= htmlspecialchars($epNum) ?>"
                         data-from="<?= htmlspecialchars($validFrom) ?>"
+                        data-ly="<?= $lyParam !== '' ? (int)$ly : '' ?>"
                         data-next-ep="<?= $nextEp !== null ? htmlspecialchars($nextEp) : '' ?>">
                         <source src="<?= $videoUrl ?>" type="video/mp4">
                         <?php if ($hasChapterVtt): ?>
