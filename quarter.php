@@ -188,6 +188,12 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
                 <span>분기별 애니</span>
             </span>
         </a>
+        <a href="/anime/?tab=search" class="tab-item">
+            <span class="tab-pill">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+                <span>검색</span>
+            </span>
+        </a>
     </nav>
 
     <?php include __DIR__ . '/inc/anime_modal.php'; ?>

@@ -8,22 +8,24 @@ requireAccessAuth();
 // 세션은 isAdmin() 읽기용으로만 쓰므로 잠금을 즉시 해제 (모달 iframe 등 동시 요청 블로킹 방지, $_SESSION 읽기는 유지됨)
 session_write_close();
 
-$tab = ($_GET['tab'] ?? 'home') === 'quarter' ? 'quarter' : 'home';
+$tab = $_GET['tab'] ?? 'home';
+if (!in_array($tab, ['home', 'quarter', 'search'], true)) $tab = 'home';
 
-// 분기 탭은 집계용으로 전체가 필요, 홈 탭은 무한스크롤이라 첫 페이지만 (LIMIT+1로 다음 페이지 존재 판별)
+// 분기 탭은 집계용으로 전체가 필요, 홈 탭은 무한스크롤이라 첫 페이지만 (LIMIT+1로 다음 페이지 존재 판별), 검색 탭은 DB 조회 없이 JS가 처리
 $homePageSize = 30;
+$animes = [];
+$homeHasMore = false;
 if ($tab === 'quarter') {
     $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC");
     $animes = $stmt->fetchAll();
-    $homeHasMore = false;
-} else {
+} elseif ($tab === 'home') {
     $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC LIMIT " . ($homePageSize + 1));
     $rows = $stmt->fetchAll();
     $homeHasMore = count($rows) > $homePageSize;
     $animes = array_slice($rows, 0, $homePageSize);
 }
 
-$broadcastMap = fetchBroadcastMap($pdo);
+$broadcastMap = $tab === 'search' ? [] : fetchBroadcastMap($pdo);
 
 // 분기별 애니 그룹핑 (년도/분기가 설정된 애니만, 분기가 여러 개면 각각 집계)
 $quarterGroups = [];
@@ -70,7 +72,20 @@ if ($tab === 'quarter') {
     </nav>
 
     <main class="container has-tabbar<?= $tab === 'quarter' ? ' quarter-index' : ' wide' ?>">
-        <?php if ($tab === 'quarter'): ?>
+        <?php if ($tab === 'search'): ?>
+            <div class="page-header">
+                <h1 class="page-title">검색</h1>
+            </div>
+            <form class="search-box" role="search" id="search-form">
+                <textarea id="search-input" rows="1" placeholder="제목으로 검색" maxlength="100" autocomplete="off" enterkeyhint="search"></textarea>
+                <button type="button" id="search-clear" class="search-clear hidden" aria-label="검색어 지우기">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </form>
+            <div id="trending-searches" class="trending-searches"></div>
+            <div id="search-status" class="empty-state">검색어를 입력하세요.</div>
+            <div class="card-grid" id="search-card-grid"></div>
+        <?php elseif ($tab === 'quarter'): ?>
             <?php
             $archiveYears = array_keys($quarterGroups);
             $archiveTotal = 0;
@@ -209,6 +224,12 @@ if ($tab === 'quarter') {
             <span class="tab-pill">
                 <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/></svg>
                 <span>분기별 애니</span>
+            </span>
+        </a>
+        <a href="/anime/?tab=search" class="tab-item <?= $tab === 'search' ? 'active' : '' ?>">
+            <span class="tab-pill">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+                <span>검색</span>
             </span>
         </a>
     </nav>

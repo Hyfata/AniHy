@@ -1914,6 +1914,137 @@ main.container {
     border-color: var(--primary-hover);
 }
 
+/* Search tab */
+.search-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.search-box textarea {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+    line-height: 1.4;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+
+.search-box textarea:focus {
+    border-color: var(--primary);
+}
+
+.search-clear {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.search-clear:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+}
+
+.search-clear svg {
+    width: 18px;
+    height: 18px;
+}
+
+.trending-searches {
+    margin-bottom: 16px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface);
+}
+
+.trending-searches:empty {
+    display: none;
+}
+
+.trending-header {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.trending-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 720px) {
+    .trending-list {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        column-gap: 24px;
+    }
+}
+
+.trending-list > li {
+    min-width: 0;
+}
+
+.trending-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    padding: 8px 6px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.trending-chip:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.trending-chip .trending-rank {
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.trending-chip.top .trending-rank {
+    color: #b7a6ff;
+}
+
+.trending-chip .trending-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Bottom tab bar */
 .bottom-tabbar {
     position: fixed;

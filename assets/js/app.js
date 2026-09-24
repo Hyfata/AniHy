@@ -206,6 +206,126 @@ document.addEventListener('DOMContentLoaded', () => {
         if (homeSentinel && homeHasMore) homeObserver.observe(homeSentinel);
     }
 
+    // Search tab (Enter/폼 제출로만 검색 + 인기 검색어)
+    const searchInput = document.getElementById('search-input');
+    const searchGrid = document.getElementById('search-card-grid');
+    const searchStatus = document.getElementById('search-status');
+    const trendingBox = document.getElementById('trending-searches');
+    if (searchInput && searchGrid && searchStatus) {
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+        const searchClear = document.getElementById('search-clear');
+        const searchForm = document.getElementById('search-form');
+        let searchSeq = 0;
+
+        function searchCardHTML(a) {
+            const title = esc(a.title);
+            return '<div class="card" data-aid="' + a.id + '" data-href="' + esc(a.href) + '">'
+                + '<div class="card-poster"><img src="' + esc(a.cover) + '" alt="' + title + '" loading="lazy"></div>'
+                + '<div class="card-body"><h3 class="card-title">' + title + '</h3></div>'
+                + '</div>';
+        }
+
+        function showSearchStatus(msg) {
+            searchStatus.textContent = msg;
+            searchStatus.classList.remove('hidden');
+            searchGrid.innerHTML = '';
+        }
+
+        // 초기 상태로 복원: 인기 검색어 표시 + 결과/안내 초기화, 진행 중 요청 무효화
+        function resetSearchState() {
+            searchSeq++;
+            if (trendingBox) trendingBox.classList.remove('hidden');
+            showSearchStatus('검색어를 입력하세요.');
+        }
+
+        async function runSearch(q) {
+            const seq = ++searchSeq;
+            try {
+                const res = await fetch('/anime/api/search_titles.php?q=' + encodeURIComponent(q));
+                const data = await res.json();
+                if (seq !== searchSeq) return;
+                if (!data.success) throw new Error(data.message || '검색 실패');
+                if (!data.animes || data.animes.length === 0) {
+                    showSearchStatus('검색 결과가 없습니다.');
+                    return;
+                }
+                let html = '';
+                for (const a of data.animes) html += searchCardHTML(a);
+                searchGrid.innerHTML = html;
+                searchStatus.classList.add('hidden');
+            } catch (err) {
+                if (seq !== searchSeq) return;
+                showSearchStatus('검색에 실패했습니다. 다시 시도하세요.');
+            }
+        }
+
+        function submitSearch() {
+            const q = searchInput.value.trim().slice(0, 100);
+            if (q === '') {
+                resetSearchState();
+                return;
+            }
+            if (trendingBox) trendingBox.classList.add('hidden');
+            showSearchStatus('검색 중...');
+            runSearch(q);
+        }
+
+        // 입력 내용에 맞춰 자동 높이 조절 (줄바꿈 허용)
+        function autogrow() {
+            searchInput.style.height = 'auto';
+            searchInput.style.height = searchInput.scrollHeight + 'px';
+        }
+
+        searchInput.addEventListener('input', () => {
+            autogrow();
+            if (searchClear) searchClear.classList.toggle('hidden', searchInput.value === '');
+            if (searchInput.value.trim() === '') resetSearchState();
+        });
+        searchInput.addEventListener('keydown', e => {
+            // Enter = 검색, Shift+Enter = 줄바꿈
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitSearch();
+            }
+        });
+        if (searchForm) searchForm.addEventListener('submit', e => {
+            e.preventDefault();
+            submitSearch();
+        });
+        if (searchClear) searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            autogrow();
+            searchClear.classList.add('hidden');
+            resetSearchState();
+            searchInput.focus();
+        });
+
+        if (trendingBox) {
+            trendingBox.addEventListener('click', e => {
+                const chip = e.target.closest('.trending-chip');
+                if (!chip) return;
+                searchInput.value = chip.dataset.query || chip.textContent;
+                autogrow();
+                if (searchClear) searchClear.classList.remove('hidden');
+                submitSearch();
+            });
+            fetch('/anime/api/trending_searches.php')
+                .then(res => res.json())
+                .then(data => {
+                    const items = (data.success && data.trending) || [];
+                    if (items.length === 0) return;
+                    let html = '<div class="trending-header">인기 검색어</div><ol class="trending-list">';
+                    items.forEach((t, i) => {
+                        html += '<li><button type="button" class="trending-chip' + (i < 3 ? ' top' : '') + '" data-query="' + esc(t) + '">'
+                            + '<span class="trending-rank">' + (i + 1) + '</span>'
+                            + '<span class="trending-title">' + esc(t) + '</span></button></li>';
+                    });
+                    trendingBox.innerHTML = html + '</ol>';
+                })
+                .catch(() => {});
+        }
+    }
+
     // Anime detail modal (iframe으로 anime.php embed 로드)
     // 열기/닫기는 히스토리에 영향을 주지 않음 (push/back 없음)
     const animeModal = document.getElementById('anime-modal');
