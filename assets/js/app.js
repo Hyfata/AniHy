@@ -1844,17 +1844,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderEpisodeProgressBars();
 
-    // Save watch progress on watch.php
-    window.initWatchProgress = function(player) {
+    // Save watch progress on watch.php (Hyfata Media Player용)
+    window.initWatchProgress = function(vp) {
         const playerEl = document.getElementById('anime-player');
-        if (!playerEl || typeof videojs === 'undefined') return;
+        if (!playerEl || !vp) return;
 
         const aid = playerEl.dataset.aid;
         const epNum = playerEl.dataset.ep;
         if (!aid || !epNum) return;
 
-        if (!player) player = videojs.getPlayer('anime-player');
-        if (!player) return;
+        const video = vp.video || playerEl.querySelector('video');
+        if (!video) return;
 
         let isSeeking = false;
         let lastSavedTime = 0;
@@ -1864,25 +1864,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saved && saved.currentTime > 0 && saved.duration > 0) {
             const progressRatio = saved.currentTime / saved.duration;
             if (progressRatio < 0.95) {
-                player.one('loadedmetadata', () => {
+                video.addEventListener('loadedmetadata', () => {
                     isSeeking = true;
-                    player.currentTime(saved.currentTime);
-                });
+                    if (typeof vp.seekTo === 'function') {
+                        vp.seekTo(saved.currentTime);
+                    } else {
+                        try { video.currentTime = saved.currentTime; } catch (e) {}
+                    }
+                    isSeeking = false;
+                }, { once: true });
             }
         }
 
-        player.on('seeking', () => {
+        video.addEventListener('seeking', () => {
             isSeeking = true;
         });
 
-        player.on('seeked', () => {
+        video.addEventListener('seeked', () => {
             isSeeking = false;
         });
 
-        player.on('timeupdate', () => {
+        video.addEventListener('timeupdate', () => {
             if (isSeeking) return;
-            const currentTime = player.currentTime();
-            const duration = player.duration();
+            const currentTime = video.currentTime;
+            const duration = video.duration;
             const now = Date.now();
             if (Math.abs(currentTime - lastSavedTime) >= 5 || now - lastSaveAt >= 5000) {
                 saveWatchProgress(aid, epNum, currentTime, duration);
@@ -1891,10 +1896,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        player.on('ended', () => {
-            const duration = player.duration();
+        // 끝까지 재생 시 자동 다음화 이동 (토글)
+        const AUTO_NEXT_KEY = 'anihy_auto_next';
+        let autoNextEnabled = true;
+        try {
+            autoNextEnabled = localStorage.getItem(AUTO_NEXT_KEY) !== '0';
+        } catch (e) {
+            // localStorage unavailable
+        }
+
+        const autoNextBtn = document.getElementById('auto-next-btn');
+        function updateAutoNextButton() {
+            if (!autoNextBtn) return;
+            autoNextBtn.textContent = autoNextEnabled
+                ? '자동 다음화: 켜짐'
+                : '자동 다음화: 꺼짐';
+            autoNextBtn.classList.toggle('active', autoNextEnabled);
+        }
+
+        if (autoNextBtn) {
+            autoNextBtn.addEventListener('click', () => {
+                autoNextEnabled = !autoNextEnabled;
+                updateAutoNextButton();
+                try {
+                    localStorage.setItem(AUTO_NEXT_KEY, autoNextEnabled ? '1' : '0');
+                } catch (e) {
+                    // ignore
+                }
+            });
+        }
+        updateAutoNextButton();
+
+        video.addEventListener('ended', () => {
+            const duration = video.duration;
             saveWatchProgress(aid, epNum, duration, duration);
 
+            if (!autoNextEnabled) return;
             const nextEp = playerEl.dataset.nextEp;
             if (nextEp) {
                 let url = '/anime/watch.php?aid=' + encodeURIComponent(aid) + '&ep=' + encodeURIComponent(nextEp);
@@ -1907,158 +1944,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = url;
             }
         });
-
-        initChapterSkip(player);
     };
-
-    function initChapterSkip(player) {
-        if (!player || typeof videojs === 'undefined') return;
-
-        const skipBtn = document.getElementById('skip-intro-ending-btn');
-        if (!skipBtn) return;
-
-        const STORAGE_KEY = 'anihy_skip_intro_ending';
-        let autoSkipEnabled = false;
-        try {
-            autoSkipEnabled = localStorage.getItem(STORAGE_KEY) === '1';
-        } catch (e) {
-            // localStorage unavailable
-        }
-
-        const skippedCueStarts = new Set();
-        let chaptersTrack = null;
-
-        function normalizeChapterTitle(text) {
-            return (text || '').toLowerCase().trim();
-        }
-
-        function isIntroCue(title) {
-            return title === 'intro' || title === 'opening';
-        }
-
-        function isCreditsCue(title) {
-            return title === 'credits' || title === 'ending';
-        }
-
-        function getChaptersTrack() {
-            const tracks = player.textTracks ? player.textTracks() : [];
-            for (let i = 0; i < tracks.length; i++) {
-                if (tracks[i].kind === 'chapters') return tracks[i];
-            }
-            return null;
-        }
-
-        function waitForChaptersTrack(callback) {
-            const track = getChaptersTrack();
-            if (track) {
-                callback(track);
-                return;
-            }
-            const tracks = player.textTracks();
-            function onAddTrack() {
-                const t = getChaptersTrack();
-                if (t) {
-                    tracks.removeEventListener('addtrack', onAddTrack);
-                    callback(t);
-                }
-            }
-            tracks.addEventListener('addtrack', onAddTrack);
-        }
-
-        function waitForCues(track, callback) {
-            if (track.cues && track.cues.length > 0) {
-                callback(track);
-                return;
-            }
-            track.mode = 'hidden';
-            function onLoad() {
-                track.removeEventListener('load', onLoad);
-                callback(track);
-            }
-            track.addEventListener('load', onLoad);
-        }
-
-        function updateButton() {
-            skipBtn.textContent = autoSkipEnabled
-                ? '오프닝/엔딩 스킵: 켜짐'
-                : '오프닝/엔딩 스킵: 꺼짐';
-            skipBtn.classList.toggle('active', autoSkipEnabled);
-        }
-
-        skipBtn.addEventListener('click', () => {
-            autoSkipEnabled = !autoSkipEnabled;
-            updateButton();
-            try {
-                localStorage.setItem(STORAGE_KEY, autoSkipEnabled ? '1' : '0');
-            } catch (e) {
-                // ignore
-            }
-        });
-
-        updateButton();
-
-        waitForChaptersTrack((track) => {
-            chaptersTrack = track;
-            waitForCues(track, () => {
-                // 챕터 데이터 준비 완료; 별도 UI 변화 없음
-            });
-        });
-
-        player.on('timeupdate', () => {
-            if (!autoSkipEnabled || !chaptersTrack || !chaptersTrack.cues) return;
-
-            const activeCues = chaptersTrack.activeCues;
-            const cue = activeCues && activeCues.length > 0 ? activeCues[0] : null;
-            if (!cue || !cue.text) return;
-
-            const title = normalizeChapterTitle(cue.text);
-            const isIntro = isIntroCue(title);
-            const isCredits = isCreditsCue(title);
-            if (!isIntro && !isCredits) return;
-
-            if (skippedCueStarts.has(cue.startTime)) return;
-
-            let targetTime = null;
-            const cues = chaptersTrack.cues;
-            if (isIntro) {
-                // OP 다음 챕터가 episode라는 보장이 없음 (Part A, Opening 등)
-                // → intro/opening 구간이 끝나는 지점(다음 일반 챕터 시작)으로 이동
-                for (let i = 0; i < cues.length; i++) {
-                    const other = cues[i];
-                    if (other.startTime > cue.startTime && !isIntroCue(normalizeChapterTitle(other.text))) {
-                        targetTime = other.startTime;
-                        break;
-                    }
-                }
-                if (targetTime === null && cue.endTime > cue.startTime) {
-                    targetTime = cue.endTime;
-                }
-            } else {
-                // ED 다음 챕터가 episode라는 보장이 없음 (Preview, Epilogue 등)
-                // → credits/ending 구간이 끝나는 지점(다음 일반 챕터 시작)으로 이동.
-                // 뒤에 챕터가 없으면 영상 끝으로 이동해 다음 화로 넘어감
-                for (let i = 0; i < cues.length; i++) {
-                    const other = cues[i];
-                    if (other.startTime > cue.startTime && !isCreditsCue(normalizeChapterTitle(other.text))) {
-                        targetTime = other.startTime;
-                        break;
-                    }
-                }
-                if (targetTime === null) {
-                    const duration = player.duration();
-                    if (duration && isFinite(duration)) {
-                        targetTime = duration;
-                    }
-                }
-            }
-
-            if (targetTime !== null) {
-                player.currentTime(targetTime);
-            }
-
-            skippedCueStarts.add(cue.startTime);
-        });
-    }
 
     // quarter.php 헤더: 항상 fixed로 고정해 iOS overscroll에서도 안 떨어지게 함.
     // 위치 지정은 로드/리사이즈 때만 하고 스크롤 중에는 classes만 토글 (동기화 어긋남 원천 차단)

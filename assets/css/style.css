@@ -846,7 +846,7 @@ img {
     width: 100%;
 }
 
-.player-wrapper .video-js {
+.player-wrapper #anime-player {
     position: relative;
     width: 100%;
 }
@@ -1290,13 +1290,13 @@ body.modal-open {
     margin-top: 12px;
 }
 
-#skip-intro-ending-btn.active {
+#auto-next-btn.active {
     background: var(--primary);
     color: #fff;
     border-color: var(--primary);
 }
 
-#skip-intro-ending-btn.active:hover {
+#auto-next-btn.active:hover {
     background: var(--primary-hover);
 }
 
@@ -1576,56 +1576,7 @@ body.modal-open {
     color: var(--danger);
 }
 
-/* Video.js custom - keep default layout, only color/shape */
-.video-js {
-    width: 100%;
-    font-size: 14px;
-}
-
-.vjs-theme-anime {
-    --vjs-primary: #7c5cff;
-}
-
-.vjs-theme-anime .vjs-control-bar,
-.vjs-theme-anime .vjs-big-play-button,
-.vjs-theme-anime .vjs-menu-content {
-    background-color: rgba(11, 12, 15, 0.88);
-}
-
-.vjs-theme-anime .vjs-big-play-button {
-    width: 68px;
-    height: 68px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    background-color: rgba(124, 92, 255, 0.25);
-    line-height: 64px;
-    font-size: 32px;
-}
-
-.vjs-theme-anime .vjs-big-play-button:hover {
-    background-color: rgba(124, 92, 255, 0.45);
-}
-
-.vjs-theme-anime .vjs-play-progress,
-.vjs-theme-anime .vjs-volume-level {
-    background-color: var(--vjs-primary);
-}
-
-.vjs-theme-anime .vjs-menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.vjs-theme-anime .vjs-menu-item.vjs-selected {
-    background-color: rgba(124, 92, 255, 0.25);
-    color: #fff;
-}
-
-/* Hide volume panel on mobile */
-@media (max-width: 768px) {
-    .vjs-theme-anime .vjs-volume-panel {
-        display: none;
-    }
-}
+/* Hyfata Media Player는 assets/player/video-player.css에서 자체 스타일 제공 */
 
 /* Login */
 .login-box {

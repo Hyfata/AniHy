@@ -72,7 +72,7 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($anime['title']) ?> <?= htmlspecialchars($epNum) ?>화 - AniHy</title>
-    <link href="https://vjs.zencdn.net/8.10.0/video-js.css?v=2" rel="stylesheet">
+    <link rel="stylesheet" href="<?= assetUrl('player/video-player.css') ?>">
     <link rel="stylesheet" href="<?= assetUrl('css/style.css') ?>">
 </head>
 <body>
@@ -93,25 +93,13 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
         <div class="watch-layout">
             <div class="watch-main">
                 <div class="player-wrapper" id="player-wrapper">
-                    <video
+                    <div
                         id="anime-player"
-                        class="video-js vjs-theme-anime vjs-big-play-centered"
-                        controls
-                        preload="auto"
-                        playsinline
                         data-aid="<?= $aid ?>"
                         data-ep="<?= htmlspecialchars($epNum) ?>"
                         data-from="<?= htmlspecialchars($validFrom) ?>"
                         data-ly="<?= $lyParam !== '' ? (int)$ly : '' ?>"
-                        data-next-ep="<?= $nextEp !== null ? htmlspecialchars($nextEp) : '' ?>">
-                        <source src="<?= $videoUrl ?>" type="video/mp4">
-                        <?php if ($hasChapterVtt): ?>
-                            <track kind="chapters" src="<?= htmlspecialchars(chapterVttUrl($aid, $safeEp)) ?>" srclang="ko" label="챕터" default>
-                        <?php endif; ?>
-                        <p class="vjs-no-js">
-                            JavaScript를 활성화하거나 HTML5 video를 지원하는 브라우저를 사용하세요.
-                        </p>
-                    </video>
+                        data-next-ep="<?= $nextEp !== null ? htmlspecialchars($nextEp) : '' ?>"></div>
                 </div>
 
                 <div class="watch-info">
@@ -122,7 +110,7 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
                         </div>
                     </div>
                     <div class="watch-actions">
-                        <button type="button" id="skip-intro-ending-btn" class="btn btn-sm btn-secondary">오프닝/엔딩 스킵: 꺼짐</button>
+                        <button type="button" id="auto-next-btn" class="btn btn-sm btn-secondary">자동 다음화: 켜짐</button>
                         <?php if ($hasEnSubtitle): ?>
                             <a href="/anime/subtitles/<?= $aid ?>/<?= rawurlencode($epNum) ?>_en.ass" download class="btn btn-sm">영어 자막 다운로드</a>
                         <?php endif; ?>
@@ -152,20 +140,17 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
         <?php include __DIR__ . '/inc/settings_float.php'; ?>
     <?php endif; ?>
 
-    <script src="https://vjs.zencdn.net/8.10.0/video.min.js?v=2"></script>
-    <script src="<?= assetUrl('js/videojs-ko.js') ?>"></script>
+    <script src="<?= assetUrl('player/video-player.js') ?>"></script>
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            window.animePlayer = videojs('anime-player', {
-                language: 'ko',
-                fluid: true,
-                responsive: true,
-                playbackRates: [0.5, 1, 1.25, 1.5, 2],
-                userActions: {
-                    doubleClick: false
-                }
+            // README 빠른 시작: new VideoPlayer('#player', { src, chaptersUrl })
+            // 오프닝/엔딩 스킵은 플레이어 내장(스킵 버튼 + 자동 스킵 설정) 사용
+            window.animePlayer = new VideoPlayer('#anime-player', {
+                src: <?= json_encode($videoUrl, JSON_UNESCAPED_SLASHES) ?>,
+                <?= $hasChapterVtt ? ("chaptersUrl: " . json_encode(chapterVttUrl($aid, $safeEp), JSON_UNESCAPED_SLASHES) . ",\n                ") : '' ?>lang: 'ko',
+                preload: 'auto'
             });
             if (typeof window.initWatchProgress === 'function') {
                 window.initWatchProgress(window.animePlayer);
