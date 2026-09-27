@@ -1,0 +1,3 @@
+[submodule "assets/player"]
+	path = assets/player
+	url = https://github.com/Hyfata/Hyfata-Media-Player-JS.git
