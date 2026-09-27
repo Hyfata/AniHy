@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetSearchState();
                 return;
             }
-            if (trendingBox) trendingBox.classList.add('hidden');
+            if (trendingBox && !window.matchMedia('(min-width: 1024px)').matches) trendingBox.classList.add('hidden');
             showSearchStatus('검색 중...');
             runSearch(q);
         }

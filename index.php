@@ -76,15 +76,17 @@ if ($tab === 'quarter') {
             <div class="page-header">
                 <h1 class="page-title">검색</h1>
             </div>
-            <form class="search-box" role="search" id="search-form">
-                <textarea id="search-input" rows="1" placeholder="제목으로 검색" maxlength="100" autocomplete="off" enterkeyhint="search"></textarea>
-                <button type="button" id="search-clear" class="search-clear hidden" aria-label="검색어 지우기">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                </button>
-            </form>
-            <div id="trending-searches" class="trending-searches"></div>
-            <div id="search-status" class="empty-state">검색어를 입력하세요.</div>
-            <div class="card-grid" id="search-card-grid"></div>
+            <div class="search-layout">
+                <form class="search-box" role="search" id="search-form">
+                    <textarea id="search-input" rows="1" placeholder="제목으로 검색" maxlength="100" autocomplete="off" enterkeyhint="search"></textarea>
+                    <button type="button" id="search-clear" class="search-clear hidden" aria-label="검색어 지우기">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </form>
+                <aside id="trending-searches" class="trending-searches"></aside>
+                <div id="search-status" class="empty-state">검색어를 입력하세요.</div>
+                <div class="card-grid" id="search-card-grid"></div>
+            </div>
         <?php elseif ($tab === 'quarter'): ?>
             <?php
             $archiveYears = array_keys($quarterGroups);
