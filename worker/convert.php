@@ -305,11 +305,12 @@ if (is_numeric($durationOutput) && (float)$durationOutput > 0) {
 // Select audio stream: prefer Japanese audio, fallback to first
 $audioStreamIndex = 0;
 $audioProbeCmd = sprintf(
-    'ffprobe -v error -select_streams a -show_entries stream=index:stream_tags=language -of json %s 2>&1',
+    'ffprobe -v error -select_streams a -show_entries stream=index,codec_name:stream_tags=language -of json %s 2>&1',
     escapeshellarg($mkvPath)
 );
 $audioProbeOutput = shellExecLogged($audioProbeCmd);
 $audioProbe = json_decode($audioProbeOutput, true);
+$audioCodec = '';
 if (is_array($audioProbe) && !empty($audioProbe['streams']) && is_array($audioProbe['streams'])) {
     foreach (array_values($audioProbe['streams']) as $i => $stream) {
         $lang = strtolower($stream['tags']['language'] ?? '');
@@ -318,9 +319,17 @@ if (is_array($audioProbe) && !empty($audioProbe['streams']) && is_array($audioPr
             break;
         }
     }
-    logMsg("Audio stream selected: 0:a:{$audioStreamIndex} (language: " . strtolower($audioProbe['streams'][$audioStreamIndex]['tags']['language'] ?? 'unknown') . ")");
+    $audioCodec = strtolower(trim((string)($audioProbe['streams'][$audioStreamIndex]['codec_name'] ?? '')));
+    logMsg("Audio stream selected: 0:a:{$audioStreamIndex} (language: " . strtolower($audioProbe['streams'][$audioStreamIndex]['tags']['language'] ?? 'unknown') . ", codec: " . ($audioCodec !== '' ? $audioCodec : 'unknown') . ")");
 } else {
     logMsg("WARNING: audio probe failed, falling back to first audio stream (0:a:0)");
+}
+
+// Non-AAC audio (or unknown) is transcoded to AAC 192k for browser compatibility
+$audioArgs = ['-c:a', 'copy'];
+if ($audioCodec !== 'aac') {
+    $audioArgs = ['-c:a', 'aac', '-b:a', '192k'];
+    logMsg("Audio codec is not AAC, transcoding to AAC 192k");
 }
 
 // Encode / burn-in
@@ -344,7 +353,7 @@ if ($hasSubtitle) {
         '-map', '0:v:0',
         '-map', '0:a:' . $audioStreamIndex,
         '-vf', $encArgs['vf'],
-        '-c:a', 'copy',
+    ], $audioArgs, [
         '-sn',
     ], $encArgs['codec'], [
         '-movflags', '+faststart',
@@ -367,7 +376,7 @@ if ($hasSubtitle) {
         '-map', '0:v:0',
         '-map', '0:a:' . $audioStreamIndex,
         '-c:v', 'copy',
-        '-c:a', 'copy',
+    ], $audioArgs, [
         '-sn',
         '-movflags', '+faststart',
         '-progress', 'pipe:2',
