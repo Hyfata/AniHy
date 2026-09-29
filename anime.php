@@ -55,6 +55,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
             <div class="nav-links">
                 <?php if (isAdmin()): ?>
                     <button class="btn btn-primary btn-sm" onclick="openModal('add-episode-modal')">에피소드 추가</button>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('bulk-add-modal')">일괄 추가</button>
                     <button class="btn btn-sm" onclick="openQueueModal()">대기열</button>
                 <?php else: ?>
                     <a href="/anime/admin/login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI'] ?? '/anime/') ?>">관리자 로그인</a>
@@ -148,7 +149,10 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
         <div class="page-header">
             <h2 class="page-title">에피소드</h2>
             <?php if ($embed && isAdmin()): ?>
-                <button class="btn btn-primary btn-sm" onclick="openModal('add-episode-modal')">에피소드 추가</button>
+                <div>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('add-episode-modal')">에피소드 추가</button>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('bulk-add-modal')">일괄 추가</button>
+                </div>
             <?php endif; ?>
         </div>
 
@@ -296,6 +300,107 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                         </div>
                         <h3 class="queue-anime-title" id="lookup-title">에피소드 조회</h3>
                         <div class="log-box" id="lookup-log-box"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-overlay" id="bulk-add-modal" data-anime-id="<?= $aid ?>">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>에피소드 일괄 추가</h2>
+                    <button class="modal-close" onclick="closeModal('bulk-add-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="queue-tabs">
+                        <button type="button" class="queue-tab active" id="bulk-tab-stream">스트리밍</button>
+                        <button type="button" class="queue-tab" id="bulk-tab-server">서버 파일</button>
+                        <button type="button" class="queue-tab" id="bulk-tab-upload">업로드</button>
+                    </div>
+
+                    <div id="bulk-panel-stream">
+                        <div class="form-group bulk-range-group">
+                            <label>회차 범위</label>
+                            <div class="bulk-range-inputs">
+                                <input type="number" id="bulk_stream_start" min="0" step="1" value="1">
+                                <span>~</span>
+                                <input type="number" id="bulk_stream_end" min="0" step="1" value="12">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bulk-panel-server" class="hidden">
+                        <div class="form-group">
+                            <button type="button" id="bulk-server-load-btn" class="btn btn-secondary" style="width:100%">서버 파일 선택</button>
+                        </div>
+                        <div id="bulk-server-toolbar" class="bulk-server-toolbar hidden">
+                            <button type="button" id="bulk-range-mode-btn" class="btn btn-sm">범위 선택</button>
+                            <span id="bulk-server-count">0개 선택됨</span>
+                        </div>
+                        <div id="bulk-server-list" class="server-file-list hidden"></div>
+                        <div class="form-group">
+                            <label for="bulk_server_subtitles">자막 파일들 (ass/smi, 선택, 이름순으로 영상과 매핑)</label>
+                            <input type="file" id="bulk_server_subtitles" accept="*" multiple>
+                        </div>
+                        <div id="bulk-server-sub-warning" class="bulk-warning hidden"></div>
+                    </div>
+
+                    <div id="bulk-panel-upload" class="hidden">
+                        <div class="form-group">
+                            <label for="bulk_videos">원본 영상 파일들 (이름순 정렬됨)</label>
+                            <input type="file" id="bulk_videos" accept="video/*" multiple>
+                        </div>
+                        <div class="form-group">
+                            <label for="bulk_subtitles">자막 파일들 (ass/smi, 선택, 이름순으로 영상과 매핑)</label>
+                            <input type="file" id="bulk_subtitles" accept="*" multiple>
+                        </div>
+                        <div id="bulk-sub-warning" class="bulk-warning hidden"></div>
+                    </div>
+
+                    <div class="form-group" id="bulk-start-group">
+                        <label for="bulk_start_number">시작 회차 번호</label>
+                        <input type="number" id="bulk_start_number" min="0" step="1" value="1">
+                    </div>
+
+                    <div class="form-group trim-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="bulk_trim_enabled">
+                            앞부분 자르기 (전체 적용)
+                        </label>
+                        <input type="number" id="bulk_trim_seconds" value="7.5" step="0.1" min="0" disabled>
+                    </div>
+
+                    <div class="form-group trim-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="bulk_sync_enabled">
+                            자막 싱크 조절 (초, 전체 적용)
+                        </label>
+                        <input type="number" id="bulk_subtitle_offset" value="0" step="any" disabled>
+                    </div>
+
+                    <button type="button" id="bulk-preview-btn" class="btn btn-secondary" style="width:100%">매핑 확인</button>
+
+                    <div id="bulk-mapping-view" class="hidden">
+                        <div id="bulk-mapping-list" class="bulk-mapping-list"></div>
+                        <button type="button" id="bulk-submit-btn" class="btn btn-primary" style="width:100%;margin-top:10px">추가</button>
+                        <div class="progress-text hidden" id="bulk-progress-text"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-overlay" id="bulk-info-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>파일 정보</h2>
+                    <button class="modal-close" onclick="closeModal('bulk-info-modal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="bulk-info-row">
+                        <div class="bulk-info-label">원본</div>
+                        <div class="bulk-info-value" id="bulk-info-source"></div>
+                    </div>
+                    <div class="bulk-info-row">
+                        <div class="bulk-info-label">자막</div>
+                        <div class="bulk-info-value" id="bulk-info-sub"></div>
                     </div>
                 </div>
             </div>

@@ -1700,6 +1700,97 @@ body.modal-open {
     background: var(--surface-light);
 }
 
+.server-file-item.selected {
+    background: rgba(99, 102, 241, 0.25);
+}
+
+.server-file-item.range-anchor {
+    outline: 2px solid var(--primary, #6366f1);
+    outline-offset: -2px;
+}
+
+.bulk-server-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.bulk-server-toolbar span {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+#bulk-range-mode-btn.active {
+    background: var(--primary, #6366f1);
+    color: #fff;
+}
+
+.bulk-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bulk-range-inputs input {
+    flex: 1;
+}
+
+.bulk-warning {
+    font-size: 0.82rem;
+    color: var(--danger, #ef4444);
+    margin-top: 6px;
+}
+
+.bulk-mapping-list {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.bulk-mapping-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+}
+
+.bulk-ep-input {
+    width: 56px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.bulk-row-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bulk-info-row {
+    margin-bottom: 12px;
+}
+
+.bulk-info-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.bulk-info-value {
+    font-size: 0.9rem;
+    color: var(--text);
+    word-break: break-all;
+}
+
 .server-file-name {
     font-size: 0.92rem;
     color: var(--text);

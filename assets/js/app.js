@@ -2057,4 +2057,312 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, { passive: true });
     }
+
+    // Bulk add episodes
+    const bulkModal = document.getElementById('bulk-add-modal');
+    if (bulkModal) {
+        const bulkAnimeId = bulkModal.dataset.animeId;
+        const bulkTabs = {
+            stream: document.getElementById('bulk-tab-stream'),
+            server: document.getElementById('bulk-tab-server'),
+            upload: document.getElementById('bulk-tab-upload')
+        };
+        const bulkPanels = {
+            stream: document.getElementById('bulk-panel-stream'),
+            server: document.getElementById('bulk-panel-server'),
+            upload: document.getElementById('bulk-panel-upload')
+        };
+        const bulkStartGroup = document.getElementById('bulk-start-group');
+        const bulkStartNumber = document.getElementById('bulk_start_number');
+        const bulkStreamStart = document.getElementById('bulk_stream_start');
+        const bulkStreamEnd = document.getElementById('bulk_stream_end');
+        const bulkVideosInput = document.getElementById('bulk_videos');
+        const bulkSubsInput = document.getElementById('bulk_subtitles');
+        const bulkSubWarning = document.getElementById('bulk-sub-warning');
+        const bulkServerSubsInput = document.getElementById('bulk_server_subtitles');
+        const bulkServerSubWarning = document.getElementById('bulk-server-sub-warning');
+        const bulkTrimEnabled = document.getElementById('bulk_trim_enabled');
+        const bulkTrimSeconds = document.getElementById('bulk_trim_seconds');
+        const bulkSyncEnabled = document.getElementById('bulk_sync_enabled');
+        const bulkSubtitleOffset = document.getElementById('bulk_subtitle_offset');
+        const bulkPreviewBtn = document.getElementById('bulk-preview-btn');
+        const bulkMappingView = document.getElementById('bulk-mapping-view');
+        const bulkMappingList = document.getElementById('bulk-mapping-list');
+        const bulkSubmitBtn = document.getElementById('bulk-submit-btn');
+        const bulkProgressText = document.getElementById('bulk-progress-text');
+        const bulkServerLoadBtn = document.getElementById('bulk-server-load-btn');
+        const bulkServerToolbar = document.getElementById('bulk-server-toolbar');
+        const bulkRangeModeBtn = document.getElementById('bulk-range-mode-btn');
+        const bulkServerCount = document.getElementById('bulk-server-count');
+        const bulkServerList = document.getElementById('bulk-server-list');
+
+        let bulkSource = 'stream';
+        let bulkServerFiles = [];
+        const bulkServerSelected = new Set();
+        let bulkServerLastIndex = null;
+        let bulkRangeMode = false;
+        let bulkRangeAnchor = null;
+        let bulkRows = [];
+
+        const nameSort = (a, b) => a.name.localeCompare(b.name, 'ko', { numeric: true });
+
+        function switchBulkSource(source) {
+            bulkSource = source;
+            Object.keys(bulkTabs).forEach(key => {
+                bulkTabs[key].classList.toggle('active', key === source);
+                bulkPanels[key].classList.toggle('hidden', key !== source);
+            });
+            bulkStartGroup.classList.toggle('hidden', source === 'stream');
+            bulkMappingView.classList.add('hidden');
+        }
+        Object.keys(bulkTabs).forEach(key => {
+            bulkTabs[key].addEventListener('click', () => switchBulkSource(key));
+        });
+
+        bulkTrimEnabled.addEventListener('change', () => {
+            bulkTrimSeconds.disabled = !bulkTrimEnabled.checked;
+        });
+        bulkSyncEnabled.addEventListener('change', () => {
+            bulkSubtitleOffset.disabled = !bulkSyncEnabled.checked;
+        });
+
+        function updateBulkServerCount() {
+            bulkServerCount.textContent = bulkServerSelected.size + '개 선택됨';
+            updateSubWarning(bulkServerSubWarning, bulkServerSelected.size, bulkServerSubsInput.files.length);
+        }
+
+        function setBulkServerRange(from, to, select) {
+            const [lo, hi] = from < to ? [from, to] : [to, from];
+            for (let i = lo; i <= hi; i++) {
+                if (select) bulkServerSelected.add(i);
+                else bulkServerSelected.delete(i);
+            }
+            bulkServerList.querySelectorAll('.server-file-item').forEach((el, i) => {
+                el.classList.toggle('selected', bulkServerSelected.has(i));
+            });
+            updateBulkServerCount();
+        }
+
+        function renderBulkServerList(files) {
+            bulkServerList.innerHTML = '';
+            bulkServerSelected.clear();
+            bulkServerLastIndex = null;
+            bulkRangeMode = false;
+            bulkRangeAnchor = null;
+            bulkRangeModeBtn.classList.remove('active');
+            updateBulkServerCount();
+            if (files.length === 0) {
+                bulkServerList.textContent = '사용 가능한 서버 파일이 없습니다.';
+                return;
+            }
+            files.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'server-file-item';
+                item.innerHTML = `<div class="server-file-name">${escapeHtml(file.name)}</div><div class="server-file-dir">${escapeHtml(file.relative_dir)}</div>`;
+                item.addEventListener('click', e => {
+                    if (bulkRangeMode) {
+                        if (bulkRangeAnchor === null) {
+                            bulkRangeAnchor = index;
+                            item.classList.add('range-anchor');
+                        } else {
+                            setBulkServerRange(bulkRangeAnchor, index, true);
+                            bulkRangeAnchor = null;
+                            bulkRangeMode = false;
+                            bulkRangeModeBtn.classList.remove('active');
+                            bulkServerList.querySelectorAll('.range-anchor').forEach(el => el.classList.remove('range-anchor'));
+                        }
+                    } else if (e.shiftKey && bulkServerLastIndex !== null) {
+                        setBulkServerRange(bulkServerLastIndex, index, !bulkServerSelected.has(index));
+                    } else {
+                        if (bulkServerSelected.has(index)) {
+                            bulkServerSelected.delete(index);
+                            item.classList.remove('selected');
+                        } else {
+                            bulkServerSelected.add(index);
+                            item.classList.add('selected');
+                        }
+                        updateBulkServerCount();
+                    }
+                    bulkServerLastIndex = index;
+                });
+                bulkServerList.appendChild(item);
+            });
+        }
+
+        bulkRangeModeBtn.addEventListener('click', () => {
+            bulkRangeMode = !bulkRangeMode;
+            bulkRangeAnchor = null;
+            bulkRangeModeBtn.classList.toggle('active', bulkRangeMode);
+            bulkServerList.querySelectorAll('.range-anchor').forEach(el => el.classList.remove('range-anchor'));
+        });
+
+        bulkServerLoadBtn.addEventListener('click', async () => {
+            const isHidden = bulkServerList.classList.contains('hidden');
+            if (!isHidden) {
+                bulkServerList.classList.add('hidden');
+                bulkServerToolbar.classList.add('hidden');
+                return;
+            }
+            bulkServerList.classList.remove('hidden');
+            bulkServerToolbar.classList.remove('hidden');
+            bulkServerList.textContent = '불러오는 중...';
+            try {
+                const res = await fetch('/anime/api/list_server_files.php');
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || '목록을 불러올 수 없습니다.');
+                bulkServerFiles = data.files || [];
+                renderBulkServerList(bulkServerFiles);
+            } catch (err) {
+                bulkServerList.textContent = '오류: ' + err.message;
+            }
+        });
+
+        function updateSubWarning(warnEl, videoCount, subCount) {
+            if (subCount > 0 && videoCount > 0 && subCount !== videoCount) {
+                warnEl.textContent = subCount > videoCount
+                    ? `자막이 영상보다 ${subCount - videoCount}개 많습니다. 뒤쪽 자막은 무시됩니다.`
+                    : `자막이 영상보다 ${videoCount - subCount}개 적습니다. 나머지 회차는 자막 없이 진행됩니다.`;
+                warnEl.classList.remove('hidden');
+            } else {
+                warnEl.classList.add('hidden');
+            }
+        }
+
+        bulkSubsInput.addEventListener('change', () => {
+            updateSubWarning(bulkSubWarning, bulkVideosInput.files.length, bulkSubsInput.files.length);
+        });
+
+        bulkServerSubsInput.addEventListener('change', () => {
+            updateSubWarning(bulkServerSubWarning, bulkServerSelected.size, bulkServerSubsInput.files.length);
+        });
+
+        function buildBulkRow(ep, title, sourceLabel, subLabel, payload) {
+            return { ep, title, sourceLabel, subLabel, payload };
+        }
+
+        bulkPreviewBtn.addEventListener('click', async () => {
+            bulkRows = [];
+            if (bulkSource === 'stream') {
+                const start = parseInt(bulkStreamStart.value, 10);
+                const end = parseInt(bulkStreamEnd.value, 10);
+                if (isNaN(start) || isNaN(end) || start > end || end - start > 100) {
+                    await modalAlert('회차 범위를 확인하세요. (시작 ≤ 끝, 최대 100개)');
+                    return;
+                }
+                for (let ep = start; ep <= end; ep++) {
+                    bulkRows.push(buildBulkRow(String(ep), '', '스트리밍 다운로드', null, { type: 'stream' }));
+                }
+            } else if (bulkSource === 'server') {
+                if (bulkServerSelected.size === 0) {
+                    await modalAlert('서버 파일을 선택하세요.');
+                    return;
+                }
+                let ep = parseInt(bulkStartNumber.value, 10);
+                if (isNaN(ep)) ep = 1;
+                const files = [...bulkServerSelected].sort((a, b) => a - b).map(i => bulkServerFiles[i]).sort((a, b) => a.path.localeCompare(b.path, 'ko', { numeric: true }));
+                const subs = [...bulkServerSubsInput.files].sort(nameSort);
+                files.forEach((file, i) => {
+                    const sub = subs[i] || null;
+                    bulkRows.push(buildBulkRow(String(ep++), '', file.name, sub ? sub.name : '없음', { type: 'server', path: file.path, sub }));
+                });
+            } else {
+                if (bulkVideosInput.files.length === 0) {
+                    await modalAlert('원본 영상 파일을 선택하세요.');
+                    return;
+                }
+                let ep = parseInt(bulkStartNumber.value, 10);
+                if (isNaN(ep)) ep = 1;
+                const videos = [...bulkVideosInput.files].sort(nameSort);
+                const subs = [...bulkSubsInput.files].sort(nameSort);
+                videos.forEach((file, i) => {
+                    const sub = subs[i] || null;
+                    bulkRows.push(buildBulkRow(String(ep++), '', file.name, sub ? sub.name : '없음', { type: 'upload', file, sub }));
+                });
+            }
+            renderBulkMapping();
+        });
+
+        function renderBulkMapping() {
+            bulkMappingList.innerHTML = '';
+            bulkRows.forEach((row, index) => {
+                const el = document.createElement('div');
+                el.className = 'bulk-mapping-row';
+                el.innerHTML = `
+                    <input type="text" class="bulk-ep-input" value="${escapeHtml(row.ep)}" title="회차 번호">
+                    <div class="bulk-row-info">
+                        <input type="text" class="bulk-title-input" placeholder="에피소드 제목 (선택)">
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-xs bulk-row-info-btn">정보</button>
+                    <button type="button" class="btn btn-danger btn-xs bulk-row-remove">삭제</button>
+                `;
+                el.querySelector('.bulk-row-info-btn').addEventListener('click', () => {
+                    document.getElementById('bulk-info-source').textContent = row.sourceLabel;
+                    document.getElementById('bulk-info-sub').textContent = row.subLabel || '없음 (내장 자막 추출/기존 자막 재사용)';
+                    openModal('bulk-info-modal');
+                });
+                el.querySelector('.bulk-row-remove').addEventListener('click', () => {
+                    bulkRows.splice(index, 1);
+                    renderBulkMapping();
+                });
+                bulkMappingList.appendChild(el);
+            });
+            bulkSubmitBtn.textContent = bulkRows.length + '개 에피소드 추가';
+            bulkSubmitBtn.disabled = bulkRows.length === 0;
+            bulkProgressText.classList.add('hidden');
+            bulkMappingView.classList.remove('hidden');
+        }
+
+        bulkSubmitBtn.addEventListener('click', async () => {
+            if (bulkRows.length === 0 || bulkSubmitBtn.disabled) return;
+            bulkSubmitBtn.disabled = true;
+            bulkProgressText.classList.remove('hidden');
+            const rowEls = [...bulkMappingList.querySelectorAll('.bulk-mapping-row')];
+            const failures = [];
+            let succeeded = 0;
+            for (let i = 0; i < bulkRows.length; i++) {
+                const row = bulkRows[i];
+                const epInput = rowEls[i] ? rowEls[i].querySelector('.bulk-ep-input') : null;
+                const titleInput = rowEls[i] ? rowEls[i].querySelector('.bulk-title-input') : null;
+                const ep = epInput ? epInput.value.trim() : row.ep;
+                const title = titleInput ? titleInput.value.trim() : '';
+                if (ep === '') {
+                    failures.push(`${row.sourceLabel}: 회차 번호가 비어 있습니다.`);
+                    continue;
+                }
+                bulkProgressText.textContent = `${i + 1}/${bulkRows.length} 추가 중... (${ep}화)`;
+                const fd = new FormData();
+                fd.append('anime_id', bulkAnimeId);
+                fd.append('episode_number', ep);
+                fd.append('episode_title', title);
+                if (bulkTrimEnabled.checked) fd.append('trim_seconds', bulkTrimSeconds.value);
+                if (bulkSyncEnabled.checked) fd.append('subtitle_offset', bulkSubtitleOffset.value);
+                if (row.payload.type === 'upload') {
+                    fd.append('source_video', row.payload.file);
+                    if (row.payload.sub) fd.append('subtitle', row.payload.sub);
+                } else if (row.payload.type === 'server') {
+                    fd.append('server_video_path', row.payload.path);
+                    if (row.payload.sub) fd.append('subtitle', row.payload.sub);
+                }
+                try {
+                    const res = await fetch('/anime/api/add_episode.php', { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (data.success) {
+                        succeeded++;
+                    } else {
+                        failures.push(`${ep}화: ${data.message || '추가 실패'}`);
+                    }
+                } catch (err) {
+                    failures.push(`${ep}화: ${err.message}`);
+                }
+            }
+            bulkProgressText.classList.add('hidden');
+            bulkSubmitBtn.disabled = false;
+            let msg = `${succeeded}개 에피소드를 대기열에 추가했습니다.`;
+            if (failures.length > 0) {
+                msg += '\n\n실패:\n' + failures.join('\n');
+            }
+            await modalAlert(msg);
+            if (succeeded > 0) window.location.reload();
+        });
+    }
 });
