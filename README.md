@@ -18,7 +18,7 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 | 백엔드 | PHP 8.4 |
 | 데이터베이스 | MariaDB / MySQL |
 | 웹 서버 | Apache |
-| 프론트엔드 | Vanilla JS, CSS3, Hyfata-Media-Player-JS (`assets/player` 서브모듈) |
+| 프론트엔드 | Vanilla JS, CSS3, [Hyfata-Media-Player-JS](https://github.com/Hyfata/Hyfata-Media-Player-JS) (`assets/player` 서브모듈) |
 | 미디어 처리 | ffmpeg 6.x, Bento4(mp4decrypt), 인코딩 백엔드 선택 가능(CPU libx264 / Intel VA-API / AMD VA-API / NVIDIA NVENC) |
 | 다운로더 | [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 5.7.4 (Crunchyroll/Hidive 지원) |
 | 자막 변환 | [smi2ass](https://github.com/najoan125/smi2ass) (SMI → ASS) |
@@ -178,7 +178,7 @@ cp configuration.php.inc configuration.php
 
 #### 일괄 추가
 
-**"일괄 추가"** 버튼으로 여러 회차를 한 번에 등록할 수 있습니다. 소스 탭(스트리밍 회차 범위 / 서버 파일 다중 선택 / 로컬 파일 다중 업로드)을 고륩면, 영상·자막을 이름순으로 정렬해 같은 순서끼리 자동 매핑합니다. 앞부분 자르기와 자막 싱크는 전체에 일괄 적용되고, 매핑 확인 단계에서 회차 번호 수정·에피소드 제목 개별 입력·행 삭제가 가능합니다. 서버 파일 다중 선택은 터치 2번으로 구간을 고르는 "범위 선택" 모드(모바일)와 Shift+클릭(데스크톱)을 지원합니다.
+**"일괄 추가"** 버튼으로 여러 회차를 한 번에 등록할 수 있습니다. 소스 탭(스트리밍 회차 범위 / 서버 파일 다중 선택 / 로컬 파일 다중 업로드)을 선택하면, 영상·자막을 이름순으로 정렬해 같은 순서끼리 자동 매핑합니다. 앞부분 자르기와 자막 싱크는 전체에 일괄 적용되고, 매핑 확인 단계에서 회차 번호 수정·에피소드 제목 개별 입력·행 삭제가 가능합니다. 서버 파일 다중 선택은 터치 2번으로 구간을 고르는 "범위 선택" 모드(모바일)와 Shift+클릭(데스크톱)을 지원합니다.
 
 ### 대기열
 
