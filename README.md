@@ -8,7 +8,8 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 - **진입점**: `/anime/` (Apache 서브 디렉터리로 동작)
 - 관리자 로그인 후 애니메이션과 에피소드를 등록·수정·삭제할 수 있습니다.
 - 에피소드 등록 시 Crunchyroll/Hidive 시즌 ID를 입력하면 백그라운드에서 다운로드 → 복호화 → 자막 처리 → MP4 변환이 진행됩니다.
-- 서버에 이미 있는 파일(예: Transmission 다운로드 폴터)을 선택해 변환할 수도 있습니다.
+- 로컬 파일 업로드나 서버에 이미 있는 파일(예: Transmission 다운로드 폴터)을 선택해 변환할 수도 있고, **일괄 추가**로 여러 회차를 한 번에 등록할 수도 있습니다.
+- 제목 검색(한글 로마자 근사 매칭 포함), 인기 검색어, 방영 분기별 필터를 제공합니다.
 
 ## 기술 스택
 
@@ -17,7 +18,7 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 | 백엔드 | PHP 8.4 |
 | 데이터베이스 | MariaDB / MySQL |
 | 웹 서버 | Apache |
-| 프론트엔드 | Vanilla JS, CSS3, Video.js 8.10.0 |
+| 프론트엔드 | Vanilla JS, CSS3, Hyfata-Media-Player-JS (`assets/player` 서브모듈) |
 | 미디어 처리 | ffmpeg 6.x, Bento4(mp4decrypt), 인코딩 백엔드 선택 가능(CPU libx264 / Intel VA-API / AMD VA-API / NVIDIA NVENC) |
 | 다운로더 | [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 5.7.4 (Crunchyroll/Hidive 지원) |
 | 자막 변환 | [smi2ass](https://github.com/najoan125/smi2ass) (SMI → ASS) |
@@ -30,19 +31,20 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 ├── admin/              # 관리자 로그인/로그아웃
 ├── animes/             # 최종 변환된 에피소드 MP4 저장소
 ├── api/                # AJAX API 엔드포인트
-├── assets/             # CSS, JS, 폰트
+├── assets/             # CSS, JS, 폰트, Hyfata-Media-Player-JS(서브모듈)
 ├── covers/             # 애니 커버 이미지
 ├── downloader/         # aniDL 바이너리 및 설정
 ├── inc/                # 공통 PHP 모듈
 ├── logs/               # worker 작업 로그
-├── sql/                # 데이터베이스 초기화 스크립트
-├── subtitles/          # 변환된 ASS 자막 저장소
+├── smi2ass/            # SMI → ASS 변환 바이너리
+├── sql/                # DB 초기화(init.sql) + migrations/
+├── subtitles/          # 변환된 ASS 자막 저장소 ({anime_id}/{회차}.ass)
 ├── worker/             # 백그라운드 변환 워커
 ├── anime.php           # 애니 상세 + 에피소드 목록
 ├── auth_gate.php       # 접근 인증번호 입력 페이지
-├── index.php           # 홈
-├── watch.php           # 에피소드 시청 페이지
-└── ass_ruby_fix.py     # ASS <ruby> 태그 변환 스크립트
+├── index.php           # 홈 (검색/분기 필터 포함)
+├── quarter.php         # 분기별 애니 목록
+└── watch.php           # 에피소드 시청 페이지
 ```
 
 ## 설치 및 실행
@@ -58,10 +60,11 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 
 ### 초기 설정
 
-1. 데이터베이스 생성:
+1. 데이터베이스 생성 및 마이그레이션 적용:
 
    ```bash
    mysql -u root -p < sql/init.sql
+   for f in sql/migrations/*.sql; do mysql -u root -p < "$f"; done
    ```
 
 2. `inc/db.php`의 DB 접속 정보를 실제 환경에 맞게 수정합니다.
@@ -152,7 +155,7 @@ cp configuration.php.inc configuration.php
 
 ### 에피소드 추가
 
-에피소드 원본은 세 가지 방식 중 하나로 지정할 수 있습니다.
+에피소드 원본은 세 가지 방식 중 하나로 지정할 수 있습니다. 모든 방식에서 자막 파일(ass/smi) 업로드, 앞부분 자르기(초), 자막 싱크 오프셋(초)을 함께 지정할 수 있고, 자막을 업로드하지 않으면 기존 변환본(`subtitles/{aid}/{회차}.ass`)을 재사용하거나 원본 영상의 내장 텍스트 자막을 추출해 burn-in 합니다.
 
 #### 1. 스트리밍 다운로드 (Crunchyroll / Hidive)
 
@@ -173,10 +176,23 @@ cp configuration.php.inc configuration.php
 
 > 경로는 `api/list_server_files.php`의 `$root` 상수로 고정되어 있으며, 필요 시 해당 파일에서 변경할 수 있습니다.
 
+#### 일괄 추가
+
+**"일괄 추가"** 버튼으로 여러 회차를 한 번에 등록할 수 있습니다. 소스 탭(스트리밍 회차 범위 / 서버 파일 다중 선택 / 로컬 파일 다중 업로드)을 고륩면, 영상·자막을 이름순으로 정렬해 같은 순서끼리 자동 매핑합니다. 앞부분 자르기와 자막 싱크는 전체에 일괄 적용되고, 매핑 확인 단계에서 회차 번호 수정·에피소드 제목 개별 입력·행 삭제가 가능합니다. 서버 파일 다중 선택은 터치 2번으로 구간을 고르는 "범위 선택" 모드(모바일)와 Shift+클릭(데스크톱)을 지원합니다.
+
+### 대기열
+
+- 상단 **"대기열"**에서 진행 중/완료 작업, 회차별 진행률, 작업 로그를 실시간으로 확인할 수 있습니다.
+- 로그 화면에는 해당 작업에 적용된 인코더, 원본 영상, 자막 오프셋, 앞부분 자르기 정보가 함께 표시됩니다.
+- 실패한 작업은 완료 탭에서 **"재시도"**할 수 있으며, 업로드했던 자막이나 이전에 변환된 자막을 그대로 다시 사용합니다.
+- 업로드 자막 임시파일과 변환 실패로 보존 중인 원본은 24시간이 지나면 자동으로 정리됩니다.
+
 ### 시청
 
-- `watch.php?aid={aid}&ep={ep}`에서 Video.js로 MP4 재생
-- 자막은 다운로드 단계에서 영상에 burn-in 되므로 별도 플레이어 자막 처리는 필요 없음
+- `watch.php?aid={aid}&ep={ep}`에서 Hyfata-Media-Player-JS로 MP4 재생
+- 자막은 변환 단계에서 영상에 burn-in 되므로 별도 플레이어 자막 처리는 필요 없음 (영어 자막이 있는 회차는 별도 ASS 파일 다운로드 제공)
+- 오프닝/엔딩 스킵은 플레이어 내장(스킵 버튼 + 자동 스킵 설정)으로, 챕터 정보는 WebVTT sidecar로 제공
+- 시청 위치는 브라우저별로 저장되어 이어보기가 되고, **자동 다음화** 토글로 다음 회차 자동 재생을 켜고 끌 수 있음
 
 ## 보안 주의사항
 
