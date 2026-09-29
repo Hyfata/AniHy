@@ -43,6 +43,7 @@
                         <div class="progress-fill progress-fill-encode" id="queue-log-encode-progress"></div>
                     </div>
                     <div class="queue-log-status" id="queue-log-status"></div>
+                    <div class="queue-log-meta" id="queue-log-meta"></div>
                 </div>
                 <div class="log-box" id="queue-log-box"></div>
             </div>

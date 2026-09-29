@@ -88,6 +88,9 @@ $serviceName = $isHidive ? 'Hidive' : 'Crunchyroll';
 
 logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId source=$sourceType service=$serviceName trim=$trimSeconds sync=$subtitleOffset encoder={$encCfg['encoder']} quality={$encCfg['quality']}");
 
+$stmt = $pdo->prepare("UPDATE jobs SET encoder = ? WHERE id = ?");
+$stmt->execute([$encCfg['encoder'], $jobId]);
+
 $mkvPath = "$videosDir/{$seasonId}_{$safeEpisode}.mkv";
 
 if (($sourceType === 'upload' || $sourceType === 'server') && !empty($sourceFile)) {

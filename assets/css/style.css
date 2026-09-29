@@ -1537,6 +1537,13 @@ body.modal-open {
     flex-wrap: wrap;
 }
 
+.queue-log-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    word-break: break-all;
+}
+
 .status-badge {
     display: inline-flex;
     align-items: center;

@@ -24,5 +24,10 @@ jsonResponse(true, [
     'job_id' => $job['id'],
     'status' => $job['status'],
     'progress' => (int)$job['progress'],
-    'message' => $job['message']
+    'message' => $job['message'],
+    'encoder' => $job['encoder'],
+    'source_type' => $job['source_type'],
+    'source_name' => $job['source_name'],
+    'trim_seconds' => (float)$job['trim_seconds'],
+    'subtitle_offset' => (float)$job['subtitle_offset'],
 ]);

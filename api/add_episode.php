@@ -119,11 +119,11 @@ if ($hasSourceVideo) {
     if (!move_uploaded_file($_FILES['source_video']['tmp_name'], $dest)) {
         jsonResponse(false, [], '원본 영상 파일 저장 실패');
     }
-    $stmt = $pdo->prepare("UPDATE jobs SET source_type = 'upload', source_file = ? WHERE id = ?");
-    $stmt->execute([$sourceFile, $jobId]);
+    $stmt = $pdo->prepare("UPDATE jobs SET source_type = 'upload', source_file = ?, source_name = ? WHERE id = ?");
+    $stmt->execute([$sourceFile, $_FILES['source_video']['name'], $jobId]);
 } elseif ($hasServerVideo) {
-    $stmt = $pdo->prepare("UPDATE jobs SET source_type = 'server', source_file = ? WHERE id = ?");
-    $stmt->execute([$serverVideoPath, $jobId]);
+    $stmt = $pdo->prepare("UPDATE jobs SET source_type = 'server', source_file = ?, source_name = ? WHERE id = ?");
+    $stmt->execute([$serverVideoPath, basename($serverVideoPath), $jobId]);
 }
 
 // Trigger queue manager if not already running

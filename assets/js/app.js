@@ -1251,6 +1251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const queueCompletedPanel = document.getElementById('queue-completed-panel');
     const queueCompletedList = document.getElementById('queue-completed-list');
     const queueCompletedEmpty = document.getElementById('queue-completed-empty');
+    const queueLogMeta = document.getElementById('queue-log-meta');
 
     let queueGroups = [];
     let queueCompleted = [];
@@ -1483,6 +1484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         queueLogTitle.textContent = (title || selectedGroup?.title || '') + ' · ' + episode.episode_number + '화';
         queueLogBox.textContent = '';
         queueLogOffset = 0;
+        queueLogMeta.textContent = '';
         updateLogProgress(episode.progress, episode.status, episode.message);
 
         clearInterval(queueLogInterval);
@@ -1496,12 +1498,31 @@ document.addEventListener('DOMContentLoaded', () => {
             queueProgressInterval = setInterval(() => fetchJobProgress(episode.job_id), 3000);
         }
 
-        fetchLog(episode.job_id);
+        fetchLog(episode.job_id, true);
+        fetchJobProgress(episode.job_id);
         if (!done) {
             fetchEncodeProgress(episode.job_id);
         } else {
             queueLogEncodeProgress.style.width = (episode.status === 'completed' ? 100 : 0) + '%';
         }
+    }
+
+    function formatSeconds(sec) {
+        const n = parseFloat(sec) || 0;
+        return (n > 0 ? '+' + n : n) + 's';
+    }
+
+    function renderLogMeta(data) {
+        const parts = [];
+        parts.push('인코더: ' + (data.encoder || '-'));
+        let source;
+        if (data.source_type === 'upload') source = '업로드' + (data.source_name ? ' · ' + data.source_name : '');
+        else if (data.source_type === 'server') source = '서버 파일' + (data.source_name ? ' · ' + data.source_name : '');
+        else source = '스트리밍 다운로드';
+        parts.push('원본: ' + source);
+        parts.push('자막 오프셋: ' + (parseFloat(data.subtitle_offset) ? formatSeconds(data.subtitle_offset) : '없음'));
+        parts.push('앞부분 자르기: ' + (parseFloat(data.trim_seconds) ? formatSeconds(data.trim_seconds) : '없음'));
+        queueLogMeta.textContent = parts.join(' | ');
     }
 
     function updateLogProgress(progress, status, message) {
@@ -1510,13 +1531,16 @@ document.addEventListener('DOMContentLoaded', () => {
         queueLogStatus.innerHTML = `<span class="status-badge ${info.class}">${info.text}</span> ${escapeHtml(message || '')}`;
     }
 
-    async function fetchLog(jobId) {
+    async function fetchLog(jobId, forceScroll = false) {
         try {
             const res = await fetch('/anime/api/log.php?job_id=' + jobId + '&offset=' + queueLogOffset);
             const data = await res.json();
             if (data.success && data.content) {
+                const atBottom = queueLogBox.scrollHeight - queueLogBox.scrollTop - queueLogBox.clientHeight <= 40;
                 queueLogBox.textContent += data.content;
-                queueLogBox.scrollTop = queueLogBox.scrollHeight;
+                if (forceScroll || atBottom) {
+                    queueLogBox.scrollTop = queueLogBox.scrollHeight;
+                }
                 queueLogOffset = data.offset;
             }
         } catch (err) {
@@ -1542,6 +1566,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.success) {
                 updateLogProgress(data.progress, data.status, data.message);
+                renderLogMeta(data);
                 if (data.status === 'completed' || data.status === 'failed') {
                     clearInterval(queueLogInterval);
                     clearInterval(queueEncodeInterval);
