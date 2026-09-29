@@ -143,6 +143,8 @@ register_shutdown_function(static function () use ($lockFile) {
     releaseLock($lockFile);
 });
 
+cleanupTempSubtitles($pdo);
+
 $maxWorkers = loadEncodingConfig()['max_workers'];
 logQueue('Queue manager started (max_workers=' . $maxWorkers . ')');
 

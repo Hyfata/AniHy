@@ -90,6 +90,8 @@ if (isset($_FILES['subtitle']) && $_FILES['subtitle']['error'] === UPLOAD_ERR_OK
     }
 }
 
+cleanupTempSubtitles($pdo);
+
 // Create job record
 try {
     $stmt = $pdo->prepare(

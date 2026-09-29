@@ -7,7 +7,7 @@ function baseUrl(): string {
 }
 
 function assetUrl(string $path): string {
-    return '/anime/assets/' . ltrim($path, '/') . '?v=180';
+    return '/anime/assets/' . ltrim($path, '/') . '?v=181';
 }
 
 function coverUrl(string $filename): string {
@@ -67,6 +67,53 @@ function allowedSubtitleExt(string $ext): bool {
 
 function allowedVideoExt(string $ext): bool {
     return in_array(strtolower($ext), ['mkv', 'mp4', 'mov', 'avi', 'webm'], true);
+}
+
+// 자막 임시파일 정리 (스로틀: logs/sub_cleanup.stamp 기준 최대 24시간에 1회)
+// - sub_*: failed job 참조 + 업로드 24h 경과, 또는 참조 job 없는 고아 + 24h 경과 시 삭제
+// - failed/job_*: 보존된 원본도 24h 경과 시 삭제
+function cleanupTempSubtitles(PDO $pdo): void {
+    $baseDir = dirname(__DIR__);
+    $stampFile = "$baseDir/logs/sub_cleanup.stamp";
+    if (file_exists($stampFile) && time() - (int)trim((string)file_get_contents($stampFile)) < 86400) {
+        return;
+    }
+    file_put_contents($stampFile, (string)time());
+
+    $subtitlesDir = "$baseDir/subtitles";
+    $threshold = time() - 86400;
+
+    // 파일명 → 소유 job 맵
+    $refs = [];
+    foreach ($pdo->query("SELECT id, subtitle_file, status, UNIX_TIMESTAMP(created_at) AS created_ts FROM jobs WHERE subtitle_file IS NOT NULL") as $row) {
+        $refs[$row['subtitle_file']] = $row;
+    }
+
+    foreach (glob("$subtitlesDir/sub_*") ?: [] as $path) {
+        $name = basename($path);
+        $job = $refs[$name] ?? null;
+        if ($job) {
+            $done = in_array($job['status'], ['completed', 'failed'], true);
+            if (!$done || (int)$job['created_ts'] > $threshold) continue;
+            @unlink($path);
+            $pdo->prepare("UPDATE jobs SET subtitle_file = NULL WHERE id = ?")->execute([$job['id']]);
+        } else {
+            if (filectime($path) > $threshold) continue;
+            @unlink($path);
+        }
+    }
+
+    foreach (glob("$subtitlesDir/failed/job_*") ?: [] as $path) {
+        $ts = null;
+        if (preg_match('/^job_(\d+)_/', basename($path), $m)) {
+            $stmt = $pdo->prepare("SELECT UNIX_TIMESTAMP(created_at) FROM jobs WHERE id = ?");
+            $stmt->execute([(int)$m[1]]);
+            $ts = $stmt->fetchColumn() ?: null;
+        }
+        $ts = $ts !== null ? (int)$ts : (int)filemtime($path);
+        if ($ts > $threshold) continue;
+        @unlink($path);
+    }
 }
 
 // POST된 방영 년도/분기 배열을 검증·중복 제거·정렬해 [[year, quarter], ...]로 반환

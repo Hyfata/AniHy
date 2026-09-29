@@ -201,11 +201,13 @@ if ($subtitleFile && file_exists("$subtitlesDir/$subtitleFile")) {
         $sourceAssPath = $assPath;
         @unlink($subtitlePath);
     }
+} elseif (file_exists($assPath) && filesize($assPath) > 0) {
+    // 이전 시도에서 이미 변환된 ASS가 있으면 재사용 (재시도/재등록 시 덮어쓰지 않음)
+    logMsg("Reusing existing ASS subtitle: $assPath");
 } else {
     // 자막 자동 선택: 텍스트 자막(ASS 우선) 사용. PGS 같은 이미지 자막은
     // ASS로 변환 불가라 burn-in이 안 됨. 무조건 0:s:0이면 PGS가 첫 트랙인
     // 파일에서 변환 실패 → 무자막 인코딩되므로 텍스트 트랙을 찾아서 사용.
-    @unlink($assPath);
     $subProbeCmd = sprintf(
         'ffprobe -v error -select_streams s -show_entries stream=codec_name -of json %s 2>&1',
         escapeshellarg($mkvPath)

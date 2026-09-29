@@ -1315,12 +1315,22 @@ document.addEventListener('DOMContentLoaded', () => {
             card.innerHTML = `
                 <div class="queue-card-header">
                     <h4 class="queue-card-title">${escapeHtml(job.anime_title)} · ${job.episode_number}화</h4>
-                    <span class="status-badge ${info.class}">${info.text}</span>
+                    <div class="queue-card-actions">
+                        ${job.status === 'failed' ? `<button type="button" class="btn btn-primary btn-xs queue-retry-btn" data-job-id="${job.job_id}">재시도</button>` : ''}
+                        <span class="status-badge ${info.class}">${info.text}</span>
+                    </div>
                 </div>
                 <div class="queue-card-meta">${escapeHtml(job.updated_at || '')}</div>
                 <div class="queue-card-message">${escapeHtml(job.message || '')}</div>
             `;
             card.addEventListener('click', () => showLog(job, job.anime_title, true));
+            const retryBtn = card.querySelector('.queue-retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    retryJob(job.job_id);
+                });
+            }
             queueCompletedList.appendChild(card);
         });
     }
@@ -1435,6 +1445,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadQueue();
             } else {
                 await modalAlert(data.message || '중지 실패');
+            }
+        } catch (err) {
+            await modalAlert('오류: ' + err.message);
+        }
+    }
+
+    async function retryJob(jobId) {
+        if (!(await modalConfirm('이 작업을 재시도하시겠습니까?'))) return;
+        try {
+            const res = await fetch('/anime/api/retry_job.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'job_id=' + encodeURIComponent(jobId)
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadQueue();
+            } else {
+                await modalAlert(data.message || '재시도 실패');
             }
         } catch (err) {
             await modalAlert('오류: ' + err.message);
