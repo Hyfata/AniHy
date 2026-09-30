@@ -76,7 +76,7 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
 function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fromParam): string {
     ob_start();
     foreach ($episodes as $ep): ?>
-        <div class="episode-item <?= $ep['episode_number'] === $epNum ? 'active' : '' ?>"
+        <div class="episode-item <?= $ep['episode_number'] === $epNum ? 'active' : '' ?>" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number']) ?>"
              onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?><?= $fromParam ?>'">
             <div class="episode-thumb">
                 <img loading="lazy" src="<?= htmlspecialchars($ep['thumb_url']) ?>" alt="">
@@ -87,6 +87,9 @@ function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fro
                 <?php if (!empty($ep['duration_ms'])): ?>
                     <span class="episode-submeta"><?= formatPlaytime((int)$ep['duration_ms']) ?></span>
                 <?php endif; ?>
+            </div>
+            <div class="episode-progress-bar">
+                <div class="episode-progress-fill"></div>
             </div>
         </div>
     <?php endforeach;
