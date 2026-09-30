@@ -2,6 +2,7 @@
 require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/access_auth.php';
 require_once __DIR__ . '/inc/functions.php';
+require_once __DIR__ . '/inc/chapters.php';
 
 requireAccessAuth();
 
@@ -34,6 +35,8 @@ $episodes = $stmt->fetchAll();
 foreach ($episodes as &$ep) {
     $ep['has_file'] = !empty($ep['file_path']) && is_file(__DIR__ . '/' . $ep['file_path']) && filesize(__DIR__ . '/' . $ep['file_path']) > 0;
     $ep['file_size'] = $ep['has_file'] ? filesize(__DIR__ . '/' . $ep['file_path']) : 0;
+    $safeEp = sanitizeFilename($ep['episode_number']);
+    $ep['thumb_url'] = is_file(episodeThumbPath($aid, $safeEp)) ? episodeThumbUrl($aid, $safeEp) : coverUrl($anime['cover_image']);
 }
 unset($ep);
 $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
@@ -170,9 +173,15 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                         : 'location.href=' . json_encode($watchUrl);
                     ?>
                     <div class="episode-item" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number']) ?>" onclick="<?= htmlspecialchars($watchOnclick, ENT_QUOTES) ?>">
-                        <div class="episode-meta">
-                            <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
+                        <div class="episode-thumb">
+                            <img loading="lazy" src="<?= htmlspecialchars($ep['thumb_url']) ?>" alt="">
+                            <span class="episode-thumb-badge"><?= htmlspecialchars($ep['episode_number']) ?></span>
+                        </div>
+                        <div class="episode-text">
                             <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '화')) ?></span>
+                            <?php if (!empty($ep['duration_ms'])): ?>
+                                <span class="episode-submeta"><?= formatPlaytime((int)$ep['duration_ms']) ?></span>
+                            <?php endif; ?>
                         </div>
                         <div class="episode-actions">
                             <?php if ($ep['has_file']): ?>

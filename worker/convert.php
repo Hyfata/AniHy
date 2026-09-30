@@ -523,6 +523,23 @@ if (exportChaptersVtt($targetPath, $vttPath)) {
     logMsg("No chapters found, skipped VTT export");
 }
 
+// 회차 썸네일 추출 (best-effort): 전체 길이의 20% 지점, 480px 폭 JPEG
+$thumbPath = "$targetDir/" . episodeThumbFilename($safeEpisode);
+$thumbSeek = $durationMs > 0 ? max(1, (int)round($durationMs / 1000 * 0.2)) : 60;
+$thumbCmd = sprintf(
+    'ffmpeg -y -ss %d -i %s -frames:v 1 -vf scale=480:-2 -q:v 4 %s 2>&1',
+    $thumbSeek,
+    escapeshellarg($targetPath),
+    escapeshellarg($thumbPath)
+);
+shellExecLogged($thumbCmd);
+if (is_file($thumbPath) && filesize($thumbPath) > 0) {
+    logMsg("Thumbnail written: $thumbPath");
+} else {
+    @unlink($thumbPath);
+    logMsg("WARNING: thumbnail extraction failed");
+}
+
 // Cleanup
 @unlink($mkvPath);
 @unlink($outputPath);
@@ -541,11 +558,11 @@ $stmt->execute([$animeId, $safeEpisode]);
 $existing = $stmt->fetch();
 
 if ($existing) {
-    $stmt = $pdo->prepare("UPDATE episodes SET title = ?, file_path = ?, has_subtitle = ?, en_subtitle_file = ?, subtitle_file = ? WHERE id = ?");
-    $stmt->execute([$episodeTitle, $relativePath, $subFlag, $enSubtitleRelativePath, $subtitleRelativePath, $existing['id']]);
+    $stmt = $pdo->prepare("UPDATE episodes SET title = ?, file_path = ?, duration_ms = ?, has_subtitle = ?, en_subtitle_file = ?, subtitle_file = ? WHERE id = ?");
+    $stmt->execute([$episodeTitle, $relativePath, (int)$durationMs, $subFlag, $enSubtitleRelativePath, $subtitleRelativePath, $existing['id']]);
 } else {
-    $stmt = $pdo->prepare("INSERT INTO episodes (anime_id, episode_number, title, file_path, has_subtitle, en_subtitle_file, subtitle_file) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$animeId, $safeEpisode, $episodeTitle, $relativePath, $subFlag, $enSubtitleRelativePath, $subtitleRelativePath]);
+    $stmt = $pdo->prepare("INSERT INTO episodes (anime_id, episode_number, title, file_path, duration_ms, has_subtitle, en_subtitle_file, subtitle_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$animeId, $safeEpisode, $episodeTitle, $relativePath, (int)$durationMs, $subFlag, $enSubtitleRelativePath, $subtitleRelativePath]);
 }
 
 updateJob($pdo, $jobId, 'completed', 100, '완료');

@@ -17,6 +17,20 @@ function chapterVttUrl(int $animeId, string $safeEpisode): string {
     return '/anime/animes/' . $animeId . '/' . rawurlencode(chapterVttFilename($safeEpisode));
 }
 
+// 회차 썸네일: 인코딩 완료 시 convert.php가 생성하는 animes/{aid}/{ep}.jpg
+function episodeThumbFilename(string $safeEpisode): string {
+    return $safeEpisode . '.jpg';
+}
+
+function episodeThumbPath(int $animeId, string $safeEpisode, ?string $baseDir = null): string {
+    $baseDir ??= dirname(__DIR__);
+    return $baseDir . "/animes/$animeId/" . episodeThumbFilename($safeEpisode);
+}
+
+function episodeThumbUrl(int $animeId, string $safeEpisode): string {
+    return '/anime/animes/' . $animeId . '/' . rawurlencode(episodeThumbFilename($safeEpisode));
+}
+
 function formatVttTimestamp(float $seconds): string {
     $seconds = max(0, $seconds);
     $totalMs = (int)round($seconds * 1000);

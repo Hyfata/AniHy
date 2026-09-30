@@ -36,6 +36,12 @@ $stmt = $pdo->prepare("SELECT * FROM episodes WHERE anime_id = ? ORDER BY (episo
 $stmt->execute([$aid]);
 $episodes = $stmt->fetchAll();
 
+foreach ($episodes as &$ep) {
+    $safeEpName = sanitizeFilename($ep['episode_number']);
+    $ep['thumb_url'] = is_file(episodeThumbPath($aid, $safeEpName)) ? episodeThumbUrl($aid, $safeEpName) : coverUrl($anime['cover_image']);
+}
+unset($ep);
+
 $videoUrl = animeVideoUrl($aid, $epNum);
 // Chrome/Firefox는 MP4 내장 챕터를 노출하지 않으므로 VTT 사이드카 사용 (Safari는 네이티브 폴백)
 $safeEp = sanitizeFilename($epNum);
@@ -64,6 +70,26 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
     $backUrl .= (strpos($backUrl, '?') === false ? '?' : '&') . 'ly=' . $ly;
     $lyParam = '&ly=' . $ly;
     $fromParam .= $lyParam;
+}
+// 회차 목록 HTML (사이드바/모바일 모달 공용)
+function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fromParam): string {
+    ob_start();
+    foreach ($episodes as $ep): ?>
+        <div class="episode-item <?= $ep['episode_number'] === $epNum ? 'active' : '' ?>"
+             onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?><?= $fromParam ?>'">
+            <div class="episode-thumb">
+                <img loading="lazy" src="<?= htmlspecialchars($ep['thumb_url']) ?>" alt="">
+                <span class="episode-thumb-badge"><?= htmlspecialchars($ep['episode_number']) ?></span>
+            </div>
+            <div class="episode-text">
+                <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '화')) ?></span>
+                <?php if (!empty($ep['duration_ms'])): ?>
+                    <span class="episode-submeta"><?= formatPlaytime((int)$ep['duration_ms']) ?></span>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endforeach;
+    return ob_get_clean();
 }
 ?>
 <!DOCTYPE html>
@@ -110,6 +136,7 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
                         </div>
                     </div>
                     <div class="watch-actions">
+                        <button type="button" id="episode-list-open-btn" class="btn btn-sm btn-secondary">회차 목록</button>
                         <button type="button" id="auto-next-btn" class="btn btn-sm btn-secondary">자동 다음화: 켜짐</button>
                         <?php if ($hasEnSubtitle): ?>
                             <a href="/anime/subtitles/<?= $aid ?>/<?= rawurlencode($epNum) ?>_en.ass" download class="btn btn-sm">영어 자막 다운로드</a>
@@ -121,19 +148,25 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
             <aside class="sidebar">
                 <h3>회차 목록</h3>
                 <div class="episode-list" style="margin:0">
-                    <?php foreach ($episodes as $ep): ?>
-                        <div class="episode-item <?= $ep['episode_number'] === $epNum ? 'active' : '' ?>"
-                             onclick="location.href='/anime/watch.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?><?= $fromParam ?>'">
-                            <div class="episode-meta">
-                                <span class="episode-number"><?= htmlspecialchars($ep['episode_number']) ?></span>
-                                <span class="episode-title"><?= htmlspecialchars($ep['title'] ?: ($ep['episode_number'] . '화')) ?></span>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+                    <?= renderEpisodeList($episodes, $epNum, $aid, $fromParam) ?>
                 </div>
             </aside>
         </div>
     </main>
+
+    <div class="modal-overlay" id="episode-list-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>회차 목록</h2>
+                <button class="modal-close" onclick="closeModal('episode-list-modal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="episode-list" style="margin:0">
+                    <?= renderEpisodeList($episodes, $epNum, $aid, $fromParam) ?>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <?php if (isAdmin()): ?>
         <?php include __DIR__ . '/inc/queue_modal.php'; ?>
@@ -154,6 +187,23 @@ if ($validFrom !== '' && is_int($ly) && $ly > 0) {
             });
             if (typeof window.initWatchProgress === 'function') {
                 window.initWatchProgress(window.animePlayer);
+            }
+
+            // 회차 목록: 현재 회차가 상단에 오도록 자동 스크롤 (PC 사이드바 + 모바일 모달)
+            const scrollActiveEpToTop = (container) => {
+                if (!container) return;
+                const active = container.querySelector('.episode-item.active');
+                if (!active) return;
+                container.scrollTop = active.getBoundingClientRect().top
+                    - container.getBoundingClientRect().top + container.scrollTop - 8;
+            };
+            scrollActiveEpToTop(document.querySelector('.sidebar'));
+            const epListBtn = document.getElementById('episode-list-open-btn');
+            if (epListBtn) {
+                epListBtn.addEventListener('click', () => {
+                    openModal('episode-list-modal');
+                    requestAnimationFrame(() => scrollActiveEpToTop(document.querySelector('#episode-list-modal .modal-body')));
+                });
             }
         });
     </script>

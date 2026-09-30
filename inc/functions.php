@@ -7,7 +7,7 @@ function baseUrl(): string {
 }
 
 function assetUrl(string $path): string {
-    return '/anime/assets/' . ltrim($path, '/') . '?v=185';
+    return '/anime/assets/' . ltrim($path, '/') . '?v=190';
 }
 
 function coverUrl(string $filename): string {
@@ -55,6 +55,18 @@ function formatBytes(int|float $bytes): string {
         $i++;
     }
     return ($i === 0 ? (string)(int)$bytes : number_format($bytes, 1)) . ' ' . $units[$i];
+}
+
+// 영상 길이를 플레이어식으로 포맷 (23:40 / 1:02:15)
+function formatPlaytime(?int $ms): string {
+    if ($ms === null || $ms <= 0) {
+        return '';
+    }
+    $s = intdiv($ms, 1000);
+    $h = intdiv($s, 3600);
+    $m = intdiv($s % 3600, 60);
+    $sec = $s % 60;
+    return $h > 0 ? sprintf('%d:%02d:%02d', $h, $m, $sec) : sprintf('%d:%02d', $m, $sec);
 }
 
 function allowedImageExt(string $ext): bool {
