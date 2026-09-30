@@ -22,6 +22,7 @@ if ($subtitleOffset === false || $subtitleOffset === null) {
     $subtitleOffset = 0;
 }
 $subtitleOffset = round($subtitleOffset, 3);
+$isTest = !empty($_POST['is_test']) ? 1 : 0;
 if (!$animeId || $episodeNumber === '') {
     jsonResponse(false, [], '필수 항목을 입력하세요.');
 }
@@ -95,14 +96,14 @@ cleanupTempSubtitles($pdo);
 // Create job record
 try {
     $stmt = $pdo->prepare(
-        "INSERT INTO jobs (anime_id, episode_number, season_id, episode_title, subtitle_file, trim_seconds, subtitle_offset, source_type, source_file, status, progress, message)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'download', NULL, 'pending', 0, '대기 중')"
+        "INSERT INTO jobs (anime_id, episode_number, season_id, episode_title, subtitle_file, trim_seconds, subtitle_offset, is_test, source_type, source_file, status, progress, message)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'download', NULL, 'pending', 0, '대기 중')"
     );
-    $stmt->execute([$animeId, $episodeNumber, $seasonId, $episodeTitle, $subtitleFile, $trimSeconds, $subtitleOffset]);
+    $stmt->execute([$animeId, $episodeNumber, $seasonId, $episodeTitle, $subtitleFile, $trimSeconds, $subtitleOffset, $isTest]);
     $jobId = (int)$pdo->lastInsertId();
 } catch (PDOException $e) {
     $msg = $e->getMessage();
-    if (str_contains($msg, 'trim_seconds') || str_contains($msg, 'subtitle_offset') || str_contains($msg, 'source_type') || str_contains($msg, 'source_file') || $e->getCode() == '42S22') {
+    if (str_contains($msg, 'trim_seconds') || str_contains($msg, 'subtitle_offset') || str_contains($msg, 'is_test') || str_contains($msg, 'source_type') || str_contains($msg, 'source_file') || $e->getCode() == '42S22') {
         jsonResponse(false, [], 'DB 스키마가 최신이 아닙니다. sql/migrations/ 디렉터리의 마이그레이션을 실행하세요.');
     }
     jsonResponse(false, [], 'DB 오류: ' . $msg);

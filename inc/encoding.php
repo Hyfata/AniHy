@@ -43,27 +43,29 @@ function applyEncodingEnv(array $cfg): void {
 
 // 자막 burn-in용 ffmpeg 인자 조각 반환.
 // ['pre_input' => [...ffmpeg -i 앞...], 'input' => [mkv], 'vf' => '...', 'codec' => [...]]
-function ffmpegEncodeArgs(array $cfg, string $assPath): array {
-    $q = (string)$cfg['quality'];
+// $test=true: 자막 싱크 검증용 저품질·고속 인코딩 (360p 다운스케일, quality +12, 프리셋 최고속)
+function ffmpegEncodeArgs(array $cfg, string $assPath, bool $test = false): array {
+    $q = (string)($test ? min(51, (int)$cfg['quality'] + 12) : $cfg['quality']);
+    $scale = $test ? 'scale=-2:360,' : '';
     switch ($cfg['encoder']) {
         case 'software':
             return [
                 'pre_input' => [],
-                'vf' => 'ass=' . $assPath . ',format=yuv420p',
-                'codec' => ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', $q],
+                'vf' => $scale . 'ass=' . $assPath . ',format=yuv420p',
+                'codec' => ['-c:v', 'libx264', '-preset', $test ? 'ultrafast' : 'veryfast', '-crf', $q],
             ];
         case 'nvidia':
             return [
                 'pre_input' => [],
-                'vf' => 'ass=' . $assPath . ',format=yuv420p',
-                'codec' => ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', $q],
+                'vf' => $scale . 'ass=' . $assPath . ',format=yuv420p',
+                'codec' => ['-c:v', 'h264_nvenc', '-preset', $test ? 'p1' : 'p4', '-cq', $q],
             ];
         case 'radeon':
         case 'intel':
         default:
             return [
                 'pre_input' => ['-vaapi_device', $cfg['vaapi_device']],
-                'vf' => 'ass=' . $assPath . ',format=nv12,hwupload',
+                'vf' => $scale . 'ass=' . $assPath . ',format=nv12,hwupload',
                 'codec' => ['-c:v', 'h264_vaapi', '-qp', $q],
             ];
     }

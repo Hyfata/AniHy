@@ -78,6 +78,7 @@ if ($trimSeconds < 0) {
     $trimSeconds = 0;
 }
 $subtitleOffset = (float)($job['subtitle_offset'] ?? 0);
+$isTest = !empty($job['is_test']);
 
 $stmt = $pdo->prepare("SELECT is_hidive FROM animes WHERE id = ?");
 $stmt->execute([$animeId]);
@@ -86,10 +87,10 @@ $isHidive = !empty($anime['is_hidive']);
 $script = $isHidive ? './hidn.sh' : './crdn.sh';
 $serviceName = $isHidive ? 'Hidive' : 'Crunchyroll';
 
-logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId source=$sourceType service=$serviceName trim=$trimSeconds sync=$subtitleOffset encoder={$encCfg['encoder']} quality={$encCfg['quality']}");
+logMsg("Starting job $jobId: anime=$animeId ep=$episodeNumber season=$seasonId source=$sourceType service=$serviceName trim=$trimSeconds sync=$subtitleOffset encoder={$encCfg['encoder']} quality={$encCfg['quality']} test=" . ($isTest ? '1' : '0'));
 
 $stmt = $pdo->prepare("UPDATE jobs SET encoder = ? WHERE id = ?");
-$stmt->execute([$encCfg['encoder'], $jobId]);
+$stmt->execute([$encCfg['encoder'] . ($isTest ? ' (테스트)' : ''), $jobId]);
 
 $mkvPath = "$videosDir/{$seasonId}_{$safeEpisode}.mkv";
 
@@ -153,6 +154,44 @@ if ($subtitleFile && file_exists("$subtitlesDir/$subtitleFile")) {
         }
     }
     if ($subtitleExt === 'smi') {
+        // 전처리: <P Class=...> 없는 SYNC 블록에 최다 클래스 부여.
+        // smi2ass가 클래스 추출에 실패하면 "UNKNOWNCC"라는 가짜 제2 언어로 오인해
+        // 다중 언어 모드의 출력 경로 버그(NotADirectoryError)로 크래시한다.
+        $smiRaw = (string)file_get_contents($subtitlePath);
+        $smiEncoding = null;
+        if (str_starts_with($smiRaw, "\xFF\xFE")) {
+            $smiEncoding = 'UTF-16LE';
+        } elseif (str_starts_with($smiRaw, "\xFE\xFF")) {
+            $smiEncoding = 'UTF-16BE';
+        }
+        $smiText = $smiEncoding !== null
+            ? (string)iconv($smiEncoding, 'UTF-8', substr($smiRaw, 2))
+            : $smiRaw;
+        if (preg_match_all('/<P\s+Class\s*=\s*"?([A-Za-z0-9_]+)"?/i', $smiText, $cm) && $cm[1]) {
+            $classCounts = array_count_values(array_map('strtoupper', $cm[1]));
+            arsort($classCounts);
+            $smiDefaultClass = (string)array_key_first($classCounts);
+            $smiBlocks = preg_split('/(?=<SYNC\b)/i', $smiText);
+            $smiPatched = 0;
+            foreach ($smiBlocks as $bi => $block) {
+                if (!preg_match('/^<SYNC\b[^>]*>/i', $block, $sm)) {
+                    continue;
+                }
+                if (preg_match('/<P\s+Class\s*=/i', $block)) {
+                    continue;
+                }
+                $smiBlocks[$bi] = $sm[0] . '<P Class=' . $smiDefaultClass . '>' . substr($block, strlen($sm[0]));
+                $smiPatched++;
+            }
+            if ($smiPatched > 0) {
+                $smiFixed = implode('', $smiBlocks);
+                $smiOut = $smiEncoding !== null
+                    ? substr($smiRaw, 0, 2) . iconv('UTF-8', $smiEncoding, $smiFixed)
+                    : $smiFixed;
+                file_put_contents($subtitlePath, $smiOut);
+                logMsg("Patched $smiPatched SYNC block(s) without P Class as Class=$smiDefaultClass");
+            }
+        }
         $smiFilename = basename($subtitlePath);
         $smiBasename = pathinfo($subtitlePath, PATHINFO_FILENAME);
         $smi2assCmd = sprintf(
@@ -303,6 +342,10 @@ if (is_numeric($durationOutput) && (float)$durationOutput > 0) {
         $durationMs = max(0, $durationMs - $trimMs);
         logMsg("Adjusted duration (after {$trimSeconds}s trim): " . round($durationMs / 1000, 2) . "s");
     }
+    if ($isTest && $durationMs > 600000) {
+        $durationMs = 600000;
+        logMsg("Test mode: duration capped to 600s");
+    }
     updateJobDuration($pdo, $jobId, (int)$durationMs);
     logMsg("Duration: " . round($durationMs / 1000, 2) . "s");
 }
@@ -343,8 +386,11 @@ $encodeBaseProgress = 15;
 updateJob($pdo, $jobId, 'encoding', $encodeBaseProgress, $encodeMessage);
 $outputPath = "$videosDir/job_{$jobId}_result.mp4";
 
+// 테스트 모드: 앞 10분만 인코딩 (자막 싱크 검증용)
+$testLimitArgs = $isTest ? ['-t', '600'] : [];
+
 if ($hasSubtitle) {
-    $encArgs = ffmpegEncodeArgs($encCfg, $assPath);
+    $encArgs = ffmpegEncodeArgs($encCfg, $assPath, $isTest);
     $cmdParts = [
         'ffmpeg',
         '-y',
@@ -358,7 +404,7 @@ if ($hasSubtitle) {
         '-map', '0:v:0',
         '-map', '0:a:' . $audioStreamIndex,
         '-vf', $encArgs['vf'],
-    ], $audioArgs, [
+    ], $testLimitArgs, $audioArgs, [
         '-sn',
     ], $encArgs['codec'], [
         '-movflags', '+faststart',
@@ -381,7 +427,7 @@ if ($hasSubtitle) {
         '-map', '0:v:0',
         '-map', '0:a:' . $audioStreamIndex,
         '-c:v', 'copy',
-    ], $audioArgs, [
+    ], $testLimitArgs, $audioArgs, [
         '-sn',
         '-movflags', '+faststart',
         '-progress', 'pipe:2',

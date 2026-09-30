@@ -275,6 +275,13 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                             </div>
 
                             <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="is_test" name="is_test">
+                                    테스트 인코딩 (낮은 비트레이트·빠름, 자막 싱크 검증용)
+                                </label>
+                            </div>
+
+                            <div class="form-group">
                                 <button type="button" id="download-en-subtitle-btn" class="btn btn-secondary" style="width:100%">영어 자막 다운로드</button>
                             </div>
 
