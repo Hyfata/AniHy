@@ -152,12 +152,15 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
 
         <div class="page-header">
             <h2 class="page-title">에피소드</h2>
-            <?php if ($embed && isAdmin()): ?>
-                <div>
+            <div class="page-header-actions">
+                <?php if (!empty($episodes)): ?>
+                    <button type="button" id="episode-sort-btn" class="btn btn-sm">최신화부터</button>
+                <?php endif; ?>
+                <?php if ($embed && isAdmin()): ?>
                     <button class="btn btn-primary btn-sm" onclick="openModal('add-episode-modal')">에피소드 추가</button>
                     <button class="btn btn-primary btn-sm" onclick="openModal('bulk-add-modal')">일괄 추가</button>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php if (empty($episodes)): ?>
@@ -165,7 +168,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                 등록된 에피소드가 없습니다.
             </div>
         <?php else: ?>
-            <div class="episode-list">
+            <div class="episode-list" id="episode-list">
                 <?php foreach ($episodes as $ep): ?>
                     <?php
                     $watchUrl = '/anime/watch.php?aid=' . $aid . '&ep=' . rawurlencode($ep['episode_number']);
@@ -440,5 +443,27 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
 
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 회차 정렬: 기본 내림차순(최신화부터), localStorage에 저장된 설정으로 항상 복원
+            const list = document.getElementById('episode-list');
+            const btn = document.getElementById('episode-sort-btn');
+            if (!list || !btn) return;
+            const KEY = 'anihy_ep_sort';
+            const original = Array.from(list.children); // 서버 렌더(오름차순) 기준
+            const apply = (order) => {
+                const items = order === 'desc' ? [...original].reverse() : original;
+                items.forEach(el => list.appendChild(el));
+                btn.textContent = order === 'desc' ? '최신화부터' : '1화부터';
+            };
+            let order = localStorage.getItem(KEY) === 'asc' ? 'asc' : 'desc';
+            apply(order);
+            btn.addEventListener('click', () => {
+                order = order === 'desc' ? 'asc' : 'desc';
+                localStorage.setItem(KEY, order);
+                apply(order);
+            });
+        });
+    </script>
 </body>
 </html>
