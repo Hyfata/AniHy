@@ -523,9 +523,9 @@ if (exportChaptersVtt($targetPath, $vttPath)) {
     logMsg("No chapters found, skipped VTT export");
 }
 
-// 회차 썸네일 추출 (best-effort): 전체 길이의 20% 지점, 480px 폭 JPEG
+// 회차 썸네일 추출 (best-effort): 전체 길이의 50% 지점, 480px 폭 JPEG
 $thumbPath = "$targetDir/" . episodeThumbFilename($safeEpisode);
-$thumbSeek = $durationMs > 0 ? max(1, (int)round($durationMs / 1000 * 0.2)) : 60;
+$thumbSeek = $durationMs > 0 ? max(1, (int)round($durationMs / 1000 * 0.5)) : 60;
 $thumbCmd = sprintf(
     'ffmpeg -y -ss %d -i %s -frames:v 1 -vf scale=480:-2 -q:v 4 %s 2>&1',
     $thumbSeek,

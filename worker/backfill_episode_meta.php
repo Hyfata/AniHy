@@ -38,7 +38,7 @@ foreach ($rows as $ep) {
 
     $thumb = episodeThumbPath((int)$ep['anime_id'], $safeEpisode, $baseDir);
     if (!is_file($thumb) || filesize($thumb) === 0) {
-        $seek = $ep['duration_ms'] !== null ? max(1, (int)round(((int)$ep['duration_ms']) / 1000 * 0.2)) : 60;
+        $seek = $ep['duration_ms'] !== null ? max(1, (int)round(((int)$ep['duration_ms']) / 1000 * 0.5)) : 60;
         shell_exec(sprintf(
             'ffmpeg -y -ss %d -i %s -frames:v 1 -vf scale=480:-2 -q:v 4 %s 2>&1',
             $seek,
