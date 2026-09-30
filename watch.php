@@ -38,7 +38,8 @@ $episodes = $stmt->fetchAll();
 
 foreach ($episodes as &$ep) {
     $safeEpName = sanitizeFilename($ep['episode_number']);
-    $ep['thumb_url'] = is_file(episodeThumbPath($aid, $safeEpName)) ? episodeThumbUrl($aid, $safeEpName) : coverUrl($anime['cover_image']);
+    $thumbPath = episodeThumbPath($aid, $safeEpName);
+    $ep['thumb_url'] = is_file($thumbPath) ? episodeThumbUrl($aid, $safeEpName) . '?v=' . filemtime($thumbPath) : coverUrl($anime['cover_image']);
 }
 unset($ep);
 

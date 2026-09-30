@@ -36,7 +36,8 @@ foreach ($episodes as &$ep) {
     $ep['has_file'] = !empty($ep['file_path']) && is_file(__DIR__ . '/' . $ep['file_path']) && filesize(__DIR__ . '/' . $ep['file_path']) > 0;
     $ep['file_size'] = $ep['has_file'] ? filesize(__DIR__ . '/' . $ep['file_path']) : 0;
     $safeEp = sanitizeFilename($ep['episode_number']);
-    $ep['thumb_url'] = is_file(episodeThumbPath($aid, $safeEp)) ? episodeThumbUrl($aid, $safeEp) : coverUrl($anime['cover_image']);
+    $thumbPath = episodeThumbPath($aid, $safeEp);
+    $ep['thumb_url'] = is_file($thumbPath) ? episodeThumbUrl($aid, $safeEp) . '?v=' . filemtime($thumbPath) : coverUrl($anime['cover_image']);
 }
 unset($ep);
 $downloadableCount = count(array_filter($episodes, fn($e) => $e['has_file']));
