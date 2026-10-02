@@ -16,7 +16,15 @@
     var DL_DIR = 'downloads';
 
     function cap() {
-        return (typeof window.Capacitor !== 'undefined') ? window.Capacitor : null;
+        if (typeof window.Capacitor !== 'undefined') return window.Capacitor;
+        // Capacitor iOS는 JS 브릿지를 forMainFrameOnly로 주입 — 애니 모달 같은
+        // same-origin iframe 안에서는 window.Capacitor가 없으므로 부모 프레임 것을 사용
+        try {
+            if (window.parent && window.parent !== window && window.parent.Capacitor) {
+                return window.parent.Capacitor;
+            }
+        } catch (e) { /* cross-origin */ }
+        return null;
     }
 
     function isNative() {
@@ -239,7 +247,8 @@
             + '?aid=' + encodeURIComponent(aid)
             + '&ep=' + encodeURIComponent(ep)
             + '&back=' + encodeURIComponent(window.location.href);
-        window.location.href = url;
+        // iframe(애니 모달) 안에서 호출될 수 있으므로 최상위 프레임을 이동
+        (window.top || window).location.href = url;
     }
 
     // ---------- 다운로드 실행 ----------
