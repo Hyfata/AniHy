@@ -90,6 +90,9 @@ img {
     position: sticky;
     top: 0;
     z-index: 100;
+    /* 노치/상태바 등 OS 상단 영역까지 배경으로 덮어 콘텐츠가 위로 비치지 않게 함
+       (viewport-fit=cover + 풀블리드 WebView에서 필수) */
+    padding-top: env(safe-area-inset-top, 0px);
 }
 
 .navbar .container {
@@ -109,7 +112,7 @@ img {
         right: 0;
     }
     body:has(.navbar) {
-        padding-top: 64px;
+        padding-top: calc(64px + env(safe-area-inset-top, 0px));
     }
 }
 
