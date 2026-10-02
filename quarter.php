@@ -188,6 +188,12 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
                 <span>분기별 애니</span>
             </span>
         </a>
+        <a href="/anime/?tab=library" class="tab-item">
+            <span class="tab-pill">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                <span>보관함</span>
+            </span>
+        </a>
         <a href="/anime/?tab=search" class="tab-item">
             <span class="tab-pill">
                 <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
