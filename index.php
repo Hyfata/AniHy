@@ -9,7 +9,11 @@ requireAccessAuth();
 session_write_close();
 
 $tab = $_GET['tab'] ?? 'home';
-if (!in_array($tab, ['home', 'quarter', 'search'], true)) $tab = 'home';
+if (!in_array($tab, ['home', 'quarter', 'search', 'library'], true)) $tab = 'home';
+
+// 보관함 2뎁스 탭: bookmark(북마크) / history(시청기록) / downloads(다운로드, 네이티브 앱에서만)
+$librarySub = $_GET['sub'] ?? 'bookmark';
+if (!in_array($librarySub, ['bookmark', 'history', 'downloads'], true)) $librarySub = 'bookmark';
 
 // 분기 탭은 집계용으로 전체가 필요, 홈 탭은 무한스크롤이라 첫 페이지만 (LIMIT+1로 다음 페이지 존재 판별), 검색 탭은 DB 조회 없이 JS가 처리
 $homePageSize = 30;
@@ -165,6 +169,24 @@ if ($tab === 'quarter') {
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
+        <?php elseif ($tab === 'library'): ?>
+            <div class="page-header">
+                <h1 class="page-title">보관함</h1>
+            </div>
+            <div class="queue-tabs library-subtabs" role="tablist" aria-label="보관함">
+                <a href="/anime/?tab=library&sub=bookmark" class="queue-tab <?= $librarySub === 'bookmark' ? 'active' : '' ?>" role="tab">북마크</a>
+                <a href="/anime/?tab=library&sub=history" class="queue-tab <?= $librarySub === 'history' ? 'active' : '' ?>" role="tab">시청기록</a>
+                <a href="/anime/?tab=library&sub=downloads" class="queue-tab <?= $librarySub === 'downloads' ? 'active' : '' ?>" role="tab" data-library-sub="downloads">다운로드</a>
+            </div>
+            <?php if ($librarySub === 'downloads'): ?>
+                <div id="library-downloads" data-sub="downloads">
+                    <div class="empty-state" id="library-downloads-loading">불러오는 중...</div>
+                </div>
+            <?php elseif ($librarySub === 'history'): ?>
+                <div class="empty-state">시청기록 기능은 준비 중입니다.</div>
+            <?php else: ?>
+                <div class="empty-state">북마크 기능은 준비 중입니다.</div>
+            <?php endif; ?>
         <?php else: ?>
         <div class="page-header">
             <h1 class="page-title">전체 애니</h1>
@@ -226,6 +248,12 @@ if ($tab === 'quarter') {
             <span class="tab-pill">
                 <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/></svg>
                 <span>분기별 애니</span>
+            </span>
+        </a>
+        <a href="/anime/?tab=library" class="tab-item <?= $tab === 'library' ? 'active' : '' ?>">
+            <span class="tab-pill">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                <span>보관함</span>
             </span>
         </a>
         <a href="/anime/?tab=search" class="tab-item <?= $tab === 'search' ? 'active' : '' ?>">
@@ -325,5 +353,6 @@ if ($tab === 'quarter') {
     <?php include __DIR__ . '/inc/anime_modal.php'; ?>
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
+    <script src="<?= assetUrl('js/native-bridge.js') ?>"></script>
 </body>
 </html>

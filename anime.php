@@ -90,7 +90,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                         </a>
                     <?php endif; ?>
                     <?php if ($downloadableCount > 0): ?>
-                        <button type="button" class="poster-action" id="download-all-btn" data-aid="<?= $aid ?>" data-count="<?= $downloadableCount ?>" data-size="<?= htmlspecialchars(formatBytes($totalDownloadSize)) ?>">
+                        <button type="button" class="poster-action" id="download-all-btn" data-aid="<?= $aid ?>" data-anime="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>" data-count="<?= $downloadableCount ?>" data-size="<?= htmlspecialchars(formatBytes($totalDownloadSize)) ?>">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
                             <span>전체 다운로드</span>
                         </button>
@@ -189,7 +189,11 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                         </div>
                         <div class="episode-actions">
                             <?php if ($ep['has_file']): ?>
-                                <a class="episode-dl-btn" href="/anime/api/download_episode.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>" title="다운로드" data-title="<?= htmlspecialchars($ep['episode_number'] . '화' . (!empty($ep['title']) ? ': ' . $ep['title'] : ''), ENT_QUOTES) ?>" data-size="<?= htmlspecialchars(formatBytes($ep['file_size'])) ?>" onclick="event.stopPropagation()">
+                                <?php
+                                $dlChaptersFile = __DIR__ . '/animes/' . $aid . '/' . $safeEp . '.chapters.vtt';
+                                $dlHasChapters = is_file($dlChaptersFile) && filesize($dlChaptersFile) > 0;
+                                ?>
+                                <a class="episode-dl-btn" href="/anime/api/download_episode.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>" title="다운로드" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number'], ENT_QUOTES) ?>" data-anime="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>" data-title="<?= htmlspecialchars($ep['episode_number'] . '화' . (!empty($ep['title']) ? ': ' . $ep['title'] : ''), ENT_QUOTES) ?>" data-size="<?= htmlspecialchars(formatBytes($ep['file_size'])) ?>"<?= $dlHasChapters ? (' data-chapters="' . htmlspecialchars(chapterVttUrl($aid, $safeEp), ENT_QUOTES) . '"') : '' ?> onclick="event.stopPropagation()">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
                                 </a>
                             <?php endif; ?>
@@ -443,6 +447,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
 
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
+    <script src="<?= assetUrl('js/native-bridge.js') ?>"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // 회차 정렬: 기본 내림차순(최신화부터), localStorage에 저장된 설정으로 항상 복원

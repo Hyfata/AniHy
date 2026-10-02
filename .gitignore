@@ -17,3 +17,9 @@ assets/fonts/
 inc/auth.php
 inc/db.php
 inc/configuration.php
+# Capacitor 네이티브 앱: 실서버 URL 포함 설정 + 빌드 산출물 (절대 커밋 금지)
+native/capacitor.config.ts
+native/node_modules/
+native/ios/
+native/android/
+native/www/vendor/

@@ -1,0 +1,103 @@
+/* 오프라인 재생 페이지 전용 스타일 (웹 style.css와 무관하게 단독 동작) */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #0b0c0f;
+  color: #e8e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.off-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  position: sticky;
+  top: 0;
+  background: #0b0c0f;
+  z-index: 10;
+}
+.off-back {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #16181d;
+  color: #e8e8f0;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.off-titles { flex: 1; min-width: 0; }
+.off-titles h1 {
+  margin: 0;
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.off-titles p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: #8b92a8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.off-autonext {
+  flex: none;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #16181d;
+  color: #8b92a8;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.off-autonext.on { color: #b7a6ff; border-color: rgba(183, 166, 255, 0.4); }
+.off-main { padding: 14px 14px calc(24px + env(safe-area-inset-bottom)); max-width: 960px; margin: 0 auto; }
+.off-player-wrap { border-radius: 12px; overflow: hidden; background: #000; }
+.off-player-wrap .vp { border-radius: 12px; }
+.off-eps h2 { font-size: 1rem; margin: 18px 0 10px; }
+.off-ep-list { display: flex; flex-direction: column; gap: 8px; }
+.off-ep-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #16181d;
+  color: #e8e8f0;
+  cursor: pointer;
+  text-align: left;
+}
+.off-ep-item.active { border-color: rgba(183, 166, 255, 0.5); }
+.off-ep-badge {
+  flex: none;
+  min-width: 40px;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.off-ep-title { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.off-empty { color: #8b92a8; font-size: 0.9rem; padding: 12px 0; }
+
+/* CSS 전체화면: iOS에서도 Hyfata 자체 UI 유지 */
+.vp-css-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  z-index: 9999 !important;
+  background: #000;
+  border-radius: 0 !important;
+}
+html.anihy-css-fs, html.anihy-css-fs body { overflow: hidden !important; }

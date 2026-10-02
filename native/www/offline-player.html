@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- 오프라인 재생 전용 로컬 페이지 (앱 번들, 네트워크 없이 동작).
+     원격 watch.php와 동일한 Hyfata 자체 UI를 사용하며,
+     전체화면은 CSS 방식이라 iOS에서도 자체 UI가 유지됩니다. -->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>오프라인 재생 - AniHy</title>
+  <link rel="stylesheet" href="./vendor/video-player.css">
+  <link rel="stylesheet" href="./css/offline-player.css">
+</head>
+<body>
+  <header class="off-header">
+    <button type="button" id="off-back" class="off-back" aria-label="뒤로가기">‹</button>
+    <div class="off-titles">
+      <h1 id="off-title">불러오는 중...</h1>
+      <p id="off-subtitle"></p>
+    </div>
+    <button type="button" id="off-autonext" class="off-autonext on">자동 다음화: 켜짐</button>
+  </header>
+
+  <main class="off-main">
+    <div class="off-player-wrap">
+      <div id="offline-player"></div>
+    </div>
+    <section class="off-eps">
+      <h2>저장된 회차</h2>
+      <div id="offline-ep-list" class="off-ep-list"></div>
+    </section>
+  </main>
+
+  <script src="./vendor/video-player.js"></script>
+  <script src="./js/offline-player.js"></script>
+</body>
+</html>

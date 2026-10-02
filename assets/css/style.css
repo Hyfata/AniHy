@@ -2924,3 +2924,155 @@ main.has-tabbar {
         font-size: 16px;
     }
 }
+
+/* 보관함 (index.php ?tab=library) */
+.library-subtabs {
+    max-width: 560px;
+}
+.library-subtabs .queue-tab {
+    text-decoration: none;
+    text-align: center;
+    display: block;
+    line-height: 1.5;
+}
+
+/* 보관함 > 다운로드: 애니별 그룹 + 저장 회차 */
+.dl-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 860px;
+}
+.dl-group {
+    background: var(--card-bg, #16181d);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: var(--radius, 12px);
+    overflow: hidden;
+}
+.dl-group-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+}
+.dl-group-cover {
+    width: 44px;
+    height: 62px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex: none;
+}
+.dl-group-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+.dl-group-title {
+    font-weight: 700;
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dl-group-sub {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+.dl-group-arrow {
+    color: var(--text-muted);
+    font-size: 1.4rem;
+    line-height: 1;
+}
+.dl-items {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.dl-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.dl-item:first-child {
+    border-top: none;
+}
+.dl-item-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+}
+.dl-item-badge {
+    flex: none;
+    min-width: 40px;
+    text-align: center;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+.dl-item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.dl-item-title {
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dl-item-sub {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* 저장본 전용 애니 모달 안내 (iframe embed 내부) */
+.dl-only-notice {
+    margin: 0 0 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm, 8px);
+    background: rgba(183, 166, 255, 0.12);
+    border: 1px solid rgba(183, 166, 255, 0.3);
+    color: var(--text);
+    font-size: 0.88rem;
+}
+
+/* 네이티브 앱 CSS 전체화면: Hyfata 자체 UI 유지용 (iOS 네이티브 FS 대체) */
+.vp-css-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    z-index: 9999 !important;
+    background: #000;
+    border-radius: 0 !important;
+}
+html.anihy-css-fs,
+html.anihy-css-fs body {
+    overflow: hidden !important;
+}
+html.anihy-css-fs .bottom-tabbar,
+html.anihy-css-fs .navbar {
+    display: none !important;
+}

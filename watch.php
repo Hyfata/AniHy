@@ -51,6 +51,11 @@ $hasChapterVtt = is_file($chapterVttFile) && filesize($chapterVttFile) > 0;
 $enSubtitlePath = __DIR__ . '/subtitles/' . $aid . '/' . $epNum . '_en.ass';
 $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
 
+// 네이티브 앱 저장용: 현재 회차 파일 존재 여부 + 챕터 VTT URL (있을 때만 함께 저장)
+$currentFilePath = !empty($currentEp['file_path']) ? __DIR__ . '/' . $currentEp['file_path'] : '';
+$hasCurrentFile = $currentFilePath !== '' && is_file($currentFilePath) && filesize($currentFilePath) > 0;
+$currentFileSize = $hasCurrentFile ? filesize($currentFilePath) : 0;
+
 $nextEp = null;
 foreach ($episodes as $idx => $ep) {
     if ($ep['episode_number'] === $epNum && isset($episodes[$idx + 1])) {
@@ -142,6 +147,16 @@ function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fro
                     <div class="watch-actions">
                         <button type="button" id="episode-list-open-btn" class="btn btn-sm btn-secondary">회차 목록</button>
                         <button type="button" id="auto-next-btn" class="btn btn-sm btn-secondary">자동 다음화: 켜짐</button>
+                        <?php if ($hasCurrentFile): ?>
+                            <button type="button" id="native-download-btn" class="btn btn-sm"
+                                data-aid="<?= $aid ?>"
+                                data-ep="<?= htmlspecialchars($epNum) ?>"
+                                data-title="<?= htmlspecialchars($epNum . '화' . (!empty($currentEp['title']) ? ': ' . $currentEp['title'] : ''), ENT_QUOTES) ?>"
+                                data-anime="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>"
+                                data-size="<?= htmlspecialchars(formatBytes($currentFileSize)) ?>"
+                                data-src="<?= htmlspecialchars(animeVideoUrl($aid, $epNum), ENT_QUOTES) ?>"
+                                <?= $hasChapterVtt ? ('data-chapters="' . htmlspecialchars(chapterVttUrl($aid, $safeEp), ENT_QUOTES) . '"') : '' ?>>다운로드</button>
+                        <?php endif; ?>
                         <?php if ($hasEnSubtitle): ?>
                             <a href="/anime/subtitles/<?= $aid ?>/<?= rawurlencode($epNum) ?>_en.ass" download class="btn btn-sm">영어 자막 다운로드</a>
                         <?php endif; ?>
@@ -180,6 +195,7 @@ function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fro
     <script src="<?= assetUrl('player/video-player.js') ?>"></script>
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
+    <script src="<?= assetUrl('js/native-bridge.js') ?>"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // README 빠른 시작: new VideoPlayer('#player', { src, chaptersUrl })
