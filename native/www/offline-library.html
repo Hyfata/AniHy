@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- 오프라인 보관함 로컬 페이지 (앱 번들, 네트워크 없이 동작).
+     앱을 오프라인으로 실행해 원격 서버 로드에 실패하면 SceneDelegate가
+     이 페이지를 로드한다. 저장된 영상 목록/재생/삭제 + 네트워크 복구 시 재시도. -->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>오프라인 보관함 - AniHy</title>
+  <link rel="stylesheet" href="./css/offline-player.css">
+  <link rel="stylesheet" href="./css/offline-library.css">
+</head>
+<body>
+  <header class="off-header">
+    <button type="button" id="lib-back" class="off-back" aria-label="뒤로가기" style="display:none">‹</button>
+    <div class="off-titles">
+      <h1 id="lib-title">오프라인 보관함</h1>
+      <p id="lib-subtitle">네트워크 없이 저장된 영상을 재생할 수 있습니다</p>
+    </div>
+    <button type="button" id="lib-retry" class="off-autonext">다시 시도</button>
+  </header>
+
+  <main class="off-main">
+    <div id="lib-actions" class="lib-actions" style="display:none">
+      <button type="button" id="lib-select" class="lib-btn">선택 삭제</button>
+      <button type="button" id="lib-delall" class="lib-btn danger">전체 삭제</button>
+    </div>
+    <div id="lib-list" class="lib-list"></div>
+  </main>
+
+  <script src="./js/offline-library.js"></script>
+</body>
+</html>

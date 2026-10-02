@@ -85,7 +85,32 @@
             '#download-all-btn .dl-speed { font-size: 0.75rem; color: var(--text-muted); }',
             '/* 저장본 삭제 버튼 (네이티브에서 브릿지가 동적 삽입) */',
             '.dl-delete-all { color: var(--danger); }',
-            '.dl-actions-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }'
+            '.dl-actions-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }',
+            '/* 저장본 전용 모달: 선택 삭제 모드 */',
+            '.dl-only-notice { display: flex; align-items: center; justify-content: space-between; gap: 10px; }',
+            '.dl-select-toggle.active { color: var(--danger); border-color: var(--danger); }',
+            '#episode-list.dl-select-mode .episode-item.dl-selected { border-color: var(--danger); background: rgba(255, 77, 109, 0.10); }',
+            '/* 오프라인 모드 네이티브 보관함 오버레이 */',
+            '#anihy-offline { position: fixed; inset: 0; z-index: 99999; background: #0b0c0f; color: #e8e8f0; display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }',
+            '#anihy-offline .aoff-header { display: flex; align-items: center; gap: 10px; padding: calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.07); }',
+            '#anihy-offline .aoff-title { flex: 1; margin: 0; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+            '#anihy-offline .aoff-retry, #anihy-offline .aoff-actions button { padding: 7px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); background: #16181d; color: #e8e8f0; font-size: 0.8rem; }',
+            '#anihy-offline .aoff-body { flex: 1; overflow-y: auto; padding: 14px 16px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }',
+            '#anihy-offline .aoff-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.07); background: #16181d; color: #e8e8f0; text-align: left; }',
+            '#anihy-offline .aoff-cover { width: 52px; height: 70px; object-fit: cover; border-radius: 8px; flex: none; }',
+            '#anihy-offline .aoff-card-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }',
+            '#anihy-offline .aoff-card-title { font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+            '#anihy-offline .aoff-card-sub, #anihy-offline .aoff-ep-sub { font-size: 0.78rem; color: #8b92a8; }',
+            '#anihy-offline .aoff-arrow { color: #8b92a8; font-size: 1.2rem; }',
+            '#anihy-offline .aoff-actions { display: flex; gap: 8px; margin-bottom: 4px; }',
+            '#anihy-offline .aoff-actions .aoff-danger { color: #ff4d6d; }',
+            '#anihy-offline .aoff-sel.active { color: #ff4d6d; border-color: #ff4d6d; }',
+            '#anihy-offline .aoff-ep { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); background: #16181d; }',
+            '#anihy-offline .aoff-ep.aoff-selected { border-color: #ff4d6d; background: rgba(255,77,109,0.12); }',
+            '#anihy-offline .aoff-badge { flex: none; min-width: 40px; text-align: center; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.08); font-weight: 700; font-size: 0.85rem; }',
+            '#anihy-offline .aoff-ep-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }',
+            '#anihy-offline .aoff-ep-title { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+            '#anihy-offline .aoff-empty { color: #8b92a8; font-size: 0.9rem; padding: 20px 0; text-align: center; }'
         ].join('\n');
         document.head.appendChild(nativeStyle);
     }
@@ -357,6 +382,7 @@
                 size: bytes || 0,
                 hasChapters: hasVtt,
                 cover: opts.cover || '',
+                coverLocal: await cacheCover(aid, opts.cover, controller ? controller.signal : null),
                 createdAt: Date.now()
             });
             setProgress(100);
@@ -380,12 +406,23 @@
 
     async function deleteDownload(aid, ep) {
         var item = await findItem(aid, ep);
-        if (!item) return;
-        if (!(await window.modalConfirm('"' + (item.title || ep + '화') + '" 저장본을 삭제하시겠습니까?'))) return;
+        if (!item) return false;
+        if (!(await window.modalConfirm('"' + (item.title || ep + '화') + '" 저장본을 삭제하시겠습니까?'))) return false;
         await deleteStorageFile(mp4RelPath(aid, ep));
         await deleteStorageFile(vttRelPath(aid, ep));
         await removeItem(aid, ep);
+        // 같은 애니의 마지막 저장본이면 로컬 커버도 정리
+        var left = await store.list();
+        var stillThere = left.some(function (it) { return String(it.aid) === String(aid); });
+        if (!stillThere && item.coverLocal) await deleteStorageFile(item.coverLocal);
         refreshLibrary();
+        // 현재 문서에 보이는 완료 아이콘도 원래 다운로드 아이콘으로 되돌림
+        document.querySelectorAll('.episode-dl-btn.is-downloaded').forEach(function (btn) {
+            if (String(btn.dataset.aid) !== String(aid) || String(btn.dataset.ep) !== String(ep)) return;
+            btn.classList.remove('is-downloaded');
+            if (btn.__origHtml) btn.innerHTML = btn.__origHtml;
+        });
+        return true;
     }
 
     // 저장본 일괄 삭제: aid 지정 시 해당 애니만, null이면 전체
@@ -402,6 +439,7 @@
         for (var i = 0; i < targets.length; i++) {
             await deleteStorageFile(mp4RelPath(targets[i].aid, targets[i].ep));
             await deleteStorageFile(vttRelPath(targets[i].aid, targets[i].ep));
+            if (targets[i].coverLocal) await deleteStorageFile(targets[i].coverLocal);
         }
         await store.save(items.filter(function (it) { return aid != null && String(it.aid) !== String(aid); }));
         refreshLibrary();
@@ -483,18 +521,7 @@
                 + '<span class="dl-group-sub">' + g.eps.length + '개 저장됨' + (total ? ' · ' + esc(fmtBytes(total)) : '') + '</span></span>'
                 + '<span class="dl-group-arrow" aria-hidden="true">›</span>'
                 + '</button>'
-                + '<div class="dl-items">';
-            g.eps.forEach(function (it) {
-                html += '<div class="dl-item" data-aid="' + esc(it.aid) + '" data-ep="' + esc(it.ep) + '">'
-                    + '<button type="button" class="dl-item-main" data-dl-play="' + esc(it.aid) + '|' + esc(it.ep) + '">'
-                    + '<span class="dl-item-badge">' + esc(it.ep) + '</span>'
-                    + '<span class="dl-item-meta"><span class="dl-item-title">' + esc(it.title || (it.ep + '화')) + '</span>'
-                    + '<span class="dl-item-sub">' + esc([fmtBytes(it.size), it.createdAt ? new Date(it.createdAt).toLocaleDateString() : ''].filter(Boolean).join(' · ')) + '</span></span>'
-                    + '</button>'
-                    + '<button type="button" class="btn btn-sm btn-danger" data-dl-del="' + esc(it.aid) + '|' + esc(it.ep) + '">삭제</button>'
-                    + '</div>';
-            });
-            html += '</div></section>';
+                + '</section>';
         });
         html += '</div>';
         box.innerHTML = html;
@@ -508,10 +535,228 @@
         } catch (e) { /* ignore */ }
     }
 
+    // 저장 시 커버도 로컬에 캐시 (오프라인 UI에서 사용, best-effort)
+    async function cacheCover(aid, coverUrl, signal) {
+        if (!coverUrl) return '';
+        var m = /\.(jpg|jpeg|png|webp|gif)(?:[?#]|$)/i.exec(coverUrl);
+        var rel = DL_DIR + '/' + aid + '/cover' + (m ? '.' + m[1].toLowerCase() : '.jpg');
+        try {
+            await fetchToFile(coverUrl, rel, null, signal || null);
+            return rel;
+        } catch (e) {
+            return '';
+        }
+    }
+
+    // 오프라인 UI용 커버 src: 로컬 캐시 우선, 없으면 원격 URL
+    async function resolveCoverSrc(it) {
+        if (it.coverLocal) {
+            try {
+                var f = fs();
+                var c = cap();
+                if (f && c && c.convertFileSrc) {
+                    var uri = await f.getUri({ path: it.coverLocal, directory: 'DATA' });
+                    if (uri && uri.uri) return c.convertFileSrc(uri.uri);
+                }
+            } catch (e) { /* fallback */ }
+        }
+        return it.cover || '';
+    }
+
+    function epSortNative(a, b) {
+        var num = function (v) {
+            var m = /^(\d+(?:\.\d+)?)/.exec(String(v));
+            return m ? parseFloat(m[1]) : NaN;
+        };
+        var na = num(a.ep), nb = num(b.ep);
+        if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+        return String(a.ep).localeCompare(String(b.ep), 'ko', { numeric: true });
+    }
+
+    // ---------- 오프라인 모드 (네트워크 단절 시 네이티브 보관함 UI) ----------
+    var offOverlay = null;
+    var offState = { aid: null, select: false };
+
+    function hideOfflineLibrary() {
+        if (offOverlay) { offOverlay.remove(); offOverlay = null; }
+    }
+
+    async function renderOfflineBody() {
+        if (!offOverlay) return;
+        var body = offOverlay.querySelector('.aoff-body');
+        var titleEl = offOverlay.querySelector('.aoff-title');
+        var items = await store.list();
+        if (!items.length) {
+            offState.aid = null;
+            titleEl.textContent = '오프라인 모드';
+            body.innerHTML = '<div class="aoff-empty">저장된 영상이 없습니다.<br>온라인에서 회차를 저장하면 오프라인에서 볼 수 있습니다.</div>';
+            return;
+        }
+        if (!offState.aid) {
+            // 애니 카드 목록
+            titleEl.textContent = '오프라인 모드';
+            var groups = {}, order = [];
+            items.forEach(function (it) {
+                var k = String(it.aid);
+                if (!groups[k]) { groups[k] = { aid: it.aid, anime: it.anime || ('애니 #' + it.aid), eps: [], coverItem: null }; order.push(k); }
+                groups[k].eps.push(it);
+                if (!groups[k].coverItem && (it.coverLocal || it.cover)) groups[k].coverItem = it;
+            });
+            var html = '';
+            order.forEach(function (k) {
+                var g = groups[k];
+                var total = g.eps.reduce(function (s, it) { return s + (Number(it.size) || 0); }, 0);
+                html += '<button type="button" class="aoff-card" data-aid="' + esc(g.aid) + '">'
+                    + '<img class="aoff-cover" alt="" style="display:none">'
+                    + '<span class="aoff-card-meta"><span class="aoff-card-title">' + esc(g.anime) + '</span>'
+                    + '<span class="aoff-card-sub">' + g.eps.length + '개 저장됨' + (total ? ' · ' + esc(fmtBytes(total)) : '') + '</span></span>'
+                    + '<span class="aoff-arrow">›</span></button>';
+            });
+            body.innerHTML = html;
+            order.forEach(function (k) {
+                var g = groups[k];
+                if (!g.coverItem) return;
+                var img = body.querySelector('.aoff-card[data-aid="' + esc(g.aid) + '"] .aoff-cover');
+                resolveCoverSrc(g.coverItem).then(function (src) {
+                    if (src && img) { img.src = src; img.style.display = ''; }
+                });
+            });
+            body.querySelectorAll('.aoff-card').forEach(function (card) {
+                card.addEventListener('click', function () {
+                    offState.aid = card.getAttribute('data-aid');
+                    offState.select = false;
+                    renderOfflineBody();
+                });
+            });
+            return;
+        }
+        // 애니 상세 (저장 회차 목록)
+        var mine = items.filter(function (it) { return String(it.aid) === String(offState.aid); }).sort(epSortNative);
+        if (!mine.length) {
+            offState.aid = null;
+            renderOfflineBody();
+            return;
+        }
+        titleEl.textContent = mine[0].anime || ('애니 #' + offState.aid);
+        var html = '<div class="aoff-actions">'
+            + '<button type="button" class="aoff-back">‹ 목록</button>'
+            + '<button type="button" class="aoff-sel">' + (offState.select ? '선택 삭제 (0)' : '선택 삭제') + '</button>'
+            + '<button type="button" class="aoff-danger aoff-delall">전체 삭제</button>'
+            + '</div>';
+        mine.forEach(function (it) {
+            html += '<div class="aoff-ep" data-ep="' + esc(it.ep) + '" role="button">'
+                + '<span class="aoff-badge">' + esc(it.ep) + '</span>'
+                + '<span class="aoff-ep-meta"><span class="aoff-ep-title">' + esc(it.title || (it.ep + '화')) + '</span>'
+                + '<span class="aoff-ep-sub">' + esc([fmtBytes(it.size), it.createdAt ? new Date(it.createdAt).toLocaleDateString() : ''].filter(Boolean).join(' · ')) + '</span></span>'
+                + '</div>';
+        });
+        body.innerHTML = html;
+        body.querySelector('.aoff-back').addEventListener('click', function () {
+            offState.aid = null;
+            offState.select = false;
+            renderOfflineBody();
+        });
+        var selBtn = body.querySelector('.aoff-sel');
+        var paintSel = function () {
+            var n = body.querySelectorAll('.aoff-ep.aoff-selected').length;
+            selBtn.textContent = offState.select ? '선택 삭제 (' + n + ')' : '선택 삭제';
+            selBtn.classList.toggle('active', offState.select);
+        };
+        selBtn.addEventListener('click', function () {
+            if (!offState.select) {
+                offState.select = true;
+                paintSel();
+                return;
+            }
+            var rows = Array.prototype.slice.call(body.querySelectorAll('.aoff-ep.aoff-selected'));
+            if (!rows.length) {
+                offState.select = false;
+                paintSel();
+                return;
+            }
+            (window.modalConfirm
+                ? window.modalConfirm('선택한 ' + rows.length + '개 회차의 저장본을 삭제하시겠습니까?')
+                : Promise.resolve(true)
+            ).then(async function (ok) {
+                if (!ok) return;
+                for (var i = 0; i < rows.length; i++) {
+                    var ep = rows[i].getAttribute('data-ep');
+                    await deleteStorageFile(mp4RelPath(offState.aid, ep));
+                    await deleteStorageFile(vttRelPath(offState.aid, ep));
+                    await removeItem(offState.aid, ep);
+                }
+                offState.select = false;
+                refreshLibrary();
+                renderOfflineBody();
+            });
+        });
+        body.querySelector('.aoff-delall').addEventListener('click', function () {
+            deleteSavedDownloads(offState.aid).then(function (deleted) {
+                if (deleted) {
+                    offState.aid = null;
+                    offState.select = false;
+                    renderOfflineBody();
+                }
+            });
+        });
+        body.querySelectorAll('.aoff-ep').forEach(function (row) {
+            row.addEventListener('click', function () {
+                var ep = row.getAttribute('data-ep');
+                if (offState.select) {
+                    row.classList.toggle('aoff-selected');
+                    paintSel();
+                    return;
+                }
+                openOfflinePlayer(offState.aid, ep);
+            });
+        });
+    }
+
+    function showOfflineLibrary(aid) {
+        if (!isNative()) return;
+        if (offOverlay) {
+            offState.aid = aid || null;
+            offState.select = false;
+            renderOfflineBody();
+            return;
+        }
+        offOverlay = document.createElement('div');
+        offOverlay.id = 'anihy-offline';
+        offOverlay.innerHTML = '<div class="aoff-header">'
+            + '<h1 class="aoff-title">오프라인 모드</h1>'
+            + '<button type="button" class="aoff-retry">다시 시도</button>'
+            + '</div>'
+            + '<div class="aoff-body"></div>';
+        document.body.appendChild(offOverlay);
+        offOverlay.querySelector('.aoff-retry').addEventListener('click', function () {
+            window.location.reload();
+        });
+        offState.aid = aid || null;
+        offState.select = false;
+        renderOfflineBody();
+    }
+
+    function bindOfflineMode() {
+        if (!isNative()) return;
+        // 실행 중 네트워크가 끊기면 네이티브 보관함 UI로 전환, 복구되면 닫기
+        window.addEventListener('offline', function () { showOfflineLibrary(); });
+        window.addEventListener('online', function () { hideOfflineLibrary(); });
+        // 번들 오프라인 페이지가 복귀할 서버 주소를 Preferences에 저장
+        try {
+            var p = plugins().Preferences;
+            if (p) p.set({ key: 'anihy_server_url', value: window.location.origin + '/anime/' });
+        } catch (e) { /* ignore */ }
+    }
+
     // 애니별 그룹 헤더 → 애니 모달을 "저장된 회차만"으로 필터해 오픈
     var pendingDlFilter = null;
 
     function openDownloadedAnime(aid) {
+        // 오프라인에서는 iframe 모달(원격 페이지)을 열 수 없으므로 네이티브 UI로 대체
+        if (!navigator.onLine) {
+            showOfflineLibrary(String(aid));
+            return;
+        }
         pendingDlFilter = String(aid);
         if (typeof window.openAnimeModal === 'function') {
             window.openAnimeModal(aid);
@@ -529,6 +774,12 @@
         var doc;
         try { doc = frame.contentDocument; } catch (e) { return; }
         if (!doc) return;
+        // 저장본 전용 뷰에서는 온라인 전용 액션(전체 다운로드, 나무위키 등) 숨김
+        // — 저장본 삭제(#dl-delete-anime-btn)는 유지
+        doc.querySelectorAll('.poster-action').forEach(function (el) {
+            if (el.id === 'dl-delete-anime-btn') return;
+            el.style.display = 'none';
+        });
         var list = doc.getElementById('episode-list');
         if (!list) return;
         var rows = list.querySelectorAll('.episode-item');
@@ -540,20 +791,101 @@
                 row.remove();
             }
         });
-        // 저장본 전용 안내 배너
-        if (!doc.getElementById('dl-only-notice')) {
-            var banner = doc.createElement('div');
+        // 저장본 전용 안내 배너 + 선택 삭제 모드 토글
+        var banner = doc.getElementById('dl-only-notice');
+        if (!banner) {
+            banner = doc.createElement('div');
             banner.id = 'dl-only-notice';
             banner.className = 'dl-only-notice';
-            banner.textContent = '저장된 ' + shown + '개 회차만 표시됩니다.';
             list.parentNode.insertBefore(banner, list);
         }
+        banner.innerHTML = '<span class="dl-only-text">저장된 ' + shown + '개 회차만 표시됩니다.</span>'
+            + (shown > 0 ? '<button type="button" class="btn btn-sm dl-select-toggle">선택 삭제</button>' : '');
         if (shown === 0) {
             var empty = doc.createElement('div');
             empty.className = 'empty-state';
             empty.textContent = '저장된 회차가 없습니다.';
             list.appendChild(empty);
         }
+        bindDlSelectMode(doc, list, banner, aid);
+    }
+
+    // 저장본 전용 모달의 선택 삭제 모드: 행 탭이 시청 이동 대신 선택 토글이 되도록
+    // iframe 문서에 capture 리스너를 걸어 기존 핸들러를 차단
+    function bindDlSelectMode(doc, list, banner, aid) {
+        if (list.__dlSelectBound) return;
+        list.__dlSelectBound = true;
+        var selectMode = false;
+        var toggleBtn = banner.querySelector('.dl-select-toggle');
+        if (!toggleBtn) return;
+
+        var selected = function () {
+            return list.querySelectorAll('.episode-item.dl-selected');
+        };
+        var paintToggle = function () {
+            toggleBtn.textContent = selectMode
+                ? '선택 삭제 (' + selected().length + ')'
+                : '선택 삭제';
+            toggleBtn.classList.toggle('active', selectMode);
+        };
+
+        // 선택 모드에서는 회차 행 탭 = 선택 토글 (시청 이동 차단)
+        list.addEventListener('click', function (e) {
+            if (!selectMode) return;
+            var row = e.target && e.target.closest ? e.target.closest('.episode-item') : null;
+            if (!row) return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            row.classList.toggle('dl-selected');
+            paintToggle();
+        }, true);
+
+        toggleBtn.addEventListener('click', function () {
+            if (!selectMode) {
+                selectMode = true;
+                list.classList.add('dl-select-mode');
+                paintToggle();
+                return;
+            }
+            var rows = Array.prototype.slice.call(selected());
+            if (!rows.length) {
+                // 아무것도 선택 안 하고 다시 누르면 모드 해제
+                selectMode = false;
+                list.classList.remove('dl-select-mode');
+                paintToggle();
+                return;
+            }
+            (window.modalConfirm
+                ? window.modalConfirm('선택한 ' + rows.length + '개 회차의 저장본을 삭제하시겠습니까?')
+                : Promise.resolve(true)
+            ).then(async function (ok) {
+                if (!ok) return;
+                for (var i = 0; i < rows.length; i++) {
+                    var a = rows[i].getAttribute('data-aid');
+                    var ep = rows[i].getAttribute('data-ep');
+                    await deleteStorageFile(mp4RelPath(a, ep));
+                    await deleteStorageFile(vttRelPath(a, ep));
+                    await removeItem(a, ep);
+                    rows[i].remove();
+                }
+                selectMode = false;
+                list.classList.remove('dl-select-mode');
+                refreshLibrary();
+                var textEl = banner.querySelector('.dl-only-text');
+                var left = list.querySelectorAll('.episode-item').length;
+                if (textEl) textEl.textContent = '저장된 ' + left + '개 회차만 표시됩니다.';
+                if (left === 0) {
+                    toggleBtn.remove();
+                    var empty = doc.createElement('div');
+                    empty.className = 'empty-state';
+                    empty.textContent = '저장된 회차가 없습니다.';
+                    list.appendChild(empty);
+                } else {
+                    paintToggle();
+                }
+            });
+        });
     }
 
     // ---------- CSS 전체화면 (네이티브에서 Hyfata 자체 UI 유지) ----------
@@ -645,6 +977,11 @@
                 if (busy[epKey(d.aid, d.ep)]) {
                     (window.modalConfirm ? window.modalConfirm('다운로드를 취소하시겠습니까?') : Promise.resolve(true))
                         .then(function (ok) { if (ok) abortDownload(d.aid, d.ep); });
+                    return;
+                }
+                // 이미 저장된 회차 탭 → 삭제 여부 확인 후 삭제
+                if (btn.classList.contains('is-downloaded')) {
+                    deleteDownload(d.aid, d.ep);
                     return;
                 }
                 downloadsAborted = false;
@@ -932,6 +1269,7 @@
         bindDownloadButtons();
         bindLibraryClicks();
         bindOfflineRedirect();
+        bindOfflineMode();
         renderLibrary();
     });
 
@@ -946,6 +1284,7 @@
         playEpisode: playEpisode,
         openOfflinePlayer: openOfflinePlayer,
         openDownloadedAnime: openDownloadedAnime,
+        showOfflineLibrary: showOfflineLibrary,
         refreshLibrary: refreshLibrary,
         getActiveDownloadCount: getActiveDownloadCount,
         abortAllDownloads: abortAllDownloads

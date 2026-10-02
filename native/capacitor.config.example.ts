@@ -18,6 +18,8 @@ const config: CapacitorConfig = {
     // ⚠️ 실제 운영 URL로 교체할 것 (예: https://<private-host>/anime)
     url: 'https://your-private-host.example/anime',
     cleartext: false,
+    // 서버 로드 실패(오프라인 등) 시 번들된 오프라인 보관함 페이지로 폴백
+    errorPath: 'offline-library.html',
     // WebView에서 외부 이동을 허용할 호스트 (운영 도메인만)
     allowNavigation: ['your-private-host.example'],
   },
