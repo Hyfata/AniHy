@@ -49,7 +49,10 @@
         nativeStyle.id = 'anihy-native-overrides';
         nativeStyle.textContent = [
             'html, body { overscroll-behavior: none; }',
-            '.navbar { backdrop-filter: none; }',
+            '.navbar { backdrop-filter: none; padding-top: env(safe-area-inset-top, 0px); }',
+            '@supports (-webkit-touch-callout: none) {',
+            '    body:has(.navbar) { padding-top: calc(64px + env(safe-area-inset-top, 0px)); }',
+            '}',
             '@media (min-width: 769px) {',
             '    .bottom-tabbar { top: calc(64px + env(safe-area-inset-top, 0px)); }',
             '}',
