@@ -75,7 +75,9 @@
             '}',
             '@media (min-width: 769px) {',
             '    .bottom-tabbar { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; border: none; box-shadow: none; }',
-            '}'
+            '}',
+            '/* 저장 완료된 회차의 다운로드 버튼은 체크 아이콘(accent) */',
+            '.episode-dl-btn.is-downloaded { color: var(--accent); }'
         ].join('\n');
         document.head.appendChild(nativeStyle);
     }
@@ -280,6 +282,13 @@
             + '</svg>';
     }
 
+    // 저장 완료된 회차 버튼 아이콘 (체크)
+    var DONE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>';
+    function markDownloaded(btn) {
+        btn.innerHTML = DONE_SVG;
+        btn.classList.add('is-downloaded');
+    }
+
     async function downloadEpisode(opts) {
         var aid = opts.aid;
         var ep = String(opts.ep);
@@ -320,9 +329,6 @@
                 createdAt: Date.now()
             });
             setProgress(100);
-            if (!opts.quiet) {
-                await window.modalAlert('저장이 완료되었습니다.\n보관함 > 다운로드에서 오프라인으로 재생할 수 있습니다.');
-            }
             refreshLibrary();
             return true;
         } catch (err) {
@@ -555,6 +561,12 @@
             if (btn.__anihyBound) return;
             btn.__anihyBound = true;
             var origHtml = btn.innerHTML;
+            // 이미 저장된 회차는 완료 아이콘으로 표시
+            (function (b) {
+                findItem(b.dataset.aid, b.dataset.ep).then(function (it) {
+                    if (it) markDownloaded(b);
+                });
+            })(btn);
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -564,9 +576,11 @@
                     aid: d.aid, ep: d.ep, anime: d.anime, title: d.title,
                     url: btn.getAttribute('href'),
                     size: d.size, chaptersUrl: d.chapters || null, cover: currentCover(),
-                    // 아이콘 자리에 진행률 링 표시, 완료/중단 시 원래 아이콘 복원
-                    onProgress: function (p) { btn.innerHTML = ringSvg(p); },
-                    onDone: function () { btn.innerHTML = origHtml; }
+                    // 아이콘 자리에 진행률 링 표시, 완료 시 체크 아이콘 / 실패·중단 시 원래 아이콘
+                    onProgress: function (p) { btn.innerHTML = ringSvg(p); }
+                }).then(function (ok2) {
+                    if (ok2) markDownloaded(btn);
+                    else btn.innerHTML = origHtml;
                 });
             }, true);
         });
@@ -614,7 +628,10 @@
                         skipConfirm: true, quiet: true,
                         onProgress: function (p) { setAllProgress(j, p); }
                     });
-                    if (r) ok++;
+                    if (r) {
+                        ok++;
+                        markDownloaded(pending[j]);
+                    }
                     // 모달 닫기로 전체 중단된 경우 나머지 회차는 시작하지 않음
                     if (downloadsAborted) break;
                 }
