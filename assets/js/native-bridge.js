@@ -80,7 +80,12 @@
             '.episode-dl-btn.is-downloaded { color: var(--accent); }',
             '/* 다운로드 중 버튼: 링 + % 텍스트가 들어가도록 pill 형태로 확장 */',
             '.episode-dl-btn.is-downloading { width: auto; padding: 0 9px; border-radius: 999px; gap: 4px; color: var(--primary); }',
-            '.episode-dl-btn .dl-pct { font-size: 0.7rem; font-weight: 600; }'
+            '.episode-dl-btn .dl-pct { font-size: 0.7rem; font-weight: 600; }',
+            '.episode-dl-btn .dl-speed { font-size: 0.62rem; color: var(--text-muted); margin-left: 1px; }',
+            '#download-all-btn .dl-speed { font-size: 0.75rem; color: var(--text-muted); }',
+            '/* 저장본 삭제 버튼 (네이티브에서 브릿지가 동적 삽입) */',
+            '.dl-delete-all { color: var(--danger); }',
+            '.dl-actions-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }'
         ].join('\n');
         document.head.appendChild(nativeStyle);
     }
@@ -198,12 +203,18 @@
         try { await f.deleteFile({ path: relPath, directory: 'DATA' }); } catch (e) { /* ignore */ }
         await f.writeFile({ path: relPath, directory: 'DATA', data: '', recursive: true });
         var loaded = 0;
+        var startT = Date.now();
+        var speedOf = function () {
+            var elapsed = (Date.now() - startT) / 1000;
+            return elapsed > 0.05 ? loaded / elapsed : 0;
+        };
         if (!reader) {
             // 스트리밍 미지원 환경 폴백 (작은 파일용)
             var buf = new Uint8Array(await res.arrayBuffer());
             if (signal && signal.aborted) throw new Error('aborted');
             await f.writeFile({ path: relPath, directory: 'DATA', data: u8ToB64(buf), recursive: true });
-            if (onProgress) onProgress(100);
+            loaded = buf.byteLength;
+            if (onProgress) onProgress(100, speedOf());
             return total || buf.byteLength;
         }
         for (;;) {
@@ -212,9 +223,9 @@
             if (chunk.done) break;
             await f.appendFile({ path: relPath, directory: 'DATA', data: u8ToB64(chunk.value) });
             loaded += chunk.value.byteLength;
-            if (onProgress && total > 0) onProgress(Math.min(99, (loaded / total) * 100));
+            if (onProgress && total > 0) onProgress(Math.min(99, (loaded / total) * 100), speedOf());
         }
-        if (onProgress) onProgress(100);
+        if (onProgress) onProgress(100, speedOf());
         return total || loaded;
     }
 
@@ -262,9 +273,14 @@
     // busy[k] = AbortController (진행 중 다운로드 추적 + 모달 닫기 시 중단용)
     var busy = {};
     var downloadsAborted = false;
+    var downloadAllActive = false;
 
     function getActiveDownloadCount() {
         return Object.keys(busy).length;
+    }
+
+    function isDownloadAllActive() {
+        return downloadAllActive;
     }
 
     function abortAllDownloads() {
@@ -290,8 +306,11 @@
             + '<circle class="zip-ring-fg" cx="12" cy="12" r="9" style="stroke-dashoffset:' + offset + '"/>'
             + '</svg>';
     }
-    function progressHtml(pct) {
-        return ringSvg(pct) + '<span class="dl-pct">' + Math.round(pct) + '%</span>';
+    function progressHtml(pct, bps) {
+        var html = ringSvg(pct) + '<span class="dl-pct">' + Math.round(pct) + '%</span>';
+        var spd = bps ? fmtBytes(bps) : '';
+        if (spd) html += '<span class="dl-speed">' + spd + '/s</span>';
+        return html;
     }
 
     // 저장 완료된 회차 버튼 아이콘 (체크)
@@ -342,6 +361,9 @@
             });
             setProgress(100);
             refreshLibrary();
+            // 저장본 삭제 버튼이 숨겨져 있었다면 표시
+            var delBtn = document.getElementById('dl-delete-anime-btn');
+            if (delBtn && String(delBtn.getAttribute('data-aid')) === String(aid)) delBtn.style.display = '';
             return true;
         } catch (err) {
             await deleteStorageFile(mp4RelPath(aid, ep));
@@ -364,6 +386,32 @@
         await deleteStorageFile(vttRelPath(aid, ep));
         await removeItem(aid, ep);
         refreshLibrary();
+    }
+
+    // 저장본 일괄 삭제: aid 지정 시 해당 애니만, null이면 전체
+    async function deleteSavedDownloads(aid) {
+        var items = await store.list();
+        var targets = aid == null
+            ? items
+            : items.filter(function (it) { return String(it.aid) === String(aid); });
+        if (!targets.length) return false;
+        var msg = aid == null
+            ? '저장된 영상 ' + targets.length + '개를 모두 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.'
+            : '이 애니의 저장된 영상 ' + targets.length + '개를 모두 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.';
+        if (!(await window.modalConfirm(msg))) return false;
+        for (var i = 0; i < targets.length; i++) {
+            await deleteStorageFile(mp4RelPath(targets[i].aid, targets[i].ep));
+            await deleteStorageFile(vttRelPath(targets[i].aid, targets[i].ep));
+        }
+        await store.save(items.filter(function (it) { return aid != null && String(it.aid) !== String(aid); }));
+        refreshLibrary();
+        // 현재 문서에 보이는 완료 아이콘도 원래 다운로드 아이콘으로 되돌림
+        document.querySelectorAll('.episode-dl-btn.is-downloaded').forEach(function (btn) {
+            if (aid != null && String(btn.dataset.aid) !== String(aid)) return;
+            btn.classList.remove('is-downloaded');
+            if (btn.__origHtml) btn.innerHTML = btn.__origHtml;
+        });
+        return true;
     }
 
     // ---------- 재생 (온라인=watch.php, 오프라인 저장본=로컬 플레이어) ----------
@@ -421,7 +469,10 @@
             groups[k].eps.push(it);
             if (it.cover && !groups[k].cover) groups[k].cover = it.cover;
         });
-        var html = '<div class="dl-groups">';
+        var html = '<div class="dl-actions-bar">'
+            + '<button type="button" class="btn btn-sm btn-danger dl-delete-all" data-dl-del-all="1">저장본 전체 삭제</button>'
+            + '</div>'
+            + '<div class="dl-groups">';
         order.forEach(function (k) {
             var g = groups[k];
             var total = g.eps.reduce(function (s, it) { return s + (Number(it.size) || 0); }, 0);
@@ -584,6 +635,12 @@
                 e.stopPropagation();
                 if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
                 var d = btn.dataset;
+                // 전체 다운로드 진행 중에는 어떤 회차 버튼을 눌러도 전체 취소 확인
+                if (downloadAllActive) {
+                    (window.modalConfirm ? window.modalConfirm('전체 다운로드가 진행 중입니다.\n다운로드를 취소하시겠습니까?') : Promise.resolve(true))
+                        .then(function (ok) { if (ok) abortAllDownloads(); });
+                    return;
+                }
                 // 다운로드 중 탭 → 취소 여부 확인 후 중단
                 if (busy[epKey(d.aid, d.ep)]) {
                     (window.modalConfirm ? window.modalConfirm('다운로드를 취소하시겠습니까?') : Promise.resolve(true))
@@ -595,10 +652,10 @@
                     aid: d.aid, ep: d.ep, anime: d.anime, title: d.title,
                     url: btn.getAttribute('href'),
                     size: d.size, chaptersUrl: d.chapters || null, cover: currentCover(),
-                    // 아이콘 자리에 진행률 링+% 표시, 완료 시 체크 아이콘 / 실패·중단 시 원래 아이콘
-                    onProgress: function (p) {
+                    // 아이콘 자리에 진행률 링+%+속도 표시, 완료 시 체크 아이콘 / 실패·중단 시 원래 아이콘
+                    onProgress: function (p, bps) {
                         btn.classList.add('is-downloading');
-                        btn.innerHTML = progressHtml(p);
+                        btn.innerHTML = progressHtml(p, bps);
                     }
                 }).then(function (ok2) {
                     btn.classList.remove('is-downloading');
@@ -622,6 +679,11 @@
                 e.preventDefault();
                 e.stopPropagation();
                 if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+                // 진행 중에 전체 다운로드 버튼 탭 → 전체 취소 확인
+                if (downloadAllActive) {
+                    if (await window.modalConfirm('전체 다운로드를 취소하시겠습니까?')) abortAllDownloads();
+                    return;
+                }
                 downloadsAborted = false;
                 var btns = Array.prototype.slice.call(document.querySelectorAll('.episode-dl-btn'));
                 if (!btns.length) {
@@ -643,13 +705,17 @@
                 var iconEl0 = allBtn.querySelector('svg');
                 var orig = labelEl ? labelEl.textContent : '';
                 var origIcon = iconEl0 ? iconEl0.outerHTML : '';
-                var setAllProgress = function (idx, pct) {
+                var setAllProgress = function (idx, pct, bps) {
                     // 전체 진행률 = 완료된 회차 + 현재 회차 진행분
                     var overall = ((idx + pct / 100) / pending.length) * 100;
                     var cur = allBtn.querySelector('svg');
                     if (cur) cur.outerHTML = ringSvg(overall);
-                    if (labelEl) labelEl.textContent = (idx + 1) + '/' + pending.length + ' · ' + Math.round(overall) + '%';
+                    if (labelEl) {
+                        var spd = bps ? fmtBytes(bps) : '';
+                        labelEl.textContent = (idx + 1) + '/' + pending.length + ' · ' + Math.round(overall) + '%' + (spd ? ' · ' + spd + '/s' : '');
+                    }
                 };
+                downloadAllActive = true;
                 // 대상 회차 버튼 전부 진행률 표시(0%)로 전환
                 pending.forEach(function (b) {
                     b.classList.add('is-downloading');
@@ -665,9 +731,9 @@
                         size: bd.size, chaptersUrl: bd.chapters || null, cover: currentCover(),
                         skipConfirm: true, quiet: true,
                         onProgress: (function (btn2, idx2) {
-                            return function (p) {
-                                setAllProgress(idx2, p);
-                                btn2.innerHTML = progressHtml(p);
+                            return function (p, bps) {
+                                setAllProgress(idx2, p, bps);
+                                btn2.innerHTML = progressHtml(p, bps);
                             };
                         })(pending[j], j)
                     });
@@ -688,8 +754,34 @@
                 if (labelEl) labelEl.textContent = orig;
                 var curIcon = allBtn.querySelector('svg');
                 if (curIcon && origIcon) curIcon.outerHTML = origIcon;
+                downloadAllActive = false;
                 await window.modalAlert(ok + '/' + pending.length + '개 저장 완료');
             }, true);
+        }
+
+        // 이 애니의 저장본 일괄 삭제 버튼 (네이티브 전용, 저장본이 있을 때만 표시)
+        if (allBtn && allBtn.dataset.aid && !document.getElementById('dl-delete-anime-btn')) {
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'poster-action dl-delete-all';
+            delBtn.id = 'dl-delete-anime-btn';
+            delBtn.setAttribute('data-aid', allBtn.dataset.aid);
+            delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+                + '<span>저장본 삭제</span>';
+            delBtn.style.display = 'none';
+            delBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+                deleteSavedDownloads(allBtn.dataset.aid).then(function (deleted) {
+                    if (deleted) delBtn.style.display = 'none';
+                });
+            }, true);
+            allBtn.parentNode.insertBefore(delBtn, allBtn.nextSibling);
+            store.list().then(function (items) {
+                var has = items.some(function (it) { return String(it.aid) === String(allBtn.dataset.aid); });
+                delBtn.style.display = has ? '' : 'none';
+            });
         }
     }
 
@@ -699,6 +791,11 @@
             if (play) {
                 var parts = play.getAttribute('data-dl-play').split('|');
                 playEpisode(parts[0], parts.slice(1).join('|'));
+                return;
+            }
+            var delAll = e.target && e.target.closest ? e.target.closest('[data-dl-del-all]') : null;
+            if (delAll) {
+                deleteSavedDownloads(null);
                 return;
             }
             var del = e.target && e.target.closest ? e.target.closest('[data-dl-del]') : null;
@@ -845,6 +942,7 @@
         find: findItem,
         downloadEpisode: downloadEpisode,
         deleteDownload: deleteDownload,
+        deleteSavedDownloads: deleteSavedDownloads,
         playEpisode: playEpisode,
         openOfflinePlayer: openOfflinePlayer,
         openDownloadedAnime: openDownloadedAnime,
