@@ -22,7 +22,7 @@ native/
   ios/ android/                # `npx cap add`로 생성 (gitignore, 각자 Mac에서 생성)
 ```
 
-## 최초 설정 (Mac)
+## 최초 설정 (Mac, Capacitor 8 — Xcode 26+ 필요)
 
 ```bash
 cd native
@@ -31,7 +31,7 @@ cp capacitor.config.example.ts capacitor.config.ts
 
 npm install
 npm run vendor:sync     # assets/player → www/vendor 복사
-npx cap add ios
+npx cap add ios         # Capacitor 8 기본값은 SPM (CocoaPods 불필요)
 npx cap add android
 npx cap sync
 ```
@@ -67,8 +67,10 @@ npx cap open android    # Android Studio에서 실행/APK·AAB 빌드
 3. 전체화면 진입 → Hyfata 컨트롤(재생바/스킵/설정) 표시 확인 (iOS 포함)
 4. 자동 다음화 ON에서 끝나면 다음 저장 회차로 이동 확인
 
-## iOS 참고 (Xcode)
+## iOS 참고 (Xcode 26+)
 
+- 최소 iOS 15.0. 구형 iOS 크래시는 Capacitor 메이저 지원 범위를 먼저 확인할 것
+  (Capacitor 7은 구형이라 최신 iOS에서 네이티브층이 깨질 수 있음 → 8로 업그레이드).
 - 오프라인 저장은 앱 샌드박스(`Directory.Data`)라 별도 권한 불필요.
 - 앱 아이콘/스플래시는 `npx cap asset` 또는 Xcode Asset Catalog에서 교체.
 - 푸시 등 추가 플러그인 도입 시 `npx cap sync` 후 Pod 재설치.
