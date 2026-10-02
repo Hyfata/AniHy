@@ -38,8 +38,6 @@
     }
 
     // ---------- 네이티브 전용 CSS 오버라이드 (웹 브라우저에는 적용하지 않음) ----------
-    // - overscroll-behavior: WKWebView 러버밴드 바운스 차단 — 문서 끝/처음에서
-    //   sticky 하단 탭바가 풀려 들썩이고 상단 바가 흔들리는 문제 방지
     // - .navbar blur 제거: 배경이 불투명이라 시각 효과 없이 리페인트 떨림만 유발
     // - top 64px 하드코딩 보정: viewport-fit=cover 이후 navbar 높이가
     //   64 + safe-area-inset-top 이라 태블릿(사이드바 모드)에서 겹침
@@ -48,7 +46,6 @@
         var nativeStyle = document.createElement('style');
         nativeStyle.id = 'anihy-native-overrides';
         nativeStyle.textContent = [
-            'html, body { overscroll-behavior: none; }',
             '.navbar { backdrop-filter: none; padding-top: env(safe-area-inset-top, 0px); }',
             '@supports (-webkit-touch-callout: none) {',
             '    body:has(.navbar) { padding-top: calc(64px + env(safe-area-inset-top, 0px)); }',
@@ -57,8 +54,6 @@
             '    .bottom-tabbar { top: calc(64px + env(safe-area-inset-top, 0px)); }',
             '}',
             '.quarter-sticky-header { top: calc(64px + env(safe-area-inset-top, 0px)); }',
-            '/* 페이지 이동(전체 리로드)마다 재생되는 진입 애니메이션 제거 — 깜빡임으로 보이는 문제 */',
-            'main.container, .card-grid .card { animation: none !important; }',
             '/* navbar 없는 페이지(embed 모달, 로그인 등)는 본문 전체를 safe area 아래로 */',
             'body:not(:has(.navbar)) { padding-top: env(safe-area-inset-top, 0px); }',
             '/* 모바일 전체화면 애니 모달 닫기 버튼이 상태바 아래로 들어가지 않게 */',

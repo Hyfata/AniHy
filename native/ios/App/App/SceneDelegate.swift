@@ -4,8 +4,6 @@ import Capacitor
 class AniHyBridgeViewController: CAPBridgeViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        // 러버밴드 바운스 차단 — 문서 끝/처음에서 sticky 탭바·상단바 들썩임 방지
-        webView?.scrollView.bounces = false
         // safe area 인셋 이중 적용 방지 (페이지가 viewport-fit=cover + env()로 직접 처리)
         webView?.scrollView.contentInsetAdjustmentBehavior = .never
     }
