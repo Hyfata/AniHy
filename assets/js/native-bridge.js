@@ -77,7 +77,10 @@
             '    .bottom-tabbar { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; border: none; box-shadow: none; }',
             '}',
             '/* 저장 완료된 회차의 다운로드 버튼은 체크 아이콘(accent) */',
-            '.episode-dl-btn.is-downloaded { color: var(--accent); }'
+            '.episode-dl-btn.is-downloaded { color: var(--accent); }',
+            '/* 다운로드 중 버튼: 링 + % 텍스트가 들어가도록 pill 형태로 확장 */',
+            '.episode-dl-btn.is-downloading { width: auto; padding: 0 9px; border-radius: 999px; gap: 4px; color: var(--primary); }',
+            '.episode-dl-btn .dl-pct { font-size: 0.7rem; font-weight: 600; }'
         ].join('\n');
         document.head.appendChild(nativeStyle);
     }
@@ -272,7 +275,7 @@
         });
     }
 
-    // 진행률 링 (style.css의 .zip-ring 재사용, dasharray 56.55)
+    // 진행률 링 + % 텍스트 (style.css의 .zip-ring 재사용, dasharray 56.55)
     var RING_LEN = 56.55;
     function ringSvg(pct) {
         var offset = (RING_LEN * (1 - Math.min(100, Math.max(0, pct)) / 100)).toFixed(2);
@@ -280,6 +283,9 @@
             + '<circle class="zip-ring-bg" cx="12" cy="12" r="9"/>'
             + '<circle class="zip-ring-fg" cx="12" cy="12" r="9" style="stroke-dashoffset:' + offset + '"/>'
             + '</svg>';
+    }
+    function progressHtml(pct) {
+        return ringSvg(pct) + '<span class="dl-pct">' + Math.round(pct) + '%</span>';
     }
 
     // 저장 완료된 회차 버튼 아이콘 (체크)
@@ -576,11 +582,19 @@
                     aid: d.aid, ep: d.ep, anime: d.anime, title: d.title,
                     url: btn.getAttribute('href'),
                     size: d.size, chaptersUrl: d.chapters || null, cover: currentCover(),
-                    // 아이콘 자리에 진행률 링 표시, 완료 시 체크 아이콘 / 실패·중단 시 원래 아이콘
-                    onProgress: function (p) { btn.innerHTML = ringSvg(p); }
+                    // 아이콘 자리에 진행률 링+% 표시, 완료 시 체크 아이콘 / 실패·중단 시 원래 아이콘
+                    onProgress: function (p) {
+                        btn.classList.add('is-downloading');
+                        btn.innerHTML = progressHtml(p);
+                    }
                 }).then(function (ok2) {
-                    if (ok2) markDownloaded(btn);
-                    else btn.innerHTML = origHtml;
+                    btn.classList.remove('is-downloading');
+                    if (ok2) { markDownloaded(btn); return; }
+                    // 실패/취소라도 저장본이 이미 있으면(기존 저장 회차 탭 등) 체크 아이콘 유지
+                    findItem(d.aid, d.ep).then(function (it) {
+                        if (it) markDownloaded(btn);
+                        else btn.innerHTML = origHtml;
+                    });
                 });
             }, true);
         });
