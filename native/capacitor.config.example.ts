@@ -22,7 +22,10 @@ const config: CapacitorConfig = {
     allowNavigation: ['your-private-host.example'],
   },
   ios: {
-    contentInset: 'always',
+    // 'never' 필수: 페이지가 viewport-fit=cover + env(safe-area-inset-*)로
+    // safe area를 직접 처리하므로 WebView가 인셋을 또 넣으면 스크롤 시
+    // 상단 바/사이드바가 safe area 밖으로 밀려남
+    contentInset: 'never',
     allowsLinkPreview: false,
   },
   android: {

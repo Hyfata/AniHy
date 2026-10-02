@@ -37,6 +37,37 @@
         return 'web';
     }
 
+    // ---------- 네이티브 전용 CSS 오버라이드 (웹 브라우저에는 적용하지 않음) ----------
+    // - overscroll-behavior: WKWebView 러버밴드 바운스 차단 — 문서 끝/처음에서
+    //   sticky 하단 탭바가 풀려 들썩이고 상단 바가 흔들리는 문제 방지
+    // - .navbar blur 제거: 배경이 불투명이라 시각 효과 없이 리페인트 떨림만 유발
+    // - top 64px 하드코딩 보정: viewport-fit=cover 이후 navbar 높이가
+    //   64 + safe-area-inset-top 이라 태블릿(사이드바 모드)에서 겹침
+    // - 하단 탭바: WKWebView는 backdrop-filter 떨림이 없으므로 리퀴드 글래스 강화
+    if (isNative()) {
+        var nativeStyle = document.createElement('style');
+        nativeStyle.id = 'anihy-native-overrides';
+        nativeStyle.textContent = [
+            'html, body { overscroll-behavior: none; }',
+            '.navbar { backdrop-filter: none; }',
+            '@media (min-width: 769px) {',
+            '    .bottom-tabbar { top: calc(64px + env(safe-area-inset-top, 0px)); }',
+            '}',
+            '.quarter-sticky-header { top: calc(64px + env(safe-area-inset-top, 0px)); }',
+            '.bottom-tabbar {',
+            '    background: rgba(21, 23, 28, 0.55);',
+            '    backdrop-filter: blur(24px) saturate(1.8);',
+            '    -webkit-backdrop-filter: blur(24px) saturate(1.8);',
+            '    border-color: rgba(255, 255, 255, 0.14);',
+            '    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);',
+            '}',
+            '@media (min-width: 769px) {',
+            '    .bottom-tabbar { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; border: none; box-shadow: none; }',
+            '}'
+        ].join('\n');
+        document.head.appendChild(nativeStyle);
+    }
+
     // ---------- 메타데이터 저장소 (Preferences 우선, 없으면 localStorage) ----------
     var store = {
         async list() {

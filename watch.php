@@ -105,7 +105,7 @@ function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fro
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= htmlspecialchars($anime['title']) ?> <?= htmlspecialchars($epNum) ?>화 - AniHy</title>
     <link rel="stylesheet" href="<?= assetUrl('player/video-player.css') ?>">
     <link rel="stylesheet" href="<?= assetUrl('css/style.css') ?>">

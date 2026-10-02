@@ -48,7 +48,7 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= $year ?>년 <?= $quarter ?>분기 - AniHy</title>
     <link rel="stylesheet" href="<?= assetUrl('css/style.css') ?>">
 </head>
@@ -199,5 +199,6 @@ $filterTabs = array_merge(['전체'], $days, ['기타']);
     <?php include __DIR__ . '/inc/anime_modal.php'; ?>
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
+    <script src="<?= assetUrl('js/native-bridge.js') ?>"></script>
 </body>
 </html>

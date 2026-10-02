@@ -2250,7 +2250,8 @@ main.container {
 }
 
 .bottom-tabbar .tab-item {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     justify-content: center;
     color: var(--text-muted);
@@ -2266,6 +2267,7 @@ main.container {
     border-radius: 999px;
     font-size: 0.7rem;
     font-weight: 500;
+    white-space: nowrap;
     transition: background 0.15s;
 }
 
