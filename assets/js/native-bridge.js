@@ -181,10 +181,10 @@
     }
 
     // WebView fetch(쿠키 포함) → Filesystem에 청크 append. 대용량 mp4도 메모리 안전.
-    async function fetchToFile(url, relPath, onProgress) {
+    async function fetchToFile(url, relPath, onProgress, signal) {
         var f = fs();
         if (!f) throw new Error('Filesystem 플러그인을 사용할 수 없습니다.');
-        var res = await fetch(url, { credentials: 'include' });
+        var res = await fetch(url, { credentials: 'include', signal: signal || null });
         if (!res.ok) throw new Error('다운로드 실패 (HTTP ' + res.status + ')');
         var total = parseInt(res.headers.get('Content-Length') || '0', 10) || 0;
         var reader = res.body && res.body.getReader ? res.body.getReader() : null;
@@ -196,11 +196,13 @@
         if (!reader) {
             // 스트리밍 미지원 환경 폴백 (작은 파일용)
             var buf = new Uint8Array(await res.arrayBuffer());
+            if (signal && signal.aborted) throw new Error('aborted');
             await f.writeFile({ path: relPath, directory: 'DATA', data: u8ToB64(buf), recursive: true });
             if (onProgress) onProgress(100);
             return total || buf.byteLength;
         }
         for (;;) {
+            if (signal && signal.aborted) throw new Error('aborted');
             var chunk = await reader.read();
             if (chunk.done) break;
             await f.appendFile({ path: relPath, directory: 'DATA', data: u8ToB64(chunk.value) });
@@ -252,13 +254,38 @@
     }
 
     // ---------- 다운로드 실행 ----------
+    // busy[k] = AbortController (진행 중 다운로드 추적 + 모달 닫기 시 중단용)
     var busy = {};
+    var downloadsAborted = false;
+
+    function getActiveDownloadCount() {
+        return Object.keys(busy).length;
+    }
+
+    function abortAllDownloads() {
+        downloadsAborted = true;
+        Object.keys(busy).forEach(function (k) {
+            var b = busy[k];
+            if (b && typeof b.abort === 'function') b.abort();
+        });
+    }
+
+    // 진행률 링 (style.css의 .zip-ring 재사용, dasharray 56.55)
+    var RING_LEN = 56.55;
+    function ringSvg(pct) {
+        var offset = (RING_LEN * (1 - Math.min(100, Math.max(0, pct)) / 100)).toFixed(2);
+        return '<svg viewBox="0 0 24 24" class="zip-ring">'
+            + '<circle class="zip-ring-bg" cx="12" cy="12" r="9"/>'
+            + '<circle class="zip-ring-fg" cx="12" cy="12" r="9" style="stroke-dashoffset:' + offset + '"/>'
+            + '</svg>';
+    }
 
     async function downloadEpisode(opts) {
         var aid = opts.aid;
         var ep = String(opts.ep);
         var k = epKey(aid, ep);
         if (busy[k]) return false;
+        if (downloadsAborted) return false;
         if (await findItem(aid, ep)) {
             await window.modalAlert('이미 저장된 회차입니다.\n보관함 > 다운로드에서 재생하거나 삭제할 수 있습니다.');
             return false;
@@ -269,14 +296,16 @@
                 return false;
             }
         }
-        busy[k] = true;
+        var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        busy[k] = controller || true;
         var setProgress = opts.onProgress || function () { /* ignore */ };
         try {
             setProgress(0);
             var rel = mp4RelPath(aid, ep);
-            var bytes = await fetchToFile(opts.url, rel, setProgress);
+            var bytes = await fetchToFile(opts.url, rel, setProgress, controller ? controller.signal : null);
             var hasVtt = false;
             if (opts.chaptersUrl) {
+                if (controller && controller.signal.aborted) throw new Error('aborted');
                 var abs = new URL(opts.chaptersUrl, window.location.origin).toString();
                 hasVtt = await fetchTextToFile(abs, vttRelPath(aid, ep));
             }
@@ -298,10 +327,13 @@
             return true;
         } catch (err) {
             await deleteStorageFile(mp4RelPath(aid, ep));
-            await window.modalAlert('저장에 실패했습니다: ' + (err && err.message ? err.message : err));
+            // 사용자가 중단(모달 닫기)한 경우는 조용히 정리만
+            if (!(controller && controller.signal.aborted)) {
+                await window.modalAlert('저장에 실패했습니다: ' + (err && err.message ? err.message : err));
+            }
             return false;
         } finally {
-            busy[k] = false;
+            delete busy[k];
             if (opts.onDone) opts.onDone();
         }
     }
@@ -522,18 +554,19 @@
         document.querySelectorAll('.episode-dl-btn').forEach(function (btn) {
             if (btn.__anihyBound) return;
             btn.__anihyBound = true;
+            var origHtml = btn.innerHTML;
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
                 var d = btn.dataset;
-                var labelEl = btn;
                 downloadEpisode({
                     aid: d.aid, ep: d.ep, anime: d.anime, title: d.title,
                     url: btn.getAttribute('href'),
                     size: d.size, chaptersUrl: d.chapters || null, cover: currentCover(),
-                    onProgress: function (p) { labelEl.setAttribute('data-progress', String(Math.round(p))); },
-                    onDone: function () { labelEl.removeAttribute('data-progress'); }
+                    // 아이콘 자리에 진행률 링 표시, 완료/중단 시 원래 아이콘 복원
+                    onProgress: function (p) { btn.innerHTML = ringSvg(p); },
+                    onDone: function () { btn.innerHTML = origHtml; }
                 });
             }, true);
         });
@@ -560,20 +593,34 @@
                 }
                 if (!(await window.modalConfirm('총 ' + pending.length + '개 회차를 앱에 저장하시겠습니까?\n저장 중에는 화면을 닫지 마세요.'))) return;
                 var labelEl = allBtn.querySelector('span');
+                var iconEl0 = allBtn.querySelector('svg');
                 var orig = labelEl ? labelEl.textContent : '';
+                var origIcon = iconEl0 ? iconEl0.outerHTML : '';
+                var setAllProgress = function (idx, pct) {
+                    // 전체 진행률 = 완료된 회차 + 현재 회차 진행분
+                    var overall = ((idx + pct / 100) / pending.length) * 100;
+                    var cur = allBtn.querySelector('svg');
+                    if (cur) cur.outerHTML = ringSvg(overall);
+                    if (labelEl) labelEl.textContent = (idx + 1) + '/' + pending.length + ' · ' + Math.round(overall) + '%';
+                };
                 var ok = 0;
                 for (var j = 0; j < pending.length; j++) {
                     var bd = pending[j].dataset;
-                    if (labelEl) labelEl.textContent = '저장 중 ' + (j + 1) + '/' + pending.length;
+                    setAllProgress(j, 0);
                     var r = await downloadEpisode({
                         aid: bd.aid, ep: bd.ep, anime: bd.anime || allBtn.dataset.anime || '', title: bd.title,
                         url: pending[j].getAttribute('href'),
                         size: bd.size, chaptersUrl: bd.chapters || null, cover: currentCover(),
-                        skipConfirm: true, quiet: true
+                        skipConfirm: true, quiet: true,
+                        onProgress: function (p) { setAllProgress(j, p); }
                     });
                     if (r) ok++;
+                    // 모달 닫기로 전체 중단된 경우 나머지 회차는 시작하지 않음
+                    if (downloadsAborted) break;
                 }
                 if (labelEl) labelEl.textContent = orig;
+                var curIcon = allBtn.querySelector('svg');
+                if (curIcon && origIcon) curIcon.outerHTML = origIcon;
                 await window.modalAlert(ok + '/' + pending.length + '개 저장 완료');
             }, true);
         }
@@ -654,12 +701,40 @@
         // 웹에서 직접 진입한 경우 안내 문구는 renderLibrary가 처리
     }
 
+    // 애니 모달 닫기 가드: iframe(모달) 안에서 진행 중인 다운로드가 있으면 경고 후 중단
+    // (모달이 닫히면 iframe 문서가 파괴돼 다운로드가 자연 소멸 — 부분 파일은 abort 경로에서 삭제)
+    function patchAnimeModalCloseGuard() {
+        if (!isNative()) return;
+        if (typeof window.closeAnimeModal !== 'function') return;
+        if (window.closeAnimeModal.__anihyGuarded) return;
+        var orig = window.closeAnimeModal;
+        var guarded = async function () {
+            var nb = null;
+            try {
+                var frame = document.getElementById('anime-modal-frame');
+                nb = frame && frame.contentWindow ? frame.contentWindow.AniHyNative : null;
+            } catch (e) { nb = null; }
+            var n = (nb && nb.getActiveDownloadCount) ? nb.getActiveDownloadCount() : 0;
+            if (n > 0) {
+                var ok = window.modalConfirm
+                    ? await window.modalConfirm('다운로드 ' + n + '건이 진행 중입니다.\n모달을 닫으면 다운로드가 중단됩니다. 닫으시겠습니까?')
+                    : true;
+                if (!ok) return;
+                try { nb.abortAllDownloads(); } catch (e) { /* ignore */ }
+            }
+            orig();
+        };
+        guarded.__anihyGuarded = true;
+        window.closeAnimeModal = guarded;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         if (isNative()) {
             document.documentElement.classList.add('is-native');
         }
         patchPlayerFullscreen();
         hideDownloadsTabOnWeb();
+        patchAnimeModalCloseGuard();
         bindDownloadButtons();
         bindLibraryClicks();
         bindOfflineRedirect();
@@ -676,6 +751,8 @@
         playEpisode: playEpisode,
         openOfflinePlayer: openOfflinePlayer,
         openDownloadedAnime: openDownloadedAnime,
-        refreshLibrary: refreshLibrary
+        refreshLibrary: refreshLibrary,
+        getActiveDownloadCount: getActiveDownloadCount,
+        abortAllDownloads: abortAllDownloads
     };
 })();
