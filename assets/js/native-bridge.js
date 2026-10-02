@@ -275,6 +275,12 @@
         });
     }
 
+    // 개별 회차 다운로드만 중단 (전체 중단 플래그는 세우지 않음)
+    function abortDownload(aid, ep) {
+        var b = busy[epKey(aid, ep)];
+        if (b && typeof b.abort === 'function') b.abort();
+    }
+
     // 진행률 링 + % 텍스트 (style.css의 .zip-ring 재사용, dasharray 56.55)
     var RING_LEN = 56.55;
     function ringSvg(pct) {
@@ -566,7 +572,7 @@
         document.querySelectorAll('.episode-dl-btn').forEach(function (btn) {
             if (btn.__anihyBound) return;
             btn.__anihyBound = true;
-            var origHtml = btn.innerHTML;
+            btn.__origHtml = btn.innerHTML;
             // 이미 저장된 회차는 완료 아이콘으로 표시
             (function (b) {
                 findItem(b.dataset.aid, b.dataset.ep).then(function (it) {
@@ -578,6 +584,13 @@
                 e.stopPropagation();
                 if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
                 var d = btn.dataset;
+                // 다운로드 중 탭 → 취소 여부 확인 후 중단
+                if (busy[epKey(d.aid, d.ep)]) {
+                    (window.modalConfirm ? window.modalConfirm('다운로드를 취소하시겠습니까?') : Promise.resolve(true))
+                        .then(function (ok) { if (ok) abortDownload(d.aid, d.ep); });
+                    return;
+                }
+                downloadsAborted = false;
                 downloadEpisode({
                     aid: d.aid, ep: d.ep, anime: d.anime, title: d.title,
                     url: btn.getAttribute('href'),
@@ -593,7 +606,7 @@
                     // 실패/취소라도 저장본이 이미 있으면(기존 저장 회차 탭 등) 체크 아이콘 유지
                     findItem(d.aid, d.ep).then(function (it) {
                         if (it) markDownloaded(btn);
-                        else btn.innerHTML = origHtml;
+                        else btn.innerHTML = btn.__origHtml;
                     });
                 });
             }, true);
@@ -603,7 +616,13 @@
         var allBtn = document.getElementById('download-all-btn');
         if (allBtn && !allBtn.__anihyBound) {
             allBtn.__anihyBound = true;
-            allBtn.addEventListener('click', async function () {
+            allBtn.addEventListener('click', async function (e) {
+                // app.js의 웹용 ZIP 다운로드 핸들러 차단 — 같이 실행되면 ZIP 완성 시
+                // location 이동이 발생해 진행 중인 회차 저장이 끊김 (첫 회차 실패 버그)
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+                downloadsAborted = false;
                 var btns = Array.prototype.slice.call(document.querySelectorAll('.episode-dl-btn'));
                 if (!btns.length) {
                     await window.modalAlert('저장할 수 있는 회차가 없습니다.');
@@ -631,6 +650,11 @@
                     if (cur) cur.outerHTML = ringSvg(overall);
                     if (labelEl) labelEl.textContent = (idx + 1) + '/' + pending.length + ' · ' + Math.round(overall) + '%';
                 };
+                // 대상 회차 버튼 전부 진행률 표시(0%)로 전환
+                pending.forEach(function (b) {
+                    b.classList.add('is-downloading');
+                    b.innerHTML = progressHtml(0);
+                });
                 var ok = 0;
                 for (var j = 0; j < pending.length; j++) {
                     var bd = pending[j].dataset;
@@ -640,15 +664,27 @@
                         url: pending[j].getAttribute('href'),
                         size: bd.size, chaptersUrl: bd.chapters || null, cover: currentCover(),
                         skipConfirm: true, quiet: true,
-                        onProgress: function (p) { setAllProgress(j, p); }
+                        onProgress: (function (btn2, idx2) {
+                            return function (p) {
+                                setAllProgress(idx2, p);
+                                btn2.innerHTML = progressHtml(p);
+                            };
+                        })(pending[j], j)
                     });
                     if (r) {
                         ok++;
+                        pending[j].classList.remove('is-downloading');
                         markDownloaded(pending[j]);
                     }
                     // 모달 닫기로 전체 중단된 경우 나머지 회차는 시작하지 않음
                     if (downloadsAborted) break;
                 }
+                // 저장되지 못한 채 진행률 표시로 남은 버튼은 원래 아이콘으로 복원
+                pending.forEach(function (b) {
+                    if (b.classList.contains('is-downloaded')) return;
+                    b.classList.remove('is-downloading');
+                    b.innerHTML = b.__origHtml || b.innerHTML;
+                });
                 if (labelEl) labelEl.textContent = orig;
                 var curIcon = allBtn.querySelector('svg');
                 if (curIcon && origIcon) curIcon.outerHTML = origIcon;
@@ -759,6 +795,35 @@
         window.closeAnimeModal = guarded;
     }
 
+    // 다운로드 중 회차 행 탭(watch 이동) 가드: 페이지를 떠나면 iframe/문서가 파괴돼
+    // 다운로드가 끊기므로 확인 후 중단하고 이동 (embed 모달이면 goWatchEmbed로 top 이동)
+    function bindDownloadNavGuard() {
+        if (!isNative()) return;
+        document.addEventListener('click', function (e) {
+            if (getActiveDownloadCount() === 0) return;
+            if (e.target && e.target.closest && e.target.closest('.episode-dl-btn')) return;
+            var row = e.target && e.target.closest ? e.target.closest('.episode-item[data-aid][data-ep]') : null;
+            if (!row) return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            var aid = row.getAttribute('data-aid');
+            var ep = row.getAttribute('data-ep');
+            var go = function () {
+                if (typeof window.goWatchEmbed === 'function') window.goWatchEmbed(aid, ep);
+                else window.location.href = '/anime/watch.php?aid=' + encodeURIComponent(aid) + '&ep=' + encodeURIComponent(ep);
+            };
+            (window.modalConfirm
+                ? window.modalConfirm('다운로드가 진행 중입니다.\n페이지를 이동하면 다운로드가 중단됩니다. 이동하시겠습니까?')
+                : Promise.resolve(true)
+            ).then(function (ok) {
+                if (!ok) return;
+                abortAllDownloads();
+                go();
+            });
+        }, true);
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         if (isNative()) {
             document.documentElement.classList.add('is-native');
@@ -766,6 +831,7 @@
         patchPlayerFullscreen();
         hideDownloadsTabOnWeb();
         patchAnimeModalCloseGuard();
+        bindDownloadNavGuard();
         bindDownloadButtons();
         bindLibraryClicks();
         bindOfflineRedirect();

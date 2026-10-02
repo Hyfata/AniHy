@@ -7,7 +7,7 @@ function baseUrl(): string {
 }
 
 function assetUrl(string $path): string {
-    return '/anime/assets/' . ltrim($path, '/') . '?v=210';
+    return '/anime/assets/' . ltrim($path, '/') . '?v=211';
 }
 
 function coverUrl(string $filename): string {
