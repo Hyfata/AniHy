@@ -19,7 +19,9 @@ native/
     css/offline-player.css
     vendor/                    # sync-vendor.sh가 assets/player에서 복사 (gitignore)
   scripts/sync-vendor.sh
-  ios/ android/                # `npx cap add`로 생성 (gitignore, 각자 Mac에서 생성)
+  ios/                         # iOS 프로젝트 (커밋됨 — 커스텀 SceneDelegate 포함.
+                               #   단 sync 산출물 capacitor.config.json(실서버 URL)·public/은 gitignore)
+  android/                     # `npx cap add`로 생성 (gitignore, 각자 생성)
 ```
 
 ## 최초 설정 (Mac, Capacitor 8 — Xcode 26+ 필요)
@@ -31,9 +33,9 @@ cp capacitor.config.example.ts capacitor.config.ts
 
 npm install
 npm run vendor:sync     # assets/player → www/vendor 복사
-npx cap add ios         # Capacitor 8 기본값은 SPM (CocoaPods 불필요)
+# ios/는 레포에 커밋돼 있으므로 clone 후 그대로 사용 (커스텀 SceneDelegate 포함)
 npx cap add android
-npx cap sync
+npx cap sync            # capacitor.config.json / public/ 재생성 (gitignore라 clone에 없음)
 ```
 
 ## 실행/빌드

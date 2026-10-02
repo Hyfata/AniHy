@@ -20,6 +20,11 @@ inc/configuration.php
 # Capacitor 네이티브 앱: 실서버 URL 포함 설정 + 빌드 산출물 (절대 커밋 금지)
 native/capacitor.config.ts
 native/node_modules/
-native/ios/
+# ios 프로젝트는 커스텀 Swift 코드(SceneDelegate 등)가 있어 커밋하되,
+# sync 산출물(실서버 URL 포함 config / www 복사본)은 제외
+native/ios/App/App/capacitor.config.json
+native/ios/App/App/public/
+xcuserdata/
+*.xcuserstate
 native/android/
 native/www/vendor/
