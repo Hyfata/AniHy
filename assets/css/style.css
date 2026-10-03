@@ -3047,6 +3047,12 @@ main.has-tabbar {
     background: #000;
     border-radius: 0 !important;
 }
+/* :fullscreen 의사 클래스는 CSS 전체화면에 적용되지 않으므로 동일 규칙을 복제
+   (없으면 영상이 상단에 붙고 아래가 빈 검정 영역이 됨) */
+.vp-css-fullscreen .vp__video {
+    height: 100%;
+    object-fit: contain;
+}
 /* 전역 토글 규칙(anihy-css-fs의 overflow/display)은 두지 않음 —
    WebKit에서 root overflow·fixed 요소 display 토글 시 상단바가 깨지는 버그 유발.
    전체화면 레이어가 불투명하므로 뒤 페이지는 그대로 둬도 보이지 않음 */
