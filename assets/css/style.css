@@ -103,14 +103,16 @@ img {
     max-width: none;
 }
 
-/* iOS rubber-band(overscroll) 때 sticky가 풀리는 문제 대응 */
+/* iOS rubber-band(overscroll) 때 sticky가 풀리는 문제 대응.
+   참고: iOS Safari/WKWebView의 OS 버그로 러버밴드 중 fixed 요소가 순간 사라질 수
+   있는데(translateZ로도 간헐 발생), fixed 유지가 디자인상 결정이라 알고 쓰는 제약임 */
 @supports (-webkit-touch-callout: none) {
     .navbar {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        /* WKWebView 러버밴드 중 fixed 요소가 합성 레이어에서 빠져 순간 사라지는 문제 방지 */
+        /* 러버밴드 중 사라짐 완화용 합성 레이어 강제 (완전한 해결은 아님) */
         transform: translateZ(0);
         backface-visibility: hidden;
     }
