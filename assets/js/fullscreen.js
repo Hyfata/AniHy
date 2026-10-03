@@ -44,6 +44,45 @@
         setTimeout(nudgeViewport, 900);
     });
 
+    // 스와이프 제스처 (앱/웹 공통): 플레이어 위에서 위로 쓸기 → 전체화면 진입,
+    // 전체화면 중 아래로 쓸기 → 해제. 수직 이동 70px 이상 + 수직 우세일 때만 인식해
+    // 탭(재생 토글)·진행 바 스크럽과 충돌하지 않게 하고, 인식되면 탭 이벤트를 차단
+    var gestureStart = null;
+    document.addEventListener('touchstart', function (e) {
+        gestureStart = null;
+        if (e.touches.length !== 1) return;
+        var t = e.target;
+        var c = (t && t.closest) ? t.closest('.vp') : null;
+        if (!c) return;
+        // 컨트롤/버튼/설정 시트 위에서 시작한 제스처는 무시
+        if (t.closest('.vp__controls, .vp__menu, .vp__menu-backdrop, .vp__btn, input, select')) return;
+        gestureStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, c: c };
+    }, { capture: true, passive: true });
+    document.addEventListener('touchend', function (e) {
+        if (!gestureStart) return;
+        var t = e.changedTouches[0];
+        var dx = t.clientX - gestureStart.x;
+        var dy = t.clientY - gestureStart.y;
+        var c = gestureStart.c;
+        gestureStart = null;
+        if (Math.abs(dy) < 70 || Math.abs(dy) < Math.abs(dx) * 1.5) return;
+        e.stopImmediatePropagation(); // 재생 토글 탭으로 오인되지 않게 차단
+        if (e.preventDefault) e.preventDefault();
+        var inCssFs = c.classList.contains('vp-css-fullscreen');
+        var inNativeFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        if (dy < 0) {
+            // 위로 쓸기 → 전체화면 진입 (플레이어의 FS 버튼 경로를 그대로 사용)
+            if (inCssFs || inNativeFs) return;
+            var btn = c.querySelector('.vp__btn--fullscreen');
+            if (btn) btn.click();
+        } else {
+            // 아래로 쓸기 → 전체화면 해제
+            if (inCssFs && window.AnihyFullscreen) window.AnihyFullscreen.exitAll();
+            else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+    }, { capture: true });
+
     if (!isNative()) return;
 
     var ICON_FS = '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
