@@ -1,9 +1,6 @@
-/* CSS 전체화면 + iOS 26+ 전체화면 뷰포트 버그 우회.
+/* CSS 전체화면 + 스와이프 제스처.
  * - iOS WKWebView는 요소 Fullscreen API 미지원 → 네이티브 앱에서는 CSS 전체화면으로 대체 (커스텀 UI 유지)
  * - Hyfata VideoPlayer의 toggleFullscreen을 오버라이드 (assets/player는 서브모듈이라 직접 수정 금지)
- * - iOS 26+는 전체화면(네이티브/CSS 무관) 해제 후 safe-area/뷰포트 재계산을 못 해
- *   상단에 빈 영역이 생기는 OS 버그가 있음(WebKit 297779, capacitor#8231)
- *   → 해제 시 viewport 메타를 흔들어 재계산 강제. 이 우회는 웹/앱 모두에 적용
  */
 (function () {
     'use strict';
@@ -16,33 +13,6 @@
             return false;
         }
     }
-
-    // iOS 26+: 전체화면 해제 후 뷰포트가 inset 상태로 고착되는 버그 우회.
-    // viewport 메타의 initial-scale을 살짝 바꿨다 되돌려 WebKit에 재계산을 강제
-    function nudgeViewport() {
-        var meta = document.querySelector('meta[name="viewport"]');
-        if (!meta) return;
-        var orig = meta.getAttribute('content') || '';
-        meta.setAttribute('content', orig.replace(/initial-scale=[\d.]+/, 'initial-scale=1.001'));
-        setTimeout(function () { meta.setAttribute('content', orig); }, 150);
-        setTimeout(function () { meta.setAttribute('content', orig); }, 400);
-    }
-
-    // 웹(네이티브 Fullscreen API 경로)에서도 해제 시 동일 우회
-    document.addEventListener('fullscreenchange', function () {
-        if (!document.fullscreenElement) nudgeViewport();
-    });
-    document.addEventListener('webkitfullscreenchange', function () {
-        if (!document.webkitFullscreenElement) nudgeViewport();
-    });
-
-    // 회전 시에도 env(safe-area-inset-*) 갱신 강제 — 가로로 전체화면 해제 후
-    // 세로로 돌릴 때(= 해제 시점 이후의 회전) inset이 갱신되지 않아
-    // 상단바가 OS 상태바와 겹치는 시나리오 대응. 앱/웹 무관하게 항상 설치
-    window.addEventListener('orientationchange', function () {
-        setTimeout(nudgeViewport, 300);
-        setTimeout(nudgeViewport, 900);
-    });
 
     // 스와이프 제스처 (앱/웹 공통): 플레이어 위에서 위로 쓸기 → 전체화면 진입,
     // 전체화면 중 아래로 쓸기 → 해제. 수직 이동 70px 이상 + 수직 우세일 때만 인식해
@@ -165,9 +135,6 @@
 
         lockOrientation();
         callStatusBar('hide');
-        // 진입 시점에도 env(safe-area-inset-*)이 낡은 값일 수 있어 재계산 강제 —
-        // 안 하면 첫 전체화면에서 컨트롤이 노치/상태바에 겹쳐 있다가 한참 뒤에야 적용됨
-        setTimeout(nudgeViewport, 200);
         if (player._poke) player._poke();
     }
 
@@ -192,9 +159,6 @@
 
         unlockOrientation();
         requestAnimationFrame(function () { callStatusBar('show'); });
-        // iOS 26+ 뷰포트 고착 버그 우회 — 상태바 복귀 후 재계산 강제
-        setTimeout(nudgeViewport, 200);
-        setTimeout(nudgeViewport, 800);
         if (player._poke) player._poke();
     }
 
