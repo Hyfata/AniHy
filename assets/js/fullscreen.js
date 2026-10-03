@@ -161,7 +161,9 @@
 
     proto.toggleFullscreen = function () {
         var c = this.container;
-        if (document.fullscreenEnabled && c.requestFullscreen) {
+        // 네이티브 앱에서는 항상 CSS 전체화면 — iOS 26+ WKWebView는 fullscreenEnabled=true를
+        // 보고하지만 네이티브 요소 전체화면 경로 자체가 뷰포트 고착 버그(capacitor#8231)를 유발
+        if (!isNative() && document.fullscreenEnabled && c.requestFullscreen) {
             return origToggleFullscreen.call(this);
         }
         if (c.classList.contains('vp-css-fullscreen')) {

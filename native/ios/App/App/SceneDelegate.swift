@@ -36,7 +36,14 @@ class AniHyBridgeViewController: CAPBridgeViewController {
     private func pushSafeAreaVars() {
         guard let webView = webView else { return }
         let i = view.safeAreaInsets
-        let js = "window.__anihySetInsets && window.__anihySetInsets(\(i.top),\(i.right),\(i.bottom),\(i.left))"
+        // iOS 26+는 전체화면/회전 후 view.safeAreaInsets 자체가 0으로 고착될 수 있음.
+        // 상태바가 보이는 동안은 statusBarFrame이 정확하므로 top은 둘 중 큰 값을 사용
+        var top = i.top
+        if let scene = view.window?.windowScene, !scene.statusBarManager?.isStatusBarHidden ?? false,
+           let h = scene.statusBarManager?.statusBarFrame.height {
+            top = max(top, h)
+        }
+        let js = "window.__anihySetInsets && window.__anihySetInsets(\(top),\(i.right),\(i.bottom),\(i.left))"
         webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
