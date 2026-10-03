@@ -36,6 +36,14 @@
         if (!document.webkitFullscreenElement) nudgeViewport();
     });
 
+    // 회전 시에도 env(safe-area-inset-*) 갱신 강제 — 가로로 전체화면 해제 후
+    // 세로로 돌릴 때(= 해제 시점 이후의 회전) inset이 갱신되지 않아
+    // 상단바가 OS 상태바와 겹치는 시나리오 대응. 앱/웹 무관하게 항상 설치
+    window.addEventListener('orientationchange', function () {
+        setTimeout(nudgeViewport, 300);
+        setTimeout(nudgeViewport, 900);
+    });
+
     if (!isNative()) return;
 
     var ICON_FS = '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
@@ -112,6 +120,9 @@
 
         lockOrientation();
         callStatusBar('hide');
+        // 진입 시점에도 env(safe-area-inset-*)이 낡은 값일 수 있어 재계산 강제 —
+        // 안 하면 첫 전체화면에서 컨트롤이 노치/상태바에 겹쳐 있다가 한참 뒤에야 적용됨
+        setTimeout(nudgeViewport, 200);
         if (player._poke) player._poke();
     }
 
@@ -138,6 +149,7 @@
         requestAnimationFrame(function () { callStatusBar('show'); });
         // iOS 26+ 뷰포트 고착 버그 우회 — 상태바 복귀 후 재계산 강제
         setTimeout(nudgeViewport, 200);
+        setTimeout(nudgeViewport, 800);
         if (player._poke) player._poke();
     }
 
