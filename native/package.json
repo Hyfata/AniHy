@@ -1,6 +1,6 @@
 {
   "name": "anihy-native",
-  "version": "0.1.0",
+  "version": "1.0.4",
   "private": true,
   "description": "AniHy Capacitor wrapper (iOS/Android). Server URL lives only in capacitor.config.ts (gitignored).",
   "scripts": {
