@@ -156,4 +156,32 @@
         active: function () { return !!activePlayer; },
         exitAll: function () { exitCssFullscreen(); }
     };
+
+    // 임시 진단 모드: watch.php?...&fsdebug=1 — 전체화면 상태를 화면에 표시
+    if (/[?&]fsdebug=1/.test(location.search)) {
+        var dbg = document.createElement('div');
+        dbg.style.cssText = 'position:fixed;left:4px;top:4px;z-index:999999;background:rgba(0,0,0,.85);color:#0f0;font:10px/1.4 monospace;padding:6px;border-radius:6px;max-width:95vw;white-space:pre-wrap;pointer-events:none';
+        document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(dbg); });
+        if (document.body) document.body.appendChild(dbg);
+        var lines = [];
+        function log(msg) {
+            lines.push(msg);
+            if (lines.length > 14) lines.shift();
+            var cs = getComputedStyle(document.documentElement);
+            dbg.textContent = 'fsEnabled=' + document.fullscreenEnabled
+                + ' patched=' + !!(window.VideoPlayer && window.VideoPlayer.prototype.__anihyCssFs)
+                + ' active=' + !!activePlayer + '\n'
+                + 'win=' + window.innerWidth + 'x' + window.innerHeight
+                + ' visVP=' + (window.visualViewport ? Math.round(window.visualViewport.width) + 'x' + Math.round(window.visualViewport.height) + '@' + Math.round(window.visualViewport.offsetTop) : 'n/a')
+                + ' scrollY=' + Math.round(window.scrollY) + '\n'
+                + lines.join('\n');
+        }
+        var _enter = enterCssFullscreen, _exit = exitCssFullscreen;
+        enterCssFullscreen = function (p) { log('ENTER'); _enter(p); };
+        exitCssFullscreen = function (p) { log('EXIT'); _exit(p); };
+        window.addEventListener('resize', function () { log('resize'); });
+        window.addEventListener('orientationchange', function () { log('orient ' + (screen.orientation ? screen.orientation.type : '?')); });
+        window.addEventListener('error', function (e) { log('ERR ' + e.message); });
+        log('init native=' + isNative());
+    }
 })();
