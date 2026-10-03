@@ -1,6 +1,8 @@
-/* CSS 전체화면 + 스와이프 제스처.
- * - iOS WKWebView는 요소 Fullscreen API 미지원 → 네이티브 앱에서는 CSS 전체화면으로 대체 (커스텀 UI 유지)
- * - Hyfata VideoPlayer의 toggleFullscreen을 오버라이드 (assets/player는 서브모듈이라 직접 수정 금지)
+/* CSS 전체화면 연동 + 스와이프 제스처.
+ * - 네이티브 앱에서는 VideoPlayer를 fullscreenMode: 'css'로 생성 (iOS WKWebView에서 자체 UI 유지)
+ *   — 전환 로직·레이아웃은 플레이어(video-player.js/css)가 소유하고,
+ *     여기서는 모드 결정(window.AnihyVideoPlayerDefaults) + 네이티브 부가 동작(OS 상태바)만 담당
+ * - 스와이프: 플레이어 위에서 위로 쓸기 → 전체화면, 전체화면 중 아래로 쓸기 → 해제
  */
 (function () {
     'use strict';
@@ -13,6 +15,11 @@
             return false;
         }
     }
+
+    // VideoPlayer 생성 시 함께 전달할 옵션 (watch.php가 사용).
+    // 네이티브(iOS WKWebView)에서는 네이티브 요소 전체화면이 iOS 26+ 뷰포트 고착 버그를
+    // 유발하므로 CSS 전체화면 모드를 강제한다.
+    window.AnihyVideoPlayerDefaults = { fullscreenMode: isNative() ? 'css' : 'auto' };
 
     // 스와이프 제스처 (앱/웹 공통): 플레이어 위에서 위로 쓸기 → 전체화면 진입,
     // 전체화면 중 아래로 쓸기 → 해제. 수직 이동 70px 이상 + 수직 우세일 때만 인식해
@@ -38,29 +45,17 @@
         if (Math.abs(dy) < 70 || Math.abs(dy) < Math.abs(dx) * 1.5) return;
         e.stopImmediatePropagation(); // 재생 토글 탭으로 오인되지 않게 차단
         if (e.preventDefault) e.preventDefault();
-        var inCssFs = c.classList.contains('vp-css-fullscreen');
-        var inNativeFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-        if (dy < 0) {
-            // 위로 쓸기 → 전체화면 진입 (플레이어의 FS 버튼 경로를 그대로 사용)
-            if (inCssFs || inNativeFs) return;
-            var btn = c.querySelector('.vp__btn--fullscreen');
-            if (btn) btn.click();
-        } else {
-            // 아래로 쓸기 → 전체화면 해제
-            if (inCssFs && window.AnihyFullscreen) window.AnihyFullscreen.exitAll();
-            else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
-            else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
-        }
+        // vp--fullscreen 클래스는 네이티브/CSS 전체화면 모두에서 플레이어가 토글
+        var inFs = c.classList.contains('vp--fullscreen');
+        if (dy < 0 ? inFs : !inFs) return; // 위: 이미 전체화면이면 무시 / 아래: 전체화면 아니면 무시
+        // 진입·해제 모두 플레이어의 FS 버튼 경로를 그대로 사용
+        var btn = c.querySelector('.vp__btn--fullscreen');
+        if (btn) btn.click();
     }, { capture: true });
 
     if (!isNative()) return;
 
-    var ICON_FS = '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
-    var ICON_FS_EXIT = '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>';
-
-    var activePlayer = null;
-    var savedScrollY = 0;
-
+    // 이하 네이티브 전용: OS 상태바를 플레이어 전체화면 상태에 맞춰 hide/show
     function statusBar() {
         try {
             return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.StatusBar) || null;
@@ -84,121 +79,9 @@
         } catch (e) { /* ignore */ }
     }
 
-    function setFsButtonIcon(container, on) {
-        try {
-            var btn = container.querySelector('.vp__btn--fullscreen');
-            if (btn) {
-                btn.innerHTML = on ? ICON_FS_EXIT : ICON_FS;
-                btn.setAttribute('aria-label', on ? '전체화면 해제' : '전체화면');
-            }
-        } catch (e) { /* ignore */ }
-    }
-
-    function lockOrientation() {
-        try {
-            if (screen.orientation && typeof screen.orientation.lock === 'function') {
-                var p = screen.orientation.lock('landscape');
-                if (p && typeof p.catch === 'function') p.catch(function () { /* ignore */ });
-            }
-        } catch (e) { /* ignore */ }
-    }
-
-    function unlockOrientation() {
-        try {
-            if (screen.orientation && typeof screen.orientation.unlock === 'function') {
-                screen.orientation.unlock();
-            }
-        } catch (e) { /* ignore */ }
-    }
-
-    function enterCssFullscreen(player) {
-        if (activePlayer && activePlayer !== player) exitCssFullscreen(activePlayer);
-        if (activePlayer === player) return;
-        activePlayer = player;
-
-        var c = player.container;
-        savedScrollY = window.scrollY || window.pageYOffset || 0;
-
-        // 전역 상태(html/body overflow, 상단바 display 등)는 절대 건드리지 않는다.
-        // WebKit은 root overflow 토글 시 fixed 요소가 깨지고, fixed 요소의 display
-        // 토글 시 재합성 상태가 망가지는 버그가 있어 한 번 전체화면을 다녀오면
-        // 상단바가 들썩이는 원인이 된다. 전체화면 레이어가 불투명 검정으로 화면을
-        // 전부 덮으므로 뒤 페이지는 잠글 필요가 없다.
-        c.classList.add('vp-css-fullscreen');
-        c.classList.add('vp--fullscreen');
-        setFsButtonIcon(c, true);
-
-        if (player.isTouch) {
-            if (player.refs.menu) c.appendChild(player.refs.menu);
-            if (player.refs.backdrop) c.appendChild(player.refs.backdrop);
-        }
-
-        lockOrientation();
-        callStatusBar('hide');
-        if (player._poke) player._poke();
-    }
-
-    function exitCssFullscreen(player) {
-        player = player || activePlayer;
-        if (!player) return;
-        if (activePlayer === player) activePlayer = null;
-
-        var c = player.container;
-
-        if (player.isTouch) {
-            if (player.refs.menu) document.body.appendChild(player.refs.menu);
-            if (player.refs.backdrop) document.body.appendChild(player.refs.backdrop);
-        }
-
-        c.classList.remove('vp-css-fullscreen');
-        c.classList.remove('vp--fullscreen');
-        setFsButtonIcon(c, false);
-
-        // 배경 페이지가 러버밴드 등으로 스크롤됐을 수 있으니 best-effort 복원
-        window.scrollTo(0, savedScrollY);
-
-        unlockOrientation();
-        requestAnimationFrame(function () { callStatusBar('show'); });
-        if (player._poke) player._poke();
-    }
-
-    var proto = window.VideoPlayer && window.VideoPlayer.prototype;
-    if (!proto || proto.__anihyCssFs) return;
-    proto.__anihyCssFs = true;
-
-    var origToggleFullscreen = proto.toggleFullscreen;
-
-    proto.toggleFullscreen = function () {
-        var c = this.container;
-        // 네이티브 앱에서는 항상 CSS 전체화면 — iOS 26+ WKWebView는 fullscreenEnabled=true를
-        // 보고하지만 네이티브 요소 전체화면 경로 자체가 뷰포트 고착 버그(capacitor#8231)를 유발
-        if (!isNative() && document.fullscreenEnabled && c.requestFullscreen) {
-            return origToggleFullscreen.call(this);
-        }
-        if (c.classList.contains('vp-css-fullscreen')) {
-            exitCssFullscreen(this);
-        } else {
-            enterCssFullscreen(this);
-        }
-    };
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') exitCssFullscreen();
+    document.addEventListener('vp:fullscreenchange', function (e) {
+        callStatusBar(e.detail && e.detail.fullscreen ? 'hide' : 'show');
     });
-
-    window.addEventListener('pagehide', function () {
-        exitCssFullscreen();
-    });
-
-    // 전체화면 중 회전/리사이즈 시 플레이어 레이아웃 재계산
-    window.addEventListener('resize', function () {
-        if (activePlayer && activePlayer._poke) activePlayer._poke();
-    });
-
-    window.AnihyFullscreen = {
-        active: function () { return !!activePlayer; },
-        exitAll: function () { exitCssFullscreen(); }
-    };
 
     // 진단 HUD: watch.php?...&fsdebug=1 일 때만 표시
     if (/[?&]fsdebug=1/.test(location.search)) {
@@ -218,9 +101,8 @@
             if (msg) { lines.push(msg); if (lines.length > 8) lines.shift(); }
             var cs = getComputedStyle(document.documentElement);
             var ps = getComputedStyle(probe);
-            dbg.textContent = 'fsEnabled=' + document.fullscreenEnabled
-                + ' patched=' + !!(window.VideoPlayer && window.VideoPlayer.prototype.__anihyCssFs)
-                + ' active=' + !!activePlayer
+            dbg.textContent = 'cssfs=' + !!document.querySelector('.vp-css-fullscreen')
+                + ' nativeFs=' + !!(document.fullscreenElement || document.webkitFullscreenElement)
                 + ' setInsets=' + (typeof window.__anihySetInsets) + '\n'
                 + 'VAR t=' + cs.getPropertyValue('--anihy-sat') + ' r=' + cs.getPropertyValue('--anihy-sar')
                 + ' b=' + cs.getPropertyValue('--anihy-sab') + ' l=' + cs.getPropertyValue('--anihy-sal') + '\n'
@@ -230,9 +112,7 @@
                 + ' scrollY=' + Math.round(window.scrollY) + '\n'
                 + lines.join('\n');
         }
-        var _enter = enterCssFullscreen, _exit = exitCssFullscreen;
-        enterCssFullscreen = function (p) { render('ENTER'); _enter(p); };
-        exitCssFullscreen = function (p) { render('EXIT'); _exit(p); };
+        document.addEventListener('vp:fullscreenchange', function (e) { render('FS ' + !!(e.detail && e.detail.fullscreen)); });
         window.addEventListener('resize', function () { render('resize'); });
         window.addEventListener('orientationchange', function () { render('orient ' + (screen.orientation ? screen.orientation.type : '?')); });
         window.addEventListener('error', function (e) { render('ERR ' + e.message); });

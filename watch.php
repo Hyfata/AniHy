@@ -186,11 +186,11 @@ function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fro
         document.addEventListener('DOMContentLoaded', () => {
             // README 빠른 시작: new VideoPlayer('#player', { src, chaptersUrl })
             // 오프닝/엔딩 스킵은 플레이어 내장(스킵 버튼 + 자동 스킵 설정) 사용
-            window.animePlayer = new VideoPlayer('#anime-player', {
+            window.animePlayer = new VideoPlayer('#anime-player', Object.assign({
                 src: <?= json_encode($videoUrl, JSON_UNESCAPED_SLASHES) ?>,
                 <?= $hasChapterVtt ? ("chaptersUrl: " . json_encode(chapterVttUrl($aid, $safeEp), JSON_UNESCAPED_SLASHES) . ",\n                ") : '' ?>lang: 'ko',
                 preload: 'auto'
-            });
+            }, window.AnihyVideoPlayerDefaults));
             if (typeof window.initWatchProgress === 'function') {
                 window.initWatchProgress(window.animePlayer);
             }

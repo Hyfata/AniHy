@@ -3038,88 +3038,14 @@ main.has-tabbar {
     font-size: 0.88rem;
 }
 
-/* 네이티브 앱 CSS 전체화면: Hyfata 자체 UI 유지용 (iOS 네이티브 FS 대체) */
+/* 네이티브 앱 CSS 전체화면: 레이아웃 규칙은 플레이어 CSS(video-player.css의
+   .vp-css-fullscreen 블록)가 소유. 여기서는 iOS env(safe-area-inset-*) 고착 우회로
+   네이티브가 주입한 진짜 inset 변수(--anihy-sa*)만 플레이어 변수(--vp-sa*)에 매핑 */
 .vp-css-fullscreen {
-    position: fixed !important;
-    inset: 0 !important;
-    /* width/height는 지정하지 않음 — inset:0이 뷰포트를 따라가게 둬야
-       회전 시 100vw/100dvh 재계산 타이밍 버그(WKWebView visual viewport 어긋남)를 피할 수 있음 */
-    max-width: none !important;
-    z-index: 9999 !important;
-    background: #000;
-    border-radius: 0 !important;
-}
-/* :fullscreen 의사 클래스는 CSS 전체화면에 적용되지 않으므로 동일 규칙을 복제
-   (없으면 영상이 상단에 붙고 아래가 빈 검정 영역이 됨) */
-.vp-css-fullscreen .vp__video {
-    height: 100%;
-    object-fit: contain;
-}
-/* 전역 토글 규칙(anihy-css-fs의 overflow/display)은 두지 않음 —
-   WebKit에서 root overflow·fixed 요소 display 토글 시 상단바가 깨지는 버그 유발.
-   전체화면 레이어가 불투명하므로 뒤 페이지는 그대로 둬도 보이지 않음 */
-/* 플레이어 자체 CSS는 top/bottom safe-area만 처리하고 left/right는 미처리라
-   가로 회전(노치가 좌/우로 이동) 시 컨트롤이 노치 밑으로 들어감 — 좌우 보정 추가 */
-.vp-css-fullscreen .vp__controls {
-    left: calc(10px + var(--anihy-sal, env(safe-area-inset-left, 0px)));
-    right: calc(10px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-.vp-css-fullscreen.vp--touch .vp__volume {
-    right: calc(68px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-.vp-css-fullscreen.vp--touch .vp__btn--settings {
-    right: calc(10px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--compact .vp__volume {
-    right: calc(50px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--compact .vp__btn--settings {
-    right: calc(6px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-.vp-css-fullscreen .vp__skip-btn {
-    right: calc(12px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-/* 터치 UI는 건느뛰기 버튼이 전체화면 버튼 왼쪽에 붙는 레이아웃이라
-   right 오프셋이 다름 — 안 맞추면 전체화면 버튼과 겹침 */
-.vp-css-fullscreen.vp--touch .vp__skip-btn {
-    right: calc(56px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--idle .vp__skip-btn {
-    right: calc(10px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--compact .vp__skip-btn {
-    right: calc(44px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--compact.vp--idle .vp__skip-btn {
-    right: calc(8px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
-}
-/* 플레이어 자체 top/bottom safe-area 규칙도 env 고착의 영향을 받으므로
-   네이티브 주입 변수 우선으로 재선언 */
-.vp-css-fullscreen.vp--touch .vp__volume,
-.vp-css-fullscreen.vp--touch .vp__btn--settings {
-    top: calc(10px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--compact .vp__volume,
-.vp-css-fullscreen.vp--touch.vp--compact .vp__btn--settings {
-    top: calc(6px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
-}
-.vp-css-fullscreen.vp--touch .vp__controls {
-    bottom: calc(16px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
-}
-.vp-css-fullscreen.vp--touch .vp__skip-btn {
-    bottom: calc(52px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--idle .vp__skip-btn {
-    bottom: calc(16px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--compact .vp__controls {
-    bottom: calc(12px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--compact .vp__skip-btn {
-    bottom: calc(40px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
-}
-.vp-css-fullscreen.vp--touch.vp--compact.vp--idle .vp__skip-btn {
-    bottom: calc(12px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
+    --vp-sat: var(--anihy-sat, env(safe-area-inset-top, 0px));
+    --vp-sar: var(--anihy-sar, env(safe-area-inset-right, 0px));
+    --vp-sab: var(--anihy-sab, env(safe-area-inset-bottom, 0px));
+    --vp-sal: var(--anihy-sal, env(safe-area-inset-left, 0px));
 }
 /* 네이티브 앱에서 전체화면이 아닐 때는 플레이어가 페이지 안에 있어
    노치/상태바와 무관 — 플레이어 기본 safe-area 오프셋이 오히려 버튼을

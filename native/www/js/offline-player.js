@@ -1,6 +1,6 @@
 /* 오프라인 재생 페이지 로직 (앱 번들, 네트워크 불필요).
  * - ?aid=&ep=&back= 파싱 → Preferences 메타 → Filesystem 로컬 파일 재생
- * - Hyfata 플레이어 그대로 사용, 전체화면은 vendor/fullscreen.js의 CSS 방식 (iOS 자체 UI 유지)
+ * - Hyfata 플레이어 그대로 사용, 전체화면은 플레이어 CSS 모드(fullscreenMode: 'css', iOS 자체 UI 유지)
  * - 같은 애니의 저장 회차 목록 + 자동 다음화 + 이어보기 지원 (watch.php 대응 기능)
  */
 (function () {
@@ -133,7 +133,7 @@
             return;
         }
 
-        var opts = { src: src, lang: 'ko', preload: 'auto' };
+        var opts = { src: src, lang: 'ko', preload: 'auto', fullscreenMode: 'css' };
         if (chaptersUrl) opts.chaptersUrl = chaptersUrl;
         var player = new window.VideoPlayer('#offline-player', opts);
 
