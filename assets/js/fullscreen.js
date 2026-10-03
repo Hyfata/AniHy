@@ -189,31 +189,43 @@
         exitAll: function () { exitCssFullscreen(); }
     };
 
-    // 임시 진단 모드: watch.php?...&fsdebug=1 — 전체화면 상태를 화면에 표시
-    if (/[?&]fsdebug=1/.test(location.search)) {
+    // 임시 진단 HUD: 네이티브 앱에서는 자동 활성(원격 진단용), 웹은 ?fsdebug=1
+    if (isNative() || /[?&]fsdebug=1/.test(location.search)) {
         var dbg = document.createElement('div');
         dbg.style.cssText = 'position:fixed;left:4px;top:4px;z-index:999999;background:rgba(0,0,0,.85);color:#0f0;font:10px/1.4 monospace;padding:6px;border-radius:6px;max-width:95vw;white-space:pre-wrap;pointer-events:none';
         document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(dbg); });
         if (document.body) document.body.appendChild(dbg);
+        // env(safe-area-inset-*) 실제 계산값을 읽기 위한 프로브
+        var probe = document.createElement('div');
+        probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;'
+            + 'padding-top:env(safe-area-inset-top,0px);padding-right:env(safe-area-inset-right,0px);'
+            + 'padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px)';
+        document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(probe); });
+        if (document.body) document.body.appendChild(probe);
         var lines = [];
-        function log(msg) {
-            lines.push(msg);
-            if (lines.length > 14) lines.shift();
+        function render(msg) {
+            if (msg) { lines.push(msg); if (lines.length > 8) lines.shift(); }
             var cs = getComputedStyle(document.documentElement);
+            var ps = getComputedStyle(probe);
             dbg.textContent = 'fsEnabled=' + document.fullscreenEnabled
                 + ' patched=' + !!(window.VideoPlayer && window.VideoPlayer.prototype.__anihyCssFs)
-                + ' active=' + !!activePlayer + '\n'
+                + ' active=' + !!activePlayer
+                + ' setInsets=' + (typeof window.__anihySetInsets) + '\n'
+                + 'VAR t=' + cs.getPropertyValue('--anihy-sat') + ' r=' + cs.getPropertyValue('--anihy-sar')
+                + ' b=' + cs.getPropertyValue('--anihy-sab') + ' l=' + cs.getPropertyValue('--anihy-sal') + '\n'
+                + 'ENV t=' + ps.paddingTop + ' r=' + ps.paddingRight + ' b=' + ps.paddingBottom + ' l=' + ps.paddingLeft + '\n'
                 + 'win=' + window.innerWidth + 'x' + window.innerHeight
-                + ' visVP=' + (window.visualViewport ? Math.round(window.visualViewport.width) + 'x' + Math.round(window.visualViewport.height) + '@' + Math.round(window.visualViewport.offsetTop) : 'n/a')
+                + ' visVP@' + (window.visualViewport ? Math.round(window.visualViewport.offsetTop) + ',' + Math.round(window.visualViewport.offsetLeft) : 'n/a')
                 + ' scrollY=' + Math.round(window.scrollY) + '\n'
                 + lines.join('\n');
         }
         var _enter = enterCssFullscreen, _exit = exitCssFullscreen;
-        enterCssFullscreen = function (p) { log('ENTER'); _enter(p); };
-        exitCssFullscreen = function (p) { log('EXIT'); _exit(p); };
-        window.addEventListener('resize', function () { log('resize'); });
-        window.addEventListener('orientationchange', function () { log('orient ' + (screen.orientation ? screen.orientation.type : '?')); });
-        window.addEventListener('error', function (e) { log('ERR ' + e.message); });
-        log('init native=' + isNative());
+        enterCssFullscreen = function (p) { render('ENTER'); _enter(p); };
+        exitCssFullscreen = function (p) { render('EXIT'); _exit(p); };
+        window.addEventListener('resize', function () { render('resize'); });
+        window.addEventListener('orientationchange', function () { render('orient ' + (screen.orientation ? screen.orientation.type : '?')); });
+        window.addEventListener('error', function (e) { render('ERR ' + e.message); });
+        setInterval(function () { render(); }, 700);
+        render('init native=' + isNative());
     }
 })();
