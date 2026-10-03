@@ -44,13 +44,11 @@
     }
 
     // ---------- 네이티브 전용 CSS 오버라이드 (웹 브라우저에는 적용하지 않음) ----------
-    // - .navbar blur 제거: 배경이 불투명이라 시각 효과 없이 리페인트 떨림만 유발
     // - 하단 탭바: WKWebView는 backdrop-filter 떨림이 없으므로 리퀴드 글래스 강화
     if (isNative()) {
         var nativeStyle = document.createElement('style');
         nativeStyle.id = 'anihy-native-overrides';
         nativeStyle.textContent = [
-            '.navbar { backdrop-filter: none; }',
             '/* 애니 모달 본문: iframe 내부 문서에서는 var(--anihy-sat, env(safe-area-inset-top, 0px))이 0이라',
             '   embed 페이지 쪽 패딩은 무의미 — 부모 페이지에서 모달 자체를 아래로 밀어야 함 */',
             '@media (max-width: 640px) {',
