@@ -92,7 +92,7 @@ img {
     z-index: 100;
     /* 노치/상태바 등 OS 상단 영역까지 배경으로 덮어 콘텐츠가 위로 비치지 않게 함
        (viewport-fit=cover + 풀블리드 WebView에서 필수) */
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: var(--anihy-sat, env(safe-area-inset-top, 0px));
 }
 
 .navbar .container {
@@ -114,7 +114,7 @@ img {
         right: 0;
     }
     body:has(.navbar) {
-        padding-top: calc(64px + env(safe-area-inset-top, 0px));
+        padding-top: calc(64px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
     }
 }
 
@@ -951,7 +951,7 @@ img {
 
 .sidebar {
     position: sticky;
-    top: calc(88px + env(safe-area-inset-top, 0px));
+    top: calc(88px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
     background: var(--surface);
     border-radius: var(--radius);
     padding: 16px;
@@ -1162,7 +1162,7 @@ body.modal-open {
 
 .anime-modal-close {
     position: absolute;
-    top: calc(10px + env(safe-area-inset-top, 0px));
+    top: calc(10px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
     right: 12px;
     z-index: 5;
     width: 34px;
@@ -1240,7 +1240,7 @@ body.modal-open {
     }
     /* 바텀 탭바가 있는 페이지에서는 기어가 탭바에 가려지지 않게 위로 */
     body:has(.bottom-tabbar) .fab-settings {
-        bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+        bottom: calc(84px + var(--anihy-sab, env(safe-area-inset-bottom, 0px))) !important;
     }
 }
 
@@ -2211,7 +2211,7 @@ main.container {
 /* Bottom tab bar */
 .bottom-tabbar {
     position: fixed;
-    bottom: calc(12px + env(safe-area-inset-bottom));
+    bottom: calc(12px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
     left: 16px;
     right: 16px;
     display: flex;
@@ -2269,7 +2269,7 @@ main.has-tabbar {
 /* Desktop: sidebar instead of bottom tab bar */
 @media (min-width: 769px) {
     .bottom-tabbar {
-        top: calc(64px + env(safe-area-inset-top, 0px));
+        top: calc(64px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
         bottom: 0;
         left: 0;
         right: auto;
@@ -2317,7 +2317,7 @@ main.has-tabbar {
 /* Quarter cards */
 .quarter-sticky-header {
     position: sticky;
-    top: calc(64px + env(safe-area-inset-top, 0px));
+    top: calc(64px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
     z-index: 50;
     background: linear-gradient(to bottom, var(--bg) 55%, rgba(11, 12, 15, 0.55));
     backdrop-filter: blur(12px);
@@ -3053,24 +3053,52 @@ main.has-tabbar {
 /* 플레이어 자체 CSS는 top/bottom safe-area만 처리하고 left/right는 미처리라
    가로 회전(노치가 좌/우로 이동) 시 컨트롤이 노치 밑으로 들어감 — 좌우 보정 추가 */
 .vp-css-fullscreen .vp__controls {
-    left: calc(10px + env(safe-area-inset-left, 0px));
-    right: calc(10px + env(safe-area-inset-right, 0px));
+    left: calc(10px + var(--anihy-sal, env(safe-area-inset-left, 0px)));
+    right: calc(10px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
 }
 .vp-css-fullscreen.vp--touch .vp__volume {
-    right: calc(68px + env(safe-area-inset-right, 0px));
+    right: calc(68px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
 }
 .vp-css-fullscreen.vp--touch .vp__btn--settings {
-    right: calc(10px + env(safe-area-inset-right, 0px));
+    right: calc(10px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
 }
 .vp-css-fullscreen.vp--touch.vp--compact .vp__volume {
-    right: calc(50px + env(safe-area-inset-right, 0px));
+    right: calc(50px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
 }
 .vp-css-fullscreen.vp--touch.vp--compact .vp__btn--settings {
-    right: calc(6px + env(safe-area-inset-right, 0px));
+    right: calc(6px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
 }
 .vp-css-fullscreen .vp__skip-btn {
-    right: calc(12px + env(safe-area-inset-right, 0px));
+    right: calc(12px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
 }
 .vp-css-fullscreen.vp--touch.vp--compact .vp__skip-btn {
-    right: calc(44px + env(safe-area-inset-right, 0px));
+    right: calc(44px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
+}
+/* 플레이어 자체 top/bottom safe-area 규칙도 env 고착의 영향을 받으므로
+   네이티브 주입 변수 우선으로 재선언 */
+.vp-css-fullscreen.vp--touch .vp__volume,
+.vp-css-fullscreen.vp--touch .vp__btn--settings {
+    top: calc(10px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
+}
+.vp-css-fullscreen.vp--touch.vp--compact .vp__volume,
+.vp-css-fullscreen.vp--touch.vp--compact .vp__btn--settings {
+    top: calc(6px + var(--anihy-sat, env(safe-area-inset-top, 0px)));
+}
+.vp-css-fullscreen.vp--touch .vp__controls {
+    bottom: calc(16px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
+}
+.vp-css-fullscreen.vp--touch .vp__skip-btn {
+    bottom: calc(52px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
+}
+.vp-css-fullscreen.vp--touch.vp--idle .vp__skip-btn {
+    bottom: calc(16px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
+}
+.vp-css-fullscreen.vp--touch.vp--compact .vp__controls {
+    bottom: calc(12px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
+}
+.vp-css-fullscreen.vp--touch.vp--compact .vp__skip-btn {
+    bottom: calc(40px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
+}
+.vp-css-fullscreen.vp--touch.vp--compact.vp--idle .vp__skip-btn {
+    bottom: calc(12px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
 }
