@@ -27,10 +27,19 @@ class AniHyBridgeViewController: CAPBridgeViewController {
         let script = WKUserScript(source: injectJS, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
         webView?.configuration.userContentController.addUserScript(script)
         webView?.configuration.userContentController.add(self, name: "anihyInsets")
+        webView?.configuration.userContentController.add(self, name: "anihyStatusBar")
     }
 
     deinit {
         webView?.configuration.userContentController.removeScriptMessageHandler(forName: "anihyInsets")
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "anihyStatusBar")
+    }
+
+    // JS(fullscreen.js)가 전체화면 진입/해제 시 병내는 상태바 숨김 직접 채널.
+    // @capacitor/status-bar는 iPadOS 26에서 동작하지 않아 네이티브에서 직접 제어
+    private var anihyStatusBarHidden = false
+    override var prefersStatusBarHidden: Bool {
+        return anihyStatusBarHidden
     }
 
     private func pushSafeAreaVars() {
@@ -85,6 +94,10 @@ extension AniHyBridgeViewController: WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if message.name == "anihyInsets" {
             pushSafeAreaVars()
+        }
+        if message.name == "anihyStatusBar", let body = message.body as? String {
+            anihyStatusBarHidden = (body == "hide")
+            setNeedsStatusBarAppearanceUpdate()
         }
     }
 }

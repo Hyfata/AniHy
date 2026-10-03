@@ -62,10 +62,16 @@
 
     function callStatusBar(method) {
         var sb = statusBar();
-        if (!sb || typeof sb[method] !== 'function') return;
+        if (sb && typeof sb[method] === 'function') {
+            try {
+                var p = sb[method]();
+                if (p && typeof p.catch === 'function') p.catch(function () { /* ignore */ });
+            } catch (e) { /* ignore */ }
+        }
+        // 플러그인 미등록 빌드 대비 네이티브 직접 채널 (SceneDelegate의 anihyStatusBar 핸들러)
         try {
-            var p = sb[method]();
-            if (p && typeof p.catch === 'function') p.catch(function () { /* ignore */ });
+            var h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.anihyStatusBar;
+            if (h) h.postMessage(method);
         } catch (e) { /* ignore */ }
     }
 
