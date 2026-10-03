@@ -16,6 +16,8 @@
 
 * {
     box-sizing: border-box;
+    /* 링크/버튼 탭 시 나타나는 회색 하이라이트 제거 (iOS/Android WebView 공통) */
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* 다크 테마 스크롤바 (본문 + .modal-body 등 내부 스크롤 + 애니 모달 iframe 내부 문서에 동일 적용) */
