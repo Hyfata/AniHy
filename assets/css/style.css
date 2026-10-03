@@ -110,6 +110,9 @@ img {
         top: 0;
         left: 0;
         right: 0;
+        /* WKWebView 러버밴드 중 fixed 요소가 합성 레이어에서 빠져 순간 사라지는 문제 방지 */
+        transform: translateZ(0);
+        backface-visibility: hidden;
     }
     body:has(.navbar) {
         padding-top: calc(64px + env(safe-area-inset-top, 0px));

@@ -116,7 +116,9 @@
         window.scrollTo(0, savedScrollY);
 
         unlockOrientation();
-        callStatusBar('show');
+        // 상태바 복귀는 레이아웃이 안정된 다음 프레임에 — 즉시 show()하면
+        // safe-area-inset-top 변경 애니메이션과 재레이아웃이 겹쳐 상단바가 들썩임
+        requestAnimationFrame(function () { callStatusBar('show'); });
         if (player._poke) player._poke();
     }
 
