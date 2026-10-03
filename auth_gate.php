@@ -2,22 +2,7 @@
 require_once __DIR__ . '/inc/access_auth.php';
 require_once __DIR__ . '/inc/functions.php';
 
-$redirect = '/anime/';
-if (!empty($_COOKIE['anihy_redirect'])) {
-    $decoded = urldecode($_COOKIE['anihy_redirect']);
-    if (str_starts_with($decoded, '/anime/')) {
-        $redirect = $decoded;
-    }
-    // Consume the redirect cookie immediately
-    setcookie('anihy_redirect', '', [
-        'expires' => time() - 3600,
-        'path' => '/anime/',
-        'domain' => $_SERVER['HTTP_HOST'] ?? '',
-        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-}
+$redirect = safeRedirectPath($_POST['redirect'] ?? $_GET['redirect'] ?? null);
 
 if (isAccessAuthenticated()) {
     redirect($redirect);

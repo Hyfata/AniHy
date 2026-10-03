@@ -24,7 +24,7 @@ $total = (int)$stmt->fetch()['cnt'];
 
 // 다음 페이지 존재 여부는 LIMIT+1로 판별
 $stmt = $pdo->query(
-    "SELECT * FROM animes ORDER BY created_at DESC LIMIT " . ($limit + 1) . " OFFSET " . $offset
+    "SELECT * FROM animes ORDER BY created_at DESC, id DESC LIMIT " . ($limit + 1) . " OFFSET " . $offset
 );
 $rows = $stmt->fetchAll();
 $hasMore = count($rows) > $limit;

@@ -33,8 +33,13 @@ $stmt->execute([$aid]);
 $episodes = $stmt->fetchAll();
 
 foreach ($episodes as &$ep) {
-    $ep['has_file'] = !empty($ep['file_path']) && is_file(__DIR__ . '/' . $ep['file_path']) && filesize(__DIR__ . '/' . $ep['file_path']) > 0;
-    $ep['file_size'] = $ep['has_file'] ? filesize(__DIR__ . '/' . $ep['file_path']) : 0;
+    $fileSize = 0;
+    if (!empty($ep['file_path'])) {
+        $fileFullPath = __DIR__ . '/' . $ep['file_path'];
+        if (is_file($fileFullPath)) $fileSize = (int)filesize($fileFullPath);
+    }
+    $ep['has_file'] = $fileSize > 0;
+    $ep['file_size'] = $fileSize;
     $safeEp = sanitizeFilename($ep['episode_number']);
     $thumbPath = episodeThumbPath($aid, $safeEp);
     $ep['thumb_url'] = is_file($thumbPath) ? episodeThumbUrl($aid, $safeEp) . '?v=' . filemtime($thumbPath) : coverUrl($anime['cover_image']);
@@ -154,7 +159,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
             <h2 class="page-title">에피소드</h2>
             <div class="page-header-actions">
                 <?php if (!empty($episodes)): ?>
-                    <button type="button" id="episode-sort-btn" class="btn btn-sm">최신화부터</button>
+                    <button type="button" id="episode-sort-btn" class="btn btn-sm">1화부터 보기</button>
                 <?php endif; ?>
                 <?php if ($embed && isAdmin()): ?>
                     <button class="btn btn-primary btn-sm" onclick="openModal('add-episode-modal')">에피소드 추가</button>
@@ -175,6 +180,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                     $watchOnclick = $embed
                         ? 'goWatchEmbed(' . $aid . ', ' . json_encode($ep['episode_number']) . ')'
                         : 'location.href=' . json_encode($watchUrl);
+                    $dlSafeEp = sanitizeFilename($ep['episode_number']);
                     ?>
                     <div class="episode-item" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number']) ?>" onclick="<?= htmlspecialchars($watchOnclick, ENT_QUOTES) ?>">
                         <div class="episode-thumb">
@@ -190,10 +196,10 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
                         <div class="episode-actions">
                             <?php if ($ep['has_file']): ?>
                                 <?php
-                                $dlChaptersFile = __DIR__ . '/animes/' . $aid . '/' . $safeEp . '.chapters.vtt';
+                                $dlChaptersFile = __DIR__ . '/animes/' . $aid . '/' . $dlSafeEp . '.chapters.vtt';
                                 $dlHasChapters = is_file($dlChaptersFile) && filesize($dlChaptersFile) > 0;
                                 ?>
-                                <a class="episode-dl-btn" href="/anime/api/download_episode.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>" title="다운로드" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number'], ENT_QUOTES) ?>" data-anime="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>" data-title="<?= htmlspecialchars($ep['episode_number'] . '화' . (!empty($ep['title']) ? ': ' . $ep['title'] : ''), ENT_QUOTES) ?>" data-size="<?= htmlspecialchars(formatBytes($ep['file_size'])) ?>"<?= $dlHasChapters ? (' data-chapters="' . htmlspecialchars(chapterVttUrl($aid, $safeEp), ENT_QUOTES) . '"') : '' ?> onclick="event.stopPropagation()">
+                                <a class="episode-dl-btn" href="/anime/api/download_episode.php?aid=<?= $aid ?>&ep=<?= rawurlencode($ep['episode_number']) ?>" title="다운로드" data-aid="<?= $aid ?>" data-ep="<?= htmlspecialchars($ep['episode_number'], ENT_QUOTES) ?>" data-anime="<?= htmlspecialchars($anime['title'], ENT_QUOTES) ?>" data-title="<?= htmlspecialchars($ep['episode_number'] . '화' . (!empty($ep['title']) ? ': ' . $ep['title'] : ''), ENT_QUOTES) ?>" data-size="<?= htmlspecialchars(formatBytes($ep['file_size'])) ?>"<?= $dlHasChapters ? (' data-chapters="' . htmlspecialchars(chapterVttUrl($aid, $dlSafeEp), ENT_QUOTES) . '"') : '' ?> onclick="event.stopPropagation()">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M4 21h16"/></svg>
                                 </a>
                             <?php endif; ?>
@@ -459,7 +465,7 @@ $totalDownloadSize = array_sum(array_map(fn($e) => $e['file_size'], $episodes));
             const apply = (order) => {
                 const items = order === 'desc' ? [...original].reverse() : original;
                 items.forEach(el => list.appendChild(el));
-                btn.textContent = order === 'desc' ? '최신화부터' : '1화부터';
+                btn.textContent = order === 'desc' ? '1화부터 보기' : '최신화부터 보기';
             };
             let order = localStorage.getItem(KEY) === 'asc' ? 'asc' : 'desc';
             apply(order);

@@ -6,8 +6,6 @@
  *   1) 에피소드/전체 다운로드 가로채기 → 앱 내부 저장소(Directory.Data)에 저장
  *   2) 보관함>다운로드 탭에 애니별 저장 목록 렌더 (재생/삭제)
  *   3) 오프라인에서는 저장된 회차를 로컬 오프라인 플레이어로 재생
- *   4) 전체화면을 네이티브가 아닌 CSS 방식으로 강제해 Hyfata 자체 UI 유지
- *      (iOS WKWebView의 video.webkitEnterFullscreen은 애플 기본 UI로 바뀌므로 사용 금지)
  */
 (function () {
     'use strict';
@@ -47,20 +45,12 @@
 
     // ---------- 네이티브 전용 CSS 오버라이드 (웹 브라우저에는 적용하지 않음) ----------
     // - .navbar blur 제거: 배경이 불투명이라 시각 효과 없이 리페인트 떨림만 유발
-    // - top 64px 하드코딩 보정: viewport-fit=cover 이후 navbar 높이가
-    //   64 + safe-area-inset-top 이라 태블릿(사이드바 모드)에서 겹침
     // - 하단 탭바: WKWebView는 backdrop-filter 떨림이 없으므로 리퀴드 글래스 강화
     if (isNative()) {
         var nativeStyle = document.createElement('style');
         nativeStyle.id = 'anihy-native-overrides';
         nativeStyle.textContent = [
             '.navbar { backdrop-filter: none; }',
-            '@media (min-width: 769px) {',
-            '    .bottom-tabbar { top: calc(64px + env(safe-area-inset-top, 0px)); }',
-            '}',
-            '.quarter-sticky-header { top: calc(64px + env(safe-area-inset-top, 0px)); }',
-            '/* 모바일 전체화면 애니 모달 닫기 버튼이 상태바 아래로 들어가지 않게 */',
-            '.anime-modal-close { top: calc(10px + env(safe-area-inset-top, 0px)); }',
             '/* 애니 모달 본문: iframe 내부 문서에서는 env(safe-area-inset-top)이 0이라',
             '   embed 페이지 쪽 패딩은 무의미 — 부모 페이지에서 모달 자체를 아래로 밀어야 함 */',
             '@media (max-width: 640px) {',
@@ -91,7 +81,7 @@
             '.dl-select-toggle.active { color: var(--danger); border-color: var(--danger); }',
             '#episode-list.dl-select-mode .episode-item.dl-selected { border-color: var(--danger); background: rgba(255, 77, 109, 0.10); }',
             '/* 오프라인 모드 네이티브 보관함 오버레이 */',
-            '#anihy-offline { position: fixed; inset: 0; z-index: 99999; background: #0b0c0f; color: #e8e8f0; display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }',
+            '#anihy-offline { position: fixed; inset: 0; z-index: 9000; background: #0b0c0f; color: #e8e8f0; display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }',
             '#anihy-offline .aoff-header { display: flex; align-items: center; gap: 10px; padding: calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.07); }',
             '#anihy-offline .aoff-title { flex: 1; margin: 0; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
             '#anihy-offline .aoff-retry, #anihy-offline .aoff-actions button { padding: 7px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); background: #16181d; color: #e8e8f0; font-size: 0.8rem; }',
@@ -185,12 +175,23 @@
         return String(name).replace(/[^a-zA-Z0-9._-]/g, '_');
     }
 
+    function epFileBase(ep) {
+        var raw = String(ep);
+        if (/^[a-zA-Z0-9._-]+$/.test(raw)) return raw;
+        var safe = sanitize(raw);
+        var h = 5381;
+        for (var i = 0; i < raw.length; i++) {
+            h = ((h << 5) + h + raw.charCodeAt(i)) >>> 0;
+        }
+        return safe + '.' + h.toString(16).padStart(6, '0');
+    }
+
     function mp4RelPath(aid, ep) {
-        return DL_DIR + '/' + aid + '/' + sanitize(ep) + '.mp4';
+        return DL_DIR + '/' + aid + '/' + epFileBase(ep) + '.mp4';
     }
 
     function vttRelPath(aid, ep) {
-        return DL_DIR + '/' + aid + '/' + sanitize(ep) + '.chapters.vtt';
+        return DL_DIR + '/' + aid + '/' + epFileBase(ep) + '.chapters.vtt';
     }
 
     function fs() {
@@ -350,7 +351,10 @@
         var ep = String(opts.ep);
         var k = epKey(aid, ep);
         if (busy[k]) return false;
-        if (downloadsAborted) return false;
+        if (downloadsAborted) {
+            if (getActiveDownloadCount() > 0) return false;
+            downloadsAborted = false;
+        }
         if (await findItem(aid, ep)) {
             await window.modalAlert('이미 저장된 회차입니다.\n보관함 > 다운로드에서 재생하거나 삭제할 수 있습니다.');
             return false;
@@ -374,6 +378,7 @@
                 var abs = new URL(opts.chaptersUrl, window.location.origin).toString();
                 hasVtt = await fetchTextToFile(abs, vttRelPath(aid, ep));
             }
+            if (controller && controller.signal.aborted) throw new Error('aborted');
             await upsertItem({
                 aid: Number(aid),
                 ep: ep,
@@ -393,6 +398,7 @@
             return true;
         } catch (err) {
             await deleteStorageFile(mp4RelPath(aid, ep));
+            await deleteStorageFile(vttRelPath(aid, ep));
             // 사용자가 중단(모달 닫기)한 경우는 조용히 정리만
             if (!(controller && controller.signal.aborted)) {
                 await window.modalAlert('저장에 실패했습니다: ' + (err && err.message ? err.message : err));
@@ -549,6 +555,7 @@
     }
 
     // 오프라인 UI용 커버 src: 로컬 캐시 우선, 없으면 원격 URL
+    // 오프라인인데 로컬 캐시가 없거나 해석 실패 시 깨진 이미지 대신 빈 src
     async function resolveCoverSrc(it) {
         if (it.coverLocal) {
             try {
@@ -560,6 +567,7 @@
                 }
             } catch (e) { /* fallback */ }
         }
+        if (navigator.onLine === false) return '';
         return it.cover || '';
     }
 
@@ -738,9 +746,6 @@
 
     function bindOfflineMode() {
         if (!isNative()) return;
-        // 실행 중 네트워크가 끊기면 네이티브 보관함 UI로 전환, 복구되면 닫기
-        window.addEventListener('offline', function () { showOfflineLibrary(); });
-        window.addEventListener('online', function () { hideOfflineLibrary(); });
         // 번들 오프라인 페이지가 복귀할 서버 주소를 Preferences에 저장
         try {
             var p = plugins().Preferences;
@@ -885,42 +890,6 @@
                     paintToggle();
                 }
             });
-        });
-    }
-
-    // ---------- CSS 전체화면 (네이티브에서 Hyfata 자체 UI 유지) ----------
-    var ICON_FS = '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
-    var ICON_FS_EXIT = '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>';
-
-    function useCssFullscreen() {
-        // 네이티브 앱에서는 항상 CSS 전체화면 (iOS 네이티브 전체화면은 애플 기본 UI로 대체됨)
-        return isNative();
-    }
-
-    function patchPlayerFullscreen() {
-        if (!useCssFullscreen()) return;
-        if (!window.VideoPlayer || !window.VideoPlayer.prototype || window.VideoPlayer.prototype.__anihyCssFs) return;
-        var proto = window.VideoPlayer.prototype;
-        proto.__anihyCssFs = true;
-        proto.toggleFullscreen = function () {
-            var c = this.container;
-            var on = c.classList.toggle('vp-css-fullscreen');
-            document.documentElement.classList.toggle('anihy-css-fs', on);
-            c.classList.toggle('vp--fullscreen', on);
-            try {
-                var btn = c.querySelector('.vp__btn--fullscreen');
-                if (btn) btn.innerHTML = on ? ICON_FS_EXIT : ICON_FS;
-            } catch (e) { /* ignore */ }
-            if (this._poke) this._poke();
-        };
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.vp-css-fullscreen').forEach(function (c) {
-                    c.classList.remove('vp-css-fullscreen');
-                    c.classList.remove('vp--fullscreen');
-                });
-                document.documentElement.classList.remove('anihy-css-fs');
-            }
         });
     }
 
@@ -1262,7 +1231,6 @@
         if (isNative()) {
             document.documentElement.classList.add('is-native');
         }
-        patchPlayerFullscreen();
         hideDownloadsTabOnWeb();
         patchAnimeModalCloseGuard();
         bindDownloadNavGuard();

@@ -48,7 +48,7 @@ $videoUrl = animeVideoUrl($aid, $epNum);
 $safeEp = sanitizeFilename($epNum);
 $chapterVttFile = __DIR__ . '/animes/' . $aid . '/' . $safeEp . '.chapters.vtt';
 $hasChapterVtt = is_file($chapterVttFile) && filesize($chapterVttFile) > 0;
-$enSubtitlePath = __DIR__ . '/subtitles/' . $aid . '/' . $epNum . '_en.ass';
+$enSubtitlePath = __DIR__ . '/subtitles/' . $aid . '/' . $safeEp . '_en.ass';
 $hasEnSubtitle = file_exists($enSubtitlePath) && filesize($enSubtitlePath) > 0;
 
 $nextEp = null;
@@ -141,9 +141,9 @@ function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fro
                     </div>
                     <div class="watch-actions">
                         <button type="button" id="episode-list-open-btn" class="btn btn-sm btn-secondary">회차 목록</button>
-                        <button type="button" id="auto-next-btn" class="btn btn-sm btn-secondary">자동 다음화: 켜짐</button>
+                        <button type="button" id="auto-next-btn" class="btn btn-sm btn-secondary" style="visibility:hidden">자동 다음화: 켜짐</button>
                         <?php if ($hasEnSubtitle): ?>
-                            <a href="/anime/subtitles/<?= $aid ?>/<?= rawurlencode($epNum) ?>_en.ass" download class="btn btn-sm">영어 자막 다운로드</a>
+                            <a href="/anime/subtitles/<?= $aid ?>/<?= rawurlencode($safeEp) ?>_en.ass" download class="btn btn-sm">영어 자막 다운로드</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -178,6 +178,7 @@ function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fro
     <?php endif; ?>
 
     <script src="<?= assetUrl('player/video-player.js') ?>"></script>
+    <script src="<?= assetUrl('js/fullscreen.js') ?>"></script>
     <?php include __DIR__ . '/inc/alert_modal.php'; ?>
     <script src="<?= assetUrl('js/app.js') ?>"></script>
     <script src="<?= assetUrl('js/native-bridge.js') ?>"></script>
@@ -195,17 +196,20 @@ function renderEpisodeList(array $episodes, string $epNum, int $aid, string $fro
             }
 
             // 회차 목록: 현재 회차가 상단에 오도록 자동 스크롤 (PC 사이드바 + 모바일 모달)
+            // offsetTop 기준으로 계산해 모달 팝인 애니메이션 중에도 위치가 정확함
             const scrollActiveEpToTop = (container) => {
                 if (!container) return;
                 const active = container.querySelector('.episode-item.active');
                 if (!active) return;
-                container.scrollTop = active.getBoundingClientRect().top
-                    - container.getBoundingClientRect().top + container.scrollTop - 8;
+                container.scrollTop = active.offsetTop - container.offsetTop - 8;
             };
             scrollActiveEpToTop(document.querySelector('.sidebar'));
             const epListBtn = document.getElementById('episode-list-open-btn');
             if (epListBtn) {
                 epListBtn.addEventListener('click', () => {
+                    if (window.animePlayer && typeof window.animePlayer.pause === 'function') {
+                        window.animePlayer.pause();
+                    }
                     openModal('episode-list-modal');
                     requestAnimationFrame(() => scrollActiveEpToTop(document.querySelector('#episode-list-modal .modal-body')));
                 });

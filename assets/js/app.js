@@ -54,12 +54,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 cleanup();
                 resolve();
             };
+            const overlayHandler = (e) => {
+                if (e.target !== alertModalOverlay) return;
+                closeAlertModal();
+                cleanup();
+                resolve();
+            };
             function cleanup() {
                 alertModalOk.removeEventListener('click', okHandler);
                 alertModalCancel.removeEventListener('click', cancelHandler);
+                alertModalOverlay.removeEventListener('click', overlayHandler);
             }
             alertModalOk.addEventListener('click', okHandler);
             alertModalCancel.addEventListener('click', cancelHandler);
+            alertModalOverlay.addEventListener('click', overlayHandler);
         });
     };
 
@@ -76,12 +84,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 cleanup();
                 resolve(false);
             };
+            const overlayHandler = (e) => {
+                if (e.target !== alertModalOverlay) return;
+                closeAlertModal();
+                cleanup();
+                resolve(false);
+            };
             function cleanup() {
                 alertModalOk.removeEventListener('click', okHandler);
                 alertModalCancel.removeEventListener('click', cancelHandler);
+                alertModalOverlay.removeEventListener('click', overlayHandler);
             }
             alertModalOk.addEventListener('click', okHandler);
             alertModalCancel.addEventListener('click', cancelHandler);
+            alertModalOverlay.addEventListener('click', overlayHandler);
         });
     };
 
@@ -112,19 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!card) return;
         if (card.dataset.aid) {
             window.openAnimeModal(card.dataset.aid);
-            return;
         }
-        const grid = card.closest('.card-grid');
-        if (!grid || grid.classList.contains('leaving')) return;
-        grid.classList.add('leaving');
-        card.classList.add('card-leave-target');
-        setTimeout(() => {
-            window.location.href = card.dataset.href;
-        }, 320);
     });
 
     // Home infinite scroll (IntersectionObserver)
     const homeGrid = document.getElementById('home-card-grid');
+    let loadMoreHomeRef = null;
     if (homeGrid) {
         const homePageSize = parseInt(homeGrid.dataset.pageSize, 10) || 30;
         let homeOffset = homeGrid.querySelectorAll('.card').length;
@@ -181,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 homeGrid.insertAdjacentHTML('beforeend', html);
                 homeOffset += (data.animes || []).length;
                 homeHasMore = !!data.has_more;
+                homeGrid.dataset.hasMore = homeHasMore ? '1' : '0';
                 if (!homeHasMore) {
                     homeObserver.disconnect();
                     if (homeSentinel) homeSentinel.remove();
@@ -199,6 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (homeLoader) homeLoader.classList.add('hidden');
             }
         }
+
+        loadMoreHomeRef = loadMoreHome;
 
         if (homeEnd) homeEnd.addEventListener('click', () => {
             if (homeHasMore && !homeLoading) loadMoreHome();
@@ -453,6 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // watch.php에서 복귀 시 전달된 목록 스크롤 위치 복원 (?ly=, 1회성, 모달 있는 목록 페이지 전용)
+    // 홈 탭은 무한스크롤이라 문서 높이가 부족하면 추가 페이지를 불러온 뒤 스크롤
     if (animeModal) {
         const lyParam = new URL(window.location.href).searchParams.get('ly');
         if (lyParam && /^\d+$/.test(lyParam)) {
@@ -460,7 +473,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const urlNoLy = new URL(window.location.href);
             urlNoLy.searchParams.delete('ly');
             history.replaceState(null, '', urlNoLy.pathname + urlNoLy.search + urlNoLy.hash);
-            const restoreListScroll = () => window.scrollTo(0, targetY);
+            const maxScrollY = () => Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+            const restoreListScroll = async () => {
+                if (homeGrid && loadMoreHomeRef) {
+                    if (homeGrid.dataset.hasMore !== '1') {
+                        window.scrollTo(0, 0);
+                        return;
+                    }
+                    for (let i = 0; i < 20 && maxScrollY() < targetY && homeGrid.dataset.hasMore === '1'; i++) {
+                        await loadMoreHomeRef();
+                    }
+                }
+                window.scrollTo(0, maxScrollY() >= targetY ? targetY : 0);
+            };
             requestAnimationFrame(() => requestAnimationFrame(restoreListScroll));
             window.addEventListener('load', restoreListScroll);
         }
@@ -766,10 +791,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Episode add form
     const episodeForm = document.getElementById('episode-form');
-    const progressBox = document.getElementById('progress-box');
-    const progressFill = document.getElementById('progress-fill');
-    const progressText = document.getElementById('progress-text');
-    const logBox = document.getElementById('log-box');
 
     const trimEnabled = document.getElementById('trim_enabled');
     const trimSeconds = document.getElementById('trim_seconds');
@@ -1184,49 +1205,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (serverFileList) serverFileList.classList.add('hidden');
             setLocalSourceMode(false, false);
         });
-    }
-
-    async function pollProgress(jobId, animeId) {
-        const interval = setInterval(async () => {
-            try {
-                const res = await fetch('/anime/api/progress.php?job_id=' + jobId);
-                const data = await res.json();
-                if (data.success) {
-                    progressFill.style.width = data.progress + '%';
-                    progressText.textContent = `[${data.status}] ${data.message || ''}`;
-                    if (data.status === 'completed') {
-                        clearInterval(interval);
-                        window.location.href = '/anime/anime.php?aid=' + animeId;
-                    } else if (data.status === 'failed') {
-                        clearInterval(interval);
-                        document.querySelector('#episode-form button[type="submit"]').disabled = false;
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        }, 3000);
-    }
-
-    async function pollLog(jobId) {
-        if (!logBox) return;
-        let offset = 0;
-        const interval = setInterval(async () => {
-            try {
-                const res = await fetch('/anime/api/log.php?job_id=' + jobId + '&offset=' + offset);
-                const data = await res.json();
-                if (data.success && data.content) {
-                    logBox.textContent += data.content;
-                    logBox.scrollTop = logBox.scrollHeight;
-                    offset = data.offset;
-                }
-                if (progressText.textContent.includes('완료') || progressText.textContent.includes('실패')) {
-                    clearInterval(interval);
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        }, 2000);
     }
 
     // Queue modal
@@ -1750,6 +1728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', async e => {
             e.preventDefault();
             e.stopPropagation();
+            if (window.AniHyNative && window.AniHyNative.isNative && window.AniHyNative.isNative()) return;
             const title = btn.dataset.title || '에피소드';
             const size = btn.dataset.size || '';
             const msg = '"' + title + '"을(를) 다운로드하시겠습니까?' + (size ? '\n예상 용량: ' + size : '');
@@ -1815,6 +1794,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         downloadAllBtn.addEventListener('click', async () => {
+            if (window.AniHyNative && window.AniHyNative.isNative && window.AniHyNative.isNative()) return;
             if (zipPollTimer) return;
             const count = downloadAllBtn.dataset.count || '';
             const size = downloadAllBtn.dataset.size || '';
@@ -1888,10 +1868,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!aid || !epNum || !fill) return;
 
             const progress = loadWatchProgress(aid, epNum);
+            const bar = fill.parentElement;
             if (progress && progress.duration > 0) {
-                fill.style.width = getProgressPercent(progress.currentTime, progress.duration) + '%';
+                const ratio = progress.currentTime / progress.duration;
+                const pct = ratio >= 0.95 ? 100 : getProgressPercent(progress.currentTime, progress.duration);
+                fill.style.width = pct + '%';
+                if (bar) bar.style.display = pct > 0 ? '' : 'none';
             } else {
                 fill.style.width = '0%';
+                if (bar) bar.style.display = 'none';
             }
         });
     }
@@ -1950,6 +1935,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // timeupdate가 오지 않는 시점(일시정지/탭 전환/페이지 이탈)에도 현재 위치 저장
+        const saveCurrentPosition = () => {
+            saveWatchProgress(aid, epNum, video.currentTime, video.duration);
+            lastSavedTime = video.currentTime;
+            lastSaveAt = Date.now();
+        };
+        video.addEventListener('pause', saveCurrentPosition);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') saveCurrentPosition();
+        });
+        window.addEventListener('pagehide', saveCurrentPosition);
+
         // 끝까지 재생 시 자동 다음화 이동 (토글)
         const AUTO_NEXT_KEY = 'anihy_auto_next';
         let autoNextEnabled = true;
@@ -1966,6 +1963,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? '자동 다음화: 켜짐'
                 : '자동 다음화: 꺼짐';
             autoNextBtn.classList.toggle('active', autoNextEnabled);
+            autoNextBtn.style.visibility = '';
         }
 
         if (autoNextBtn) {

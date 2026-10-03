@@ -1,14 +1,12 @@
 /* 오프라인 재생 페이지 로직 (앱 번들, 네트워크 불필요).
  * - ?aid=&ep=&back= 파싱 → Preferences 메타 → Filesystem 로컬 파일 재생
- * - Hyfata 플레이어 그대로 사용, 전체화면은 CSS 방식으로 강제 (iOS 자체 UI 유지)
+ * - Hyfata 플레이어 그대로 사용, 전체화면은 vendor/fullscreen.js의 CSS 방식 (iOS 자체 UI 유지)
  * - 같은 애니의 저장 회차 목록 + 자동 다음화 + 이어보기 지원 (watch.php 대응 기능)
  */
 (function () {
     'use strict';
 
     var META_KEY = 'anihy_downloads_v1';
-    var ICON_FS = '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
-    var ICON_FS_EXIT = '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>';
 
     function cap() {
         return (typeof window.Capacitor !== 'undefined') ? window.Capacitor : null;
@@ -51,35 +49,6 @@
         } catch (e) {
             return [];
         }
-    }
-
-    // CSS 전체화면 강제 (네이티브 전체화면은 iOS에서 애플 기본 UI로 대체되므로 사용 금지)
-    function forceCssFullscreen(player) {
-        var proto = window.VideoPlayer && window.VideoPlayer.prototype;
-        if (proto && !proto.__anihyCssFs) {
-            proto.__anihyCssFs = true;
-            proto.toggleFullscreen = function () {
-                var c = this.container;
-                var on = c.classList.toggle('vp-css-fullscreen');
-                document.documentElement.classList.toggle('anihy-css-fs', on);
-                c.classList.toggle('vp--fullscreen', on);
-                try {
-                    var btn = c.querySelector('.vp__btn--fullscreen');
-                    if (btn) btn.innerHTML = on ? ICON_FS_EXIT : ICON_FS;
-                } catch (e) { /* ignore */ }
-                if (this._poke) this._poke();
-            };
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') {
-                    document.querySelectorAll('.vp-css-fullscreen').forEach(function (c) {
-                        c.classList.remove('vp-css-fullscreen');
-                        c.classList.remove('vp--fullscreen');
-                    });
-                    document.documentElement.classList.remove('anihy-css-fs');
-                }
-            });
-        }
-        void player;
     }
 
     function epSort(a, b) {
@@ -164,7 +133,6 @@
             return;
         }
 
-        forceCssFullscreen();
         var opts = { src: src, lang: 'ko', preload: 'auto' };
         if (chaptersUrl) opts.chaptersUrl = chaptersUrl;
         var player = new window.VideoPlayer('#offline-player', opts);

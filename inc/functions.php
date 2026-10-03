@@ -7,7 +7,7 @@ function baseUrl(): string {
 }
 
 function assetUrl(string $path): string {
-    return '/anime/assets/' . ltrim($path, '/') . '?v=213';
+    return '/anime/assets/' . ltrim($path, '/') . '?v=214';
 }
 
 function coverUrl(string $filename): string {
@@ -19,7 +19,7 @@ function subtitleUrl(string $path): string {
 }
 
 function animeVideoUrl(int $animeId, string $episodeNumber): string {
-    return "/anime/animes/$animeId/" . rawurlencode($episodeNumber) . ".mp4";
+    return "/anime/animes/$animeId/" . rawurlencode(sanitizeFilename($episodeNumber)) . ".mp4";
 }
 
 function redirect(string $url): void {

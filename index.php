@@ -20,10 +20,10 @@ $homePageSize = 30;
 $animes = [];
 $homeHasMore = false;
 if ($tab === 'quarter') {
-    $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC");
+    $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC, id DESC");
     $animes = $stmt->fetchAll();
 } elseif ($tab === 'home') {
-    $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC LIMIT " . ($homePageSize + 1));
+    $stmt = $pdo->query("SELECT * FROM animes ORDER BY created_at DESC, id DESC LIMIT " . ($homePageSize + 1));
     $rows = $stmt->fetchAll();
     $homeHasMore = count($rows) > $homePageSize;
     $animes = array_slice($rows, 0, $homePageSize);

@@ -725,6 +725,7 @@ img {
     transition: background 0.2s;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
 }
 
 .episode-item:hover {
@@ -947,10 +948,12 @@ img {
 }
 
 .sidebar {
+    position: sticky;
+    top: calc(88px + env(safe-area-inset-top, 0px));
     background: var(--surface);
     border-radius: var(--radius);
     padding: 16px;
-    max-height: 600px;
+    max-height: calc(100vh - 100px);
     overflow-y: auto;
 }
 
@@ -987,6 +990,10 @@ img {
 
     #episode-list-open-btn {
         display: inline-flex;
+    }
+
+    .watch-actions .btn-sm {
+        padding: 10px 14px;
     }
 }
 
@@ -1153,7 +1160,7 @@ body.modal-open {
 
 .anime-modal-close {
     position: absolute;
-    top: 10px;
+    top: calc(10px + env(safe-area-inset-top, 0px));
     right: 12px;
     z-index: 5;
     width: 34px;
@@ -1964,41 +1971,6 @@ main.container {
     }
 }
 
-/* Home → anime.php 전환: 클릭한 카드 외 사라짐 */
-.card-grid.leaving {
-    pointer-events: none;
-}
-
-.card-grid.leaving .card {
-    animation: card-fade-out 0.3s ease forwards;
-}
-
-.card-grid.leaving .card:nth-child(2) { animation-delay: 0.03s; }
-.card-grid.leaving .card:nth-child(3) { animation-delay: 0.05s; }
-.card-grid.leaving .card:nth-child(4) { animation-delay: 0.07s; }
-.card-grid.leaving .card:nth-child(5) { animation-delay: 0.09s; }
-.card-grid.leaving .card:nth-child(6) { animation-delay: 0.11s; }
-.card-grid.leaving .card:nth-child(n+7) { animation-delay: 0.13s; }
-
-.card-grid.leaving .card.card-leave-target {
-    animation: card-stay 0.32s ease forwards;
-    z-index: 5;
-}
-
-@keyframes card-fade-out {
-    to {
-        opacity: 0;
-        transform: translateY(12px) scale(0.95);
-    }
-}
-
-@keyframes card-stay {
-    to {
-        transform: translateY(-4px) scale(1.04);
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-    }
-}
-
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     *,
@@ -2295,7 +2267,7 @@ main.has-tabbar {
 /* Desktop: sidebar instead of bottom tab bar */
 @media (min-width: 769px) {
     .bottom-tabbar {
-        top: 64px;
+        top: calc(64px + env(safe-area-inset-top, 0px));
         bottom: 0;
         left: 0;
         right: auto;
@@ -2343,7 +2315,7 @@ main.has-tabbar {
 /* Quarter cards */
 .quarter-sticky-header {
     position: sticky;
-    top: 64px;
+    top: calc(64px + env(safe-area-inset-top, 0px));
     z-index: 50;
     background: linear-gradient(to bottom, var(--bg) 55%, rgba(11, 12, 15, 0.55));
     backdrop-filter: blur(12px);
@@ -3067,6 +3039,7 @@ main.has-tabbar {
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
+    height: 100vh !important;
     height: 100dvh !important;
     max-width: none !important;
     z-index: 9999 !important;
@@ -3078,6 +3051,7 @@ html.anihy-css-fs body {
     overflow: hidden !important;
 }
 html.anihy-css-fs .bottom-tabbar,
-html.anihy-css-fs .navbar {
+html.anihy-css-fs .navbar,
+html.anihy-css-fs .fab-settings {
     display: none !important;
 }
