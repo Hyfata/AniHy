@@ -3047,15 +3047,9 @@ main.has-tabbar {
     background: #000;
     border-radius: 0 !important;
 }
-html.anihy-css-fs,
-html.anihy-css-fs body {
-    overflow: hidden !important;
-}
-html.anihy-css-fs .bottom-tabbar,
-html.anihy-css-fs .navbar,
-html.anihy-css-fs .fab-settings {
-    display: none !important;
-}
+/* 전역 토글 규칙(anihy-css-fs의 overflow/display)은 두지 않음 —
+   WebKit에서 root overflow·fixed 요소 display 토글 시 상단바가 깨지는 버그 유발.
+   전체화면 레이어가 불투명하므로 뒤 페이지는 그대로 둬도 보이지 않음 */
 /* 플레이어 자체 CSS는 top/bottom safe-area만 처리하고 left/right는 미처리라
    가로 회전(노치가 좌/우로 이동) 시 컨트롤이 노치 밑으로 들어감 — 좌우 보정 추가 */
 .vp-css-fullscreen .vp__controls {

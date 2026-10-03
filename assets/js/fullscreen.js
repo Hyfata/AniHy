@@ -74,13 +74,13 @@
         var c = player.container;
         savedScrollY = window.scrollY || window.pageYOffset || 0;
 
-        // 스크롤 잠금은 html의 overflow:hidden(html.anihy-css-fs)만 사용.
-        // body를 position:fixed로 잠그는 트릭은 iOS WKWebView에서 fixed 자식(상단바)의
-        // 기준점과 visual viewport를 깨뜨려 해제 후 상단바 고정이 풀리거나,
-        // 회전 시 레이아웃이 화면 밖으로 나가는 버그를 만든다.
+        // 전역 상태(html/body overflow, 상단바 display 등)는 절대 건드리지 않는다.
+        // WebKit은 root overflow 토글 시 fixed 요소가 깨지고, fixed 요소의 display
+        // 토글 시 재합성 상태가 망가지는 버그가 있어 한 번 전체화면을 다녀오면
+        // 상단바가 들썩이는 원인이 된다. 전체화면 레이어가 불투명 검정으로 화면을
+        // 전부 덮으므로 뒤 페이지는 잠글 필요가 없다.
         c.classList.add('vp-css-fullscreen');
         c.classList.add('vp--fullscreen');
-        document.documentElement.classList.add('anihy-css-fs');
         setFsButtonIcon(c, true);
 
         if (player.isTouch) {
@@ -107,16 +107,12 @@
 
         c.classList.remove('vp-css-fullscreen');
         c.classList.remove('vp--fullscreen');
-        document.documentElement.classList.remove('anihy-css-fs');
         setFsButtonIcon(c, false);
 
-        // overflow 잠금 해제로 스크롤 위치는 그대로 유지되지만, 혹시 배경이
-        // 스크롤된 경우를 대비해 저장값으로 best-effort 복원
+        // 배경 페이지가 러버밴드 등으로 스크롤됐을 수 있으니 best-effort 복원
         window.scrollTo(0, savedScrollY);
 
         unlockOrientation();
-        // 상태바 복귀는 레이아웃이 안정된 다음 프레임에 — 즉시 show()하면
-        // safe-area-inset-top 변경 애니메이션과 재레이아웃이 겹쳐 상단바가 들썩임
         requestAnimationFrame(function () { callStatusBar('show'); });
         if (player._poke) player._poke();
     }
