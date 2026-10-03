@@ -3079,8 +3079,19 @@ main.has-tabbar {
 .vp-css-fullscreen .vp__skip-btn {
     right: calc(12px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
 }
+/* 터치 UI는 건느뛰기 버튼이 전체화면 버튼 왼쪽에 붙는 레이아웃이라
+   right 오프셋이 다름 — 안 맞추면 전체화면 버튼과 겹침 */
+.vp-css-fullscreen.vp--touch .vp__skip-btn {
+    right: calc(56px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
+}
+.vp-css-fullscreen.vp--touch.vp--idle .vp__skip-btn {
+    right: calc(10px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
+}
 .vp-css-fullscreen.vp--touch.vp--compact .vp__skip-btn {
     right: calc(44px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
+}
+.vp-css-fullscreen.vp--touch.vp--compact.vp--idle .vp__skip-btn {
+    right: calc(8px + var(--anihy-sar, env(safe-area-inset-right, 0px)));
 }
 /* 플레이어 자체 top/bottom safe-area 규칙도 env 고착의 영향을 받으므로
    네이티브 주입 변수 우선으로 재선언 */
