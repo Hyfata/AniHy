@@ -197,8 +197,8 @@
         exitAll: function () { exitCssFullscreen(); }
     };
 
-    // 임시 진단 HUD: 네이티브 앱에서는 자동 활성(원격 진단용), 웹은 ?fsdebug=1
-    if (isNative() || /[?&]fsdebug=1/.test(location.search)) {
+    // 진단 HUD: watch.php?...&fsdebug=1 일 때만 표시
+    if (/[?&]fsdebug=1/.test(location.search)) {
         var dbg = document.createElement('div');
         dbg.style.cssText = 'position:fixed;left:4px;top:4px;z-index:999999;background:rgba(0,0,0,.85);color:#0f0;font:10px/1.4 monospace;padding:6px;border-radius:6px;max-width:95vw;white-space:pre-wrap;pointer-events:none';
         document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(dbg); });

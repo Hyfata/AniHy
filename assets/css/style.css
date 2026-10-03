@@ -3108,3 +3108,14 @@ main.has-tabbar {
 .vp-css-fullscreen.vp--touch.vp--compact.vp--idle .vp__skip-btn {
     bottom: calc(12px + var(--anihy-sab, env(safe-area-inset-bottom, 0px)));
 }
+/* 네이티브 앱에서 전체화면이 아닐 때는 플레이어가 페이지 안에 있어
+   노치/상태바와 무관 — 플레이어 기본 safe-area 오프셋이 오히려 버튼을
+   이상한 위치로 밀어내므로 해제 */
+html.is-native .vp--touch:not(.vp-css-fullscreen) .vp__volume,
+html.is-native .vp--touch:not(.vp-css-fullscreen) .vp__btn--settings {
+    top: 10px;
+}
+html.is-native .vp--touch.vp--compact:not(.vp-css-fullscreen) .vp__volume,
+html.is-native .vp--touch.vp--compact:not(.vp-css-fullscreen) .vp__btn--settings {
+    top: 6px;
+}
