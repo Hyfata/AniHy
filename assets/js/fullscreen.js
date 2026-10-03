@@ -74,10 +74,10 @@
         var c = player.container;
         savedScrollY = window.scrollY || window.pageYOffset || 0;
 
-        document.body.style.position = 'fixed';
-        document.body.style.top = (-savedScrollY) + 'px';
-        document.body.style.width = '100%';
-
+        // 스크롤 잠금은 html의 overflow:hidden(html.anihy-css-fs)만 사용.
+        // body를 position:fixed로 잠그는 트릭은 iOS WKWebView에서 fixed 자식(상단바)의
+        // 기준점과 visual viewport를 깨뜨려 해제 후 상단바 고정이 풀리거나,
+        // 회전 시 레이아웃이 화면 밖으로 나가는 버그를 만든다.
         c.classList.add('vp-css-fullscreen');
         c.classList.add('vp--fullscreen');
         document.documentElement.classList.add('anihy-css-fs');
@@ -110,9 +110,8 @@
         document.documentElement.classList.remove('anihy-css-fs');
         setFsButtonIcon(c, false);
 
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
+        // overflow 잠금 해제로 스크롤 위치는 그대로 유지되지만, 혹시 배경이
+        // 스크롤된 경우를 대비해 저장값으로 best-effort 복원
         window.scrollTo(0, savedScrollY);
 
         unlockOrientation();
@@ -146,6 +145,11 @@
 
     window.addEventListener('pagehide', function () {
         exitCssFullscreen();
+    });
+
+    // 전체화면 중 회전/리사이즈 시 플레이어 레이아웃 재계산
+    window.addEventListener('resize', function () {
+        if (activePlayer && activePlayer._poke) activePlayer._poke();
     });
 
     window.AnihyFullscreen = {
