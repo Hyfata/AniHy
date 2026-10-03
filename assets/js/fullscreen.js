@@ -1,7 +1,9 @@
-/* CSS 전체화면 — Capacitor 네이티브 앱 전용.
- * - iOS WKWebView는 요소 Fullscreen API 미지원 → CSS 전체화면으로 대체 (커스텀 UI 유지)
+/* CSS 전체화면 + iOS 26+ 전체화면 뷰포트 버그 우회.
+ * - iOS WKWebView는 요소 Fullscreen API 미지원 → 네이티브 앱에서는 CSS 전체화면으로 대체 (커스텀 UI 유지)
  * - Hyfata VideoPlayer의 toggleFullscreen을 오버라이드 (assets/player는 서브모듈이라 직접 수정 금지)
- * - 웹(브라우저)에서는 아무것도 하지 않음 — 기존 플레이어 동작 그대로
+ * - iOS 26+는 전체화면(네이티브/CSS 무관) 해제 후 safe-area/뷰포트 재계산을 못 해
+ *   상단에 빈 영역이 생기는 OS 버그가 있음(WebKit 297779, capacitor#8231)
+ *   → 해제 시 viewport 메타를 흔들어 재계산 강제. 이 우회는 웹/앱 모두에 적용
  */
 (function () {
     'use strict';
@@ -14,6 +16,26 @@
             return false;
         }
     }
+
+    // iOS 26+: 전체화면 해제 후 뷰포트가 inset 상태로 고착되는 버그 우회.
+    // viewport 메타의 initial-scale을 살짝 바꿨다 되돌려 WebKit에 재계산을 강제
+    function nudgeViewport() {
+        var meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) return;
+        var orig = meta.getAttribute('content') || '';
+        meta.setAttribute('content', orig.replace(/initial-scale=[\d.]+/, 'initial-scale=1.001'));
+        setTimeout(function () { meta.setAttribute('content', orig); }, 150);
+        setTimeout(function () { meta.setAttribute('content', orig); }, 400);
+    }
+
+    // 웹(네이티브 Fullscreen API 경로)에서도 해제 시 동일 우회
+    document.addEventListener('fullscreenchange', function () {
+        if (!document.fullscreenElement) nudgeViewport();
+    });
+    document.addEventListener('webkitfullscreenchange', function () {
+        if (!document.webkitFullscreenElement) nudgeViewport();
+    });
+
     if (!isNative()) return;
 
     var ICON_FS = '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
@@ -114,6 +136,8 @@
 
         unlockOrientation();
         requestAnimationFrame(function () { callStatusBar('show'); });
+        // iOS 26+ 뷰포트 고착 버그 우회 — 상태바 복귀 후 재계산 강제
+        setTimeout(nudgeViewport, 200);
         if (player._poke) player._poke();
     }
 
