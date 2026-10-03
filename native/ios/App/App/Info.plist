@@ -66,9 +66,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<!-- iPad 멀티태스킹(스테이지 매니저/윈도우 모드) 비활성화: 항상 OS 전체화면으로 실행돼
-	     iPadOS 26 메뉴 바가 표시되지 않음 (영상 감상 앱이라 Split View 불필요) -->
-	<key>UIRequiresFullScreen</key>
-	<true/>
 </dict>
 </plist>
