@@ -89,6 +89,18 @@ html, body {
 .off-ep-title { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .off-empty { color: #8b92a8; font-size: 0.9rem; padding: 12px 0; }
 
+/* 오프라인 페이지의 플레이어는 전체화면이 아닐 때 페이지 안에 있어 노치/상태바와
+   무관 — 플레이어 기본 safe-area 오프셋이 버튼을 아래로 밀어내는 것을 해제
+   (온라인의 style.css html.is-native 규칙과 동일 역할) */
+.vp--touch:not(.vp-css-fullscreen) .vp__volume,
+.vp--touch:not(.vp-css-fullscreen) .vp__btn--settings {
+  top: 10px;
+}
+.vp--touch.vp--compact:not(.vp-css-fullscreen) .vp__volume,
+.vp--touch.vp--compact:not(.vp-css-fullscreen) .vp__btn--settings {
+  top: 6px;
+}
+
 /* CSS 전체화면: 레이아웃은 플레이어 CSS(video-player.css) 소유.
    여기서는 네이티브 주입 inset 변수(--anihy-sa*)만 플레이어 변수에 매핑 */
 .vp-css-fullscreen {
