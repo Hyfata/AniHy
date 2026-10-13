@@ -48,18 +48,74 @@ if (isset($_GET['file'])) {
     $asciiName = 'anime_' . $animeId . '.zip';
 
     ignore_user_abort(true);
+
+    $size = filesize($zipPath);
+    $start = 0;
+    $end = $size - 1;
+
+    // iOS 다운로드 데몬 등이 끊긴 전송을 Range로 재개/재요청하므로 부분 전송을 지원한다
+    $rangeHeader = trim((string)($_SERVER['HTTP_RANGE'] ?? ''));
+    if ($rangeHeader !== '' && preg_match('/^bytes=(\d*)-(\d*)$/', $rangeHeader, $m)) {
+        if ($m[1] !== '') {
+            $start = (int)$m[1];
+            if ($m[2] !== '') {
+                $end = min((int)$m[2], $size - 1);
+            }
+        } elseif ($m[2] !== '' && (int)$m[2] > 0) {
+            $start = max(0, $size - (int)$m[2]);
+        }
+        if ($start > $end || $start >= $size) {
+            http_response_code(416);
+            header('Content-Range: bytes */' . $size);
+            exit;
+        }
+    }
+    $isPartial = $start > 0 || $end < $size - 1;
+    $length = $end - $start + 1;
+
     header('Content-Type: application/zip');
     header('Content-Disposition: attachment; filename="' . $asciiName . '"; filename*=UTF-8\'\'' . rawurlencode($downloadName));
-    header('Content-Length: ' . filesize($zipPath));
     header('Cache-Control: no-cache, must-revalidate');
+    header('Accept-Ranges: bytes');
+    header('Content-Length: ' . $length);
+    if ($isPartial) {
+        http_response_code(206);
+        header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+    }
 
-    readfile($zipPath);
-    @unlink($zipPath);
-    @unlink($progressFile);
+    $fp = fopen($zipPath, 'rb');
+    fseek($fp, $start);
+    $remaining = $length;
+    while ($remaining > 0 && !feof($fp)) {
+        if (connection_aborted()) {
+            break;
+        }
+        $chunk = fread($fp, min(131072, $remaining));
+        if ($chunk === false) {
+            break;
+        }
+        echo $chunk;
+        $remaining -= strlen($chunk);
+        flush();
+    }
+    fclose($fp);
+    // ZIP과 진행 파일은 재개/재요청을 위해 유지하고, 다음 압축 시작 시 TTL 경과분을 정리한다
     exit;
 }
 
 // 압축 작업 시작
+// 전송 후 즉시 삭제하지 않으므로, 이전에 남은 오래된 ZIP/진행 파일(24시간 경과)을 여기서 정리
+foreach (glob("$baseDir/downloader/videos/bundle_*.zip") ?: [] as $oldZip) {
+    if (filemtime($oldZip) < time() - 86400) {
+        @unlink($oldZip);
+    }
+}
+foreach (glob("$baseDir/logs/zip_*.json") ?: [] as $oldProgress) {
+    if (filemtime($oldProgress) < time() - 86400) {
+        @unlink($oldProgress);
+    }
+}
+
 $running = false;
 if (is_file($progressFile)) {
     $job = json_decode((string)file_get_contents($progressFile), true) ?: [];

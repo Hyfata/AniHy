@@ -750,6 +750,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearch('search-btn', 'search-keyword', 'search-result', 'is_hidive');
     setupSearch('edit-search-btn', 'edit-search-keyword', 'edit-search-result', 'edit-is-hidive');
 
+    // Safari/iOS WebKit은 blob URL을 비동기로 읽기 시작하므로 즉시 revoke하면 다운로드가 취소된다
+    function saveBlobAs(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+
     // English subtitle download button
     const downloadEnBtn = document.getElementById('download-en-subtitle-btn');
     if (downloadEnBtn) {
@@ -766,20 +778,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const res = await fetch('/anime/api/download_en_subtitle.php?aid=' + encodeURIComponent(animeId) + '&ep=' + encodeURIComponent(episodeNumber));
-                if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
-                    throw new Error(data.message || '다운로드 실패 (HTTP ' + res.status + ')');
+                const contentType = res.headers.get('Content-Type') || '';
+                if (!res.ok || contentType.includes('application/json')) {
+                    const data = await res.json().catch(() => null);
+                    throw new Error((data && data.message) || '다운로드 실패 (HTTP ' + res.status + ')');
                 }
 
                 const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = episodeNumber + '_en.ass';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
+                saveBlobAs(blob, episodeNumber + '_en.ass');
             } catch (err) {
                 await modalAlert('오류: ' + err.message);
             } finally {
@@ -966,14 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const disposition = res.headers.get('Content-Disposition') || '';
             const match = disposition.match(/filename="?([^";]+)"?/);
             const filename = match ? match[1] : 'subtitle.ass';
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
+            saveBlobAs(blob, filename);
         }
         // 서버 파일이 바뀌면 기존 트랙 선택 UI는 무효 (setLocalSourceMode/clearServerFileSelection에서 제거됨)
         extractSubtitleBtn.addEventListener('click', async () => {
@@ -1049,14 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const disposition = res.headers.get('Content-Disposition') || '';
                 const match = disposition.match(/filename="?([^";]+)"?/);
                 const filename = match ? match[1] : 'audio.mka';
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
+                saveBlobAs(blob, filename);
             } catch (err) {
                 await modalAlert('오류: ' + err.message);
             } finally {
