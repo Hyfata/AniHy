@@ -113,7 +113,12 @@ if (count($streams) > 1) {
     $lang = preg_replace('/[^a-zA-Z0-9-]/', '', (string)($sel['language'] ?? ''));
     if ($lang !== '') $suffix .= '.' . $lang;
 }
-$downloadName = sanitizeFilename($baseName . $suffix) . '.' . $ext;
+$downloadName = sanitizeFilename($baseName . $suffix);
+// Brave iOS 등은 파일명이 127자를 넘으면 다운로드에 실패하므로 제한 (sanitize 결과는 ASCII라 바이트=글자 수)
+if (strlen($downloadName) > 100) {
+    $downloadName = substr($downloadName, 0, 100);
+}
+$downloadName .= '.' . $ext;
 $outPath = $tmpDir . '/sub_extract_' . uniqid() . '.' . $ext;
 
 if ($fmt['format'] === 'ass') {
