@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Location } from 'react-router-dom';
 import { springPop, useReducedMotion } from '../../lib/motion';
 import { useUiStore } from '../../stores/ui';
+import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { AnimeDetailView } from './AnimeDetailView';
 import styles from './AnimeDetailModal.module.css';
 
@@ -180,12 +181,11 @@ export function AnimeDetailModal({
   const closingRef = useRef(false);
   const originRef = useRef<{ x: number; y: number; scaleX: number; scaleY: number } | null>(null);
 
-  // 스크롤 잠금 — 측정보다 먼저 걸어야 좌표가 안 밀린다 (가장 먼저 선언된 layout effect)
+  // 스크롤 잠금 — 측정보다 먼저 걸어야 좌표가 안 밀린다 (가장 먼저 선언된 layout effect).
+  // overflow:hidden은 WebKit이 scrollY를 0으로 리셋하므로 fixed-body 락 사용
   useLayoutEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
+    lockScroll();
+    return () => unlockScroll();
   }, []);
 
   const closeTarget = useCallback(() => {

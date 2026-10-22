@@ -27,6 +27,9 @@
 
 .pill {
   position: relative;
+  /* 탭마다 라벨 길이가 달라도 인디케이터 박스 크기가 일정하도록 아이템 전체 폭 사용 */
+  width: 100%;
+  box-sizing: border-box;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -38,12 +41,24 @@
   white-space: nowrap;
 }
 
-/* framer-motion layoutId 인디케이터가 들어가는 배경 슬롯 */
-.pillIndicator {
+/* 활성 탭 인디케이터 — 탭바 직계 단일 요소를 left/top/width/height transition으로 이동
+   (layoutId 폐기: 스크롤 점프와 결합되면 측정이 어긋남). 0.38s cubic-bezier(0.25,0.9,0.28,1) */
+.tabIndicator {
   position: absolute;
-  inset: 0;
   border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.09);
+  pointer-events: none;
+  transition:
+    left 0.38s cubic-bezier(0.25, 0.9, 0.28, 1),
+    top 0.38s cubic-bezier(0.25, 0.9, 0.28, 1),
+    width 0.38s cubic-bezier(0.25, 0.9, 0.28, 1),
+    height 0.38s cubic-bezier(0.25, 0.9, 0.28, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabIndicator {
+    transition: none;
+  }
 }
 
 .pillContent {
@@ -103,7 +118,7 @@
     font-size: var(--text-md);
   }
 
-  .pillIndicator {
+  .tabIndicator {
     border-radius: var(--radius-sm);
   }
 

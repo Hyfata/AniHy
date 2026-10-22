@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import type { Location } from 'react-router-dom';
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { AnimeDetailModal } from './components/anime/AnimeDetailModal';
 import { QueueLauncher } from './components/admin/QueueLauncher';
 import { DownloadsTab } from './components/library/DownloadsTab';
 import { TopNavbar } from './components/TopNavbar';
-import { pageVariants, tweenNormal } from './lib/motion';
+import { useScrollRestoration } from './lib/scrollRestoration';
 import { isOfflineMode } from './lib/native';
 import { AnimeDetailPage } from './pages/AnimeDetailPage';
 import { GatePage } from './pages/GatePage';
@@ -37,6 +37,7 @@ export default function App() {
   const fetchIdentity = useAuthStore((s) => s.fetchIdentity);
   const setActiveTab = useUiStore((s) => s.setActiveTab);
   const setLastListPath = useUiStore((s) => s.setLastListPath);
+  useScrollRestoration();
 
   useEffect(() => {
     void fetchIdentity();
@@ -120,28 +121,19 @@ export default function App() {
     <>
       <TopNavbar />
       <main className="appMain">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={background?.pathname ?? location.pathname}
-            variants={pageVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={tweenNormal}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-          >
-            <Routes location={background ?? location}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/quarter" element={<QuarterPage />} />
-              <Route path="/quarter/:year/:q" element={<QuarterDetailPage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/library" element={<LibraryPage />} />
-              <Route path="/anime/:id" element={<AnimeDetailPage />} />
-              <Route path="/watch/:aid/:ep" element={<WatchPage />} />
-              <Route path="*" element={<HomePage />} />
-            </Routes>
-          </motion.div>
-        </AnimatePresence>
+        {/* 페이지 전환 페이드 없음 (사용자 요청) — 라우트만 교체 */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Routes location={background ?? location}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/quarter" element={<QuarterPage />} />
+            <Route path="/quarter/:year/:q" element={<QuarterDetailPage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/library" element={<LibraryPage />} />
+            <Route path="/anime/:id" element={<AnimeDetailPage />} />
+            <Route path="/watch/:aid/:ep" element={<WatchPage />} />
+            <Route path="*" element={<HomePage />} />
+          </Routes>
+        </div>
       </main>
       {/* 모달은 자체 명령형 퇴장을 끝낸 뒤 navigate로 언마운트된다 — AnimatePresence exit에
           의존하지 않으며, 원본 카드 복구(animeModalOriginId 해제)는 모달의 언마운트 cleanup이 담당

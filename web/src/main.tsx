@@ -5,6 +5,10 @@ import App from './App';
 import { ApiError } from './api/client';
 import './styles/global.css';
 
+// SPA 스크롤은 우리가 제어 — 기본값(auto)이면 브라우저가 pushState 시 맨 위로,
+// popstate 시 임의 복원해 useScrollRestoration/모달 스크롤 락과 충돌한다
+history.scrollRestoration = 'manual';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

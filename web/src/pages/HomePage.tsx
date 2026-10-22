@@ -3,27 +3,12 @@ import { useAnimesInfinite } from '../api/hooks';
 import { AnimeGrid, AnimeGridSkeleton } from '../components/home/AnimeGrid';
 import styles from './pages.module.css';
 
-const SCROLL_KEY = 'anihy_home_scroll';
-
 /** 홈 무한스크롤 — index.php 홈 탭 대응 (IntersectionObserver 센티넬 + offset 페이지네이션) */
 export function HomePage() {
   const { data, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useAnimesInfinite();
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const restoredRef = useRef(false);
-
-  // 스크롤 복원: 상세 다녀오면 위치 유지 (SPA에서는 from/ly 규약 대신 sessionStorage)
-  useEffect(() => {
-    const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (saved && !restoredRef.current) {
-      restoredRef.current = true;
-      // 콘텐츠가 렌더된 뒤 복원
-      requestAnimationFrame(() => window.scrollTo(0, Number(saved)));
-    }
-    return () => {
-      sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
-    };
-  }, []);
+  // 스크롤 복원은 전역 훅(useScrollRestoration, App.tsx)이 담당
 
   useEffect(() => {
     const el = sentinelRef.current;
