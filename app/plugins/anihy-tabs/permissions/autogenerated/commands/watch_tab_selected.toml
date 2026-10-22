@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-watch-tab-selected"
+description = "Enables the watch_tab_selected command without any pre-configured scope."
+commands.allow = ["watch_tab_selected"]
+
+[[permission]]
+identifier = "deny-watch-tab-selected"
+description = "Denies the watch_tab_selected command without any pre-configured scope."
+commands.deny = ["watch_tab_selected"]

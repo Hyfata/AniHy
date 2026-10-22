@@ -1,0 +1,128 @@
+/* ============================================
+   AniHy 글로벌 리셋 + 베이스
+   ============================================ */
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 다크 테마 스크롤바 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2e3346 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #2e3346;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+@media (hover: hover){
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #3d445c;
+}
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html {
+  scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+/* iOS Safari: 입력 필드 포커스 시 자동 확대 방지 (16px 미만이면 줌됨) */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding-left: calc(var(--space-4) + var(--sal));
+  padding-right: calc(var(--space-4) + var(--sar));
+}
+
+/* App <main> 래퍼 (온라인 모드) */
+.appMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Desktop: 고정 좌측 사이드바(BottomTabbar.module.css ≥769px)만큼 본문 오프셋 */
+@media (min-width: 769px) {
+  .appMain {
+    padding-left: var(--sidebar-w);
+  }
+}
+
+/* Reduced motion: CSS 애니메이션 묠화 (framer-motion 쪽은 useReducedMotion으로 처리) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

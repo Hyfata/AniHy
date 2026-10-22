@@ -1,0 +1,76 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: var(--space-6) 0 var(--space-5);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}
+
+.placeholder {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}
+
+.subtabs {
+  display: flex;
+  gap: var(--space-2);
+  max-width: 560px;
+  margin-bottom: var(--space-5);
+}
+
+.subtab {
+  flex: 1;
+  padding: 8px 0;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.subtab:hover {
+  color: var(--color-text);
+}
+}
+
+.subtabActive {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+@media (hover: hover) {
+
+.subtabActive:hover {
+  color: var(--color-bg);
+}
+}
+
+.sentinel {
+  height: 1px;
+}
+
+.end {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  padding: var(--space-1) 0 48px;
+}

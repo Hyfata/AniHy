@@ -1,0 +1,161 @@
+/* 검색 — index.php search 탭 이식 */
+.searchBox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.inputWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 44px 12px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-lg);
+  font-family: inherit;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color var(--duration-fast);
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+
+.clear:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+}
+
+.clear svg {
+  width: 16px;
+  height: 16px;
+}
+
+.panel {
+  margin-bottom: var(--space-4);
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-default);
+  background: var(--color-surface);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.panelTitle {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.panelAction {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+
+.panelAction:hover {
+  color: var(--color-text);
+}
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 720px) {
+  .list {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 24px;
+  }
+}
+
+.list > li {
+  min-width: 0;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-md);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+}
+
+.rank {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-sm);
+}
+
+.rankTop {
+  color: var(--color-primary-text);
+}
+
+.chipTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-4);
+}

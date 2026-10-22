@@ -1,0 +1,87 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { del, get, ApiError } from '../../api/client';
+import type { Bookmark } from '../../api/types';
+import { useAuthStore } from '../../stores/auth';
+import { AnimeCard } from '../AnimeCard';
+import { Skeleton } from '../Spinner';
+import { LoginPrompt } from './LoginPrompt';
+import styles from './library.module.css';
+
+/** 보관함 > 북마크 — AnimeCard 그리드 + 호버/터치 해제 버튼.
+   ['bookmarks'] 쿼리 캐시는 애니 상세 placeholder(포스터/제목 즉시 표시)에도 재사용된다. */
+export function BookmarkTab() {
+  const identity = useAuthStore((s) => s.identity);
+  const queryClient = useQueryClient();
+  const [removingId, setRemovingId] = useState<number | null>(null);
+
+  const { data: items, error, isPending } = useQuery({
+    queryKey: ['bookmarks'],
+    queryFn: async () => (await get<{ bookmarks: Bookmark[] }>('/bookmarks')).bookmarks,
+  });
+
+  const loginRequired =
+    (error instanceof ApiError && error.status === 401) || (identity && !identity.logged_in);
+
+  const unbookmark = async (animeId: number) => {
+    setRemovingId(animeId);
+    try {
+      await del(`/bookmarks/${animeId}`);
+      queryClient.setQueryData<Bookmark[]>(['bookmarks'], (prev) =>
+        prev ? prev.filter((b) => b.id !== animeId) : prev,
+      );
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  if (loginRequired) {
+    return <LoginPrompt feature="북마크" />;
+  }
+
+  if (isPending || !items) {
+    return (
+      <div className={styles.grid}>
+        {Array.from({ length: 8 }, (_, i) => (
+          <Skeleton key={i} style={{ aspectRatio: '2/3', borderRadius: 'var(--radius)' }} />
+        ))}
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className={styles.empty}>
+        <p className={styles.emptyTitle}>북마크한 애니가 없습니다</p>
+        <p className={styles.emptyDesc}>관심 있는 애니를 북마크하면 여기에 모아볼 수 있습니다.</p>
+        <Link to="/" className={styles.ctaBtn}>
+          애니 둘러보기
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.grid}>
+      {items.map((b, i) => (
+        <div key={b.id} className={styles.bookmarkItem}>
+          <AnimeCard anime={{ id: b.id, title: b.title, cover: b.cover }} index={i} />
+          <button
+            type="button"
+            className={`${styles.unbookmarkBtn}${removingId === b.id ? ` ${styles.removing}` : ''}`}
+            aria-label={`${b.title} 북마크 해제`}
+            title="북마크 해제"
+            disabled={removingId === b.id}
+            onClick={(e) => {
+              e.preventDefault();
+              void unbookmark(b.id);
+            }}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}

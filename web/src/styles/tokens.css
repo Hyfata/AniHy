@@ -1,0 +1,101 @@
+/* ============================================
+   AniHy 디자인 토큰
+   - 기존 assets/css/style.css(:root 팔레트)의 토큰화 + 타입 스케일 고정
+   - safe-area: --anihy-sa* 네이밍 규약 유지 (네이티브 레이어가 :root에 변수를
+     주입하면 자동으로 우선 적용, 없으면 env() 폴팩)
+   ============================================ */
+:root {
+  color-scheme: dark;
+
+  /* --- Color palette (기존 style.css 이식) --- */
+  --color-bg: #0b0c0f;
+  --color-surface: #15171c;
+  --color-surface-light: #1f222b;
+  --color-primary: #7c5cff;
+  --color-primary-hover: #6a4ce6;
+  --color-primary-soft: rgba(124, 92, 255, 0.12);
+  --color-primary-text: #b7a6ff;
+  --color-accent: #00d4aa;
+  --color-text: #f0f1f5;
+  --color-text-muted: #8b92a8;
+  --color-danger: #ff4d6d;
+  --color-danger-soft: rgba(255, 77, 109, 0.15);
+  --color-progress: #ff0000; /* 회차 시청 진행 바 (기존 .episode-progress-fill) */
+  --color-sky: #7dd3fc; /* encoding 상태 */
+
+  /* --- Borders --- */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  /* --- Type scale (고정 — 임의 rem 값 대신 이 토큰만 사용) --- */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 28px;
+  --leading-tight: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* --- Font family --- */
+  --font-sans:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans KR', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- Spacing (4px grid) --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* --- Radii --- */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-pill: 999px;
+
+  /* --- Shadows --- */
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-tabbar: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-primary: 0 4px 16px rgba(124, 92, 255, 0.4);
+
+  /* --- Z-index scale --- */
+  --z-tabbar: 100;
+  --z-navbar: 100;
+  --z-sticky-header: 50;
+  --z-modal: 200;
+  --z-modal-top: 300; /* 중첩 모달 (설정/대기열) */
+  --z-alert: 10000; /* alert/confirm은 항상 최상단 */
+
+  /* --- Layout --- */
+  --navbar-height: 64px;
+  --container-max: 1200px;
+  --sidebar-w: 200px; /* ≥769px 좌측 사이드바(BottomTabbar 변형) 너비 */
+
+  /* --- Safe area (--anihy-sa* 규약: 네이티브 주입 변수 우선, env() 폴팩) ---
+     JS 주입 금지. 레이아웃 관련 safe-area 보정은 전부 정적 CSS에 둔다. */
+  --sat: var(--anihy-sat, env(safe-area-inset-top, 0px));
+  --sar: var(--anihy-sar, env(safe-area-inset-right, 0px));
+  --sab: var(--anihy-sab, env(safe-area-inset-bottom, 0px));
+  --sal: var(--anihy-sal, env(safe-area-inset-left, 0px));
+
+  /* --- Motion duration scale --- */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-spring: cubic-bezier(0.2, 0.9, 0.3, 1.15); /* 모달 pop (기존 modal-pop-in) */
+}

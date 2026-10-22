@@ -1,0 +1,11 @@
+# 로컬 생성물
+node_modules/
+target/
+src-tauri/target/
+src-tauri/gen/
+dist/
+
+# 빌드 산출물
+*.keystore
+*.jks
+ui/spa/

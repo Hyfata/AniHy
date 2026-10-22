@@ -1,0 +1,52 @@
+# AniHy FastAPI 서버 — systemd 유닛
+# 설치:
+#   sudo cp deploy/systemd/anihy-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now anihy-server
+#
+# ⚠️ workers=1 필수 (절대 늘리지 말 것):
+#   잡 큐 매니저(server/worker/manager.py)가 uvicorn 프로세스 안에서 도는
+#   인프로세스 asyncio 큐다. 워커를 2개 이상 띄우면 큐 매니저가 프로세스마다
+#   하나씩 생겨 같은 잡을 중복 실행하고 logs/queue.lock이 서로를 죽인다.
+#   병렬 인코딩 수는 uvicorn 워커가 아니라 .env의 MAX_WORKERS로 조절한다
+#   (큐 매니저가 매 루프 .env를 다시 읽어 hot-reload).
+#   스케일아웃이 필요하면 잡 파이프라인을 외부 큐로 분리하는 선행 작업이 필요하다.
+
+[Unit]
+Description=AniHy FastAPI server (uvicorn)
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+# www-data: animes/ covers/ subtitles/ logs/ downloader/videos/ 쓰기 권한 필요
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/html/anime
+# BASE_DIR/DB_URL/COOKIE_SECRET/Keycloak/인코딩 설정은 전부 여기서 주입.
+# server/core/config.py가 SERVER_DIR/.env를 기본으로 읽지만 EnvironmentFile이 우선.
+EnvironmentFile=/var/www/html/anime/server/.env
+# 프로젝트 루트를 cwd로 — `server.main:app` 패키지 경로 import 기준.
+# --workers 플래그 자체를 쓰지 않는다(기본 1). 위 경고 참조.
+ExecStart=/var/www/html/anime/server/.venv/bin/uvicorn server.main:app \
+    --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=3
+# 인코딩 잡(ffmpeg)이 오래 도니 종료 유예를 넉넉히
+TimeoutStopSec=30
+
+# ── 하드닝 (기본만) ──
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+# 서버가 쓰는 경로(미디어/로그/다운로드 산출물)만 쓰기 허용
+ReadWritePaths=/var/www/html/anime/animes \
+              /var/www/html/anime/covers \
+              /var/www/html/anime/subtitles \
+              /var/www/html/anime/logs \
+              /var/www/html/anime/downloader
+ProtectHome=true
+# ffmpeg/smi2ass/downloader 서브프로세스를 죽이지 않도록 OOM 조정은 건드리지 않음
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,36 @@
+"$schema" = "https://schema.tauri.app/plugin/2/permission.schema.json"
+
+[default]
+description = "AniHy 네이티브 탭바의 기본 명령 모두 허용"
+permissions = [
+    "allow-set-tabs",
+    "allow-select-tab",
+    "allow-get-insets",
+    "allow-watch-tab-selected",
+    "allow-watch-insets",
+]
+
+[[permission]]
+identifier = "allow-set-tabs"
+description = "네이티브 탭 구성 등록"
+commands.allow = ["set_tabs"]
+
+[[permission]]
+identifier = "allow-select-tab"
+description = "네이티브 탭 선택 상태 변경"
+commands.allow = ["select_tab"]
+
+[[permission]]
+identifier = "allow-get-insets"
+description = "현재 safe-area inset 조회"
+commands.allow = ["get_insets"]
+
+[[permission]]
+identifier = "allow-watch-tab-selected"
+description = "탭 선택 이벤트 구독"
+commands.allow = ["watch_tab_selected"]
+
+[[permission]]
+identifier = "allow-watch-insets"
+description = "safe-area inset 변화 구독"
+commands.allow = ["watch_insets"]

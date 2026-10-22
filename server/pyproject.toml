@@ -1,0 +1,28 @@
+[project]
+name = "anihy-server"
+version = "0.1.0"
+description = "AniHy FastAPI backend (PHP rewrite)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pymysql>=1.1",
+    "cryptography>=43",
+    "pydantic-settings>=2.4",
+    "itsdangerous>=2.2",
+    "authlib>=1.3",
+    "httpx>=0.27",
+    "python-multipart>=0.0.9",
+    # 퍼지 검색(romanize)의 레벤슈타인 C 구현 — 없으면 순수 파이썬 폴백으로 긴 검색어가 느려짐
+    "python-Levenshtein>=0.25",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

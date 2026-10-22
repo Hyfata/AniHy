@@ -1,0 +1,18 @@
+.ring {
+  transform: rotate(-90deg);
+}
+
+.ring circle {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.bg {
+  stroke: rgba(255, 255, 255, 0.15);
+}
+
+.fg {
+  stroke: var(--color-primary);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s;
+}

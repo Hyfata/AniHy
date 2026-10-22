@@ -1,0 +1,85 @@
+.yearSection {
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.yearSection:last-child {
+  border-bottom: none;
+}
+
+.yearHead {
+  margin-bottom: var(--space-3);
+}
+
+.yearTitle {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.yearTitle span {
+  margin-left: 2px;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.yearTotal {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.cardGrid > * {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .yearSection {
+    padding: 24px 0;
+    border-bottom: none;
+  }
+
+  .yearHead {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 var(--space-4);
+  }
+
+  .yearTitle {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-weight-extrabold);
+    letter-spacing: -0.02em;
+  }
+
+  .yearTitle span {
+    font-size: var(--text-lg);
+  }
+
+  .yearTotal {
+    order: 2;
+    margin-top: 0;
+  }
+
+  .yearHead::after {
+    content: '';
+    order: 1;
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .cardGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+}

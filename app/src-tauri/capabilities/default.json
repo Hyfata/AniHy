@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "AniHy 기본 capability",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "anihy-tabs:default",
+    "deep-link:default"
+  ]
+}

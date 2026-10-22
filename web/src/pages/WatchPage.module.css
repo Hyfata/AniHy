@@ -1,0 +1,141 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  margin: var(--space-5) 0 var(--space-8);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+.playerWrap {
+  background: #000;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+/* CSS 전체화면 시 safe-area 변수 매핑 — 레이아웃 px는 플레이어 CSS 소유,
+   여기서는 --anihy-sa* → --vp-sa* 연결만 (구 style.css 규약 계승) */
+.playerWrap :global(.vp-css-fullscreen) {
+  --vp-sat: var(--sat);
+  --vp-sar: var(--sar);
+  --vp-sab: var(--sab);
+  --vp-sal: var(--sal);
+}
+
+.info {
+  margin-top: var(--space-4);
+}
+
+.episodeTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.animeTitle {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+
+.animeTitle:hover {
+  color: var(--color-text);
+}
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.btn {
+  padding: 8px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.btn:hover {
+  background: var(--color-surface-light);
+}
+}
+
+.btnActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.listBtn {
+  display: none;
+}
+
+@media (max-width: 1023.98px) {
+  .listBtn {
+    display: inline-block;
+  }
+}
+
+.sidebar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    display: flex;
+    position: sticky;
+    top: calc(64px + var(--sat) + var(--space-4));
+    max-height: calc(100dvh - 64px - var(--sat) - var(--space-8));
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.sidebarTitle {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.episodeList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 2px;
+}
+
+.modalList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 80px 20px;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}

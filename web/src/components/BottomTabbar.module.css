@@ -1,0 +1,119 @@
+/* 하단 탭바: 모바일에서는 fixed 금지 — sticky + flex 컬럼(#root) 구조.
+   (iOS Safari 툴터/safe-area 변동·러버밴드 때 fixed가 뛰어다니는 문제 대응) */
+.tabbar {
+  position: sticky;
+  bottom: calc(var(--space-3) + var(--sab));
+  margin: auto var(--space-4) calc(var(--space-3) + var(--sab));
+  display: flex;
+  gap: var(--space-1);
+  padding: 5px;
+  background: rgba(21, 23, 28, 0.7);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--border-default);
+  border-radius: 28px;
+  box-shadow: var(--shadow-tabbar);
+  z-index: var(--z-tabbar);
+}
+
+.item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition: color var(--duration-fast);
+}
+
+.pill {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 18px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+/* framer-motion layoutId 인디케이터가 들어가는 배경 슬롯 */
+.pillIndicator {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.pillContent {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.icon {
+  width: 17px;
+  height: 17px;
+}
+
+.itemActive {
+  color: var(--color-primary-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Desktop: 하단 탭바 대신 좌측 사이드바 */
+@media (min-width: 769px) {
+  .tabbar {
+    position: fixed;
+    top: calc(var(--navbar-height) + var(--sat));
+    bottom: 0;
+    /* 좌측 인셋은 패딩이 아니라 위치 이동 — 패딩은 border-box 폭을 잠식해 사이드바가 좁아짐 */
+    left: var(--sal);
+    right: auto;
+    width: 200px;
+    margin: 0;
+    flex-direction: column;
+    padding: var(--space-4) var(--space-2) calc(var(--space-4) + var(--sab));
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    border-right: 1px solid var(--border-subtle);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .item {
+    flex: none;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .pill {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-md);
+  }
+
+  .pillIndicator {
+    border-radius: var(--radius-sm);
+  }
+
+  .pillContent {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .icon {
+    width: 19px;
+    height: 19px;
+  }
+}

@@ -1,0 +1,119 @@
+/* 애니 상세 라우트 모달 — 구 style.css .anime-modal 규약 이식
+   (데스크톱 960px/86vh, ≤640px 풀스크린, 다크 배경으로 로딩 중 흰 플래시 방지) */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: var(--z-modal);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-4);
+}
+
+.panel {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  height: 86vh;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.scroll {
+  height: 100%;
+  overflow-y: auto;
+  /* 스크롤바가 데이터 로드 후에 생기면 콘텐츠 폭이 ~14px 줄어 히어로가 이동 —
+     FLIP 클론 측정값과 어긋나 착지 때 튀는 것 방지 (항상 여백 예약) */
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-6) var(--space-4) var(--space-10);
+}
+
+@media (min-width: 641px) {
+  .scroll {
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+  }
+}
+
+.close {
+  position: absolute;
+  top: calc(10px + var(--sat));
+  right: 12px;
+  z-index: 5;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: var(--text-xl);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.close:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+}
+
+/* FLIP 클론 비행 중(진입/퇴장) 히어로의 실제 포스터/제목은 숨김 — 클론과 이중 렌더 방지 */
+.panelHeroHidden [data-hero-poster],
+.panelHeroHidden [data-hero-title] {
+  opacity: 0;
+}
+
+/* 카드↔히어로를 오가는 fixed 클론 (패널 밖 — 중첩 transform 없음) */
+.clonePoster {
+  position: fixed;
+  z-index: calc(var(--z-modal) + 1);
+  object-fit: cover;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+}
+
+.cloneTitle {
+  position: fixed;
+  z-index: calc(var(--z-modal) + 1);
+  margin: 0;
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-tight);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: 0;
+  }
+
+  .panel {
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  /* 풀스크린: 플로팅 닫기 버튼(34px) + 노치 아래로 콘텐츠 시작 */
+  .scroll {
+    padding-top: calc(44px + var(--sat));
+  }
+}

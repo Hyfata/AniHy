@@ -1,0 +1,78 @@
+.navbar {
+  background: rgba(15, 17, 23, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-navbar);
+  /* safe-area는 정적 CSS만 (JS 주입 금지 — 첫 페인트 레이스 방지) */
+  padding-top: var(--sat);
+}
+
+/* 구 규약: 네비바는 사이드바 오프셋 없이 항상 전체 폭 —
+   로고는 화면 좌측 끝, 링크는 우측 끝 (컨테이너 1200px 제한/사이드바 정렬 모두 금지) */
+
+/* iOS Safari: 러버밴드/스크롤 중 flex 조상 안의 sticky가 풀리는 문제 대응.
+   구 style.css의 검증된 패턴 — fixed 네비게이션 + 정적 body padding-top.
+   (네비게이션이 없는 게이트/오프라인 화면은 :has()가 매칭되지 않아 패딩 없음) */
+@supports (-webkit-touch-callout: none) {
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+  }
+
+  body:has(.navbar) {
+    padding-top: calc(var(--navbar-height) + var(--sat));
+  }
+}
+
+.inner {
+  /* 구 규약(.navbar .container { max-width: none }): 네비바 내용은 전체 폭 —
+     로고 좌측 끝 / 링크 우측 끝. global .container를 쓰지 않고 패딩만 이식
+     (container의 max-width/margin-auto와 specificity 충돌로 꺠진 적 있음) */
+  width: 100%;
+  padding-left: calc(var(--space-5) + var(--sal));
+  padding-right: calc(var(--space-5) + var(--sar));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--navbar-height);
+}
+
+.logo {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-extrabold);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.links a,
+.links button {
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+  transition: color var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.links a:hover,
+.links button:hover {
+  color: var(--color-text);
+}
+}
+
+.links a.active {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
