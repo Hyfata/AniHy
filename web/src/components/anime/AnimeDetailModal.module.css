@@ -72,31 +72,19 @@
 }
 }
 
-/* FLIP 클론 비행 중(진입/퇴장) 히어로의 실제 포스터/제목은 숨김 — 클론과 이중 렌더 방지 */
-.panelHeroHidden [data-hero-poster],
-.panelHeroHidden [data-hero-title] {
+/* FLIP 클론 비행 중(진입/퇴장) 히어로의 실제 포스터는 숨김 — 클론과 이중 렌더 방지.
+   제목은 숨기지 않는다 — 클론 없이 info 영역(북마크 버튼 등)과 함께 처음부터 표시된다 */
+.panelHeroHidden [data-hero-poster] {
   opacity: 0;
 }
 
-/* 카드↔히어로를 오가는 fixed 클론 (패널 밖 — 중첩 transform 없음) */
+/* 카드↔히어로를 오가는 fixed 포스터 클론 (패널 밖 — 중첩 transform 없음) */
 .clonePoster {
   position: fixed;
   z-index: calc(var(--z-modal) + 1);
   object-fit: cover;
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
-  pointer-events: none;
-}
-
-.cloneTitle {
-  position: fixed;
-  z-index: calc(var(--z-modal) + 1);
-  margin: 0;
-  color: var(--color-text);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--leading-tight);
-  word-break: keep-all;
-  overflow-wrap: anywhere;
   pointer-events: none;
 }
 

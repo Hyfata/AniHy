@@ -9,17 +9,17 @@ import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { AnimeDetailView } from './AnimeDetailView';
 import styles from './AnimeDetailModal.module.css';
 
-/** 패널 확장용 스프링 (진입). 클론은 CSS transition — 아래 FLIGHT_* 상수 참조 */
+/** 패널 확장용 스프링 (진입). 포스터 클론은 CSS transition — 아래 FLIGHT_* 상수 참조 */
 const expandSpring = { type: 'spring', stiffness: 260, damping: 30 } as const;
 
 /** 퇴장(패널 수축)은 완료를 기다려 navigate하므로 스프링 정착 대신 고정시간 tween —
    스프링 정확 정착은 1초+ 걸려 닫기가 느려 보인다 */
 const exitTween = { type: 'tween', duration: 0.28, ease: [0.3, 0, 0.4, 1] } as const;
 
-/** 클론 비행: framer가 font-size를 보간하지 못해 CSS transition으로 구동.
-   지속시간은 진입 패널 스프링의 체감과 맞춤 */
+/** 포스터 클론 비행은 CSS transition으로 구동.
+   제목 클론은 제거 — 텍스트가 크기를 바꾸며 날아가는 게 어색해서 착지 시 히어로와 함께 바로 표시한다 */
 const FLIGHT_DURATION_MS = 400;
-const FLIGHT_TRANSITION = `left ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1), top ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1), width ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1), height ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1), font-size ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1), line-height ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1)`;
+const FLIGHT_TRANSITION = `left ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1), top ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1), width ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1), height ${FLIGHT_DURATION_MS}ms cubic-bezier(0.22, 0.9, 0.28, 1)`;
 
 interface Rect {
   left: number;
@@ -32,14 +32,6 @@ interface Flight {
   posterSrc: string | null;
   posterFrom: Rect;
   posterTo: Rect;
-  titleText: string;
-  titleFrom: Rect;
-  titleTo: Rect;
-  titleFromFont: number;
-  titleToFont: number;
-  /** px 라인하이트 보간 (글자 크기만 커지고 줄간격이 안 맞으면 착지 때 튐) */
-  titleFromLh: number;
-  titleToLh: number;
 }
 
 /** 최종 패널 rect — AnimeDetailModal.module.css 미러링 (≤640px 풀스크린, 아니면 960px/86vh 중앙).
@@ -72,59 +64,30 @@ function layoutRect(el: HTMLElement): Rect {
   return { left, top, width: el.offsetWidth, height: el.offsetHeight };
 }
 
-/** 카드의 포스터/제목 rect와 텍스트/폰트 (AnimeCard 마크업 계약: 첫째 자식=포스터 div, h3=제목) */
+/** 카드의 포스터 rect/이미지 (AnimeCard 마크업 계약: 첫째 자식=포스터 div) */
 function cardParts(animeId: number) {
   const cardEl = document.querySelector(`[data-anime-id="${animeId}"]`);
   if (!cardEl) return null;
   const posterEl = cardEl.firstElementChild;
-  const titleEl = cardEl.querySelector('h3');
-  if (!posterEl || !titleEl) return null;
+  if (!posterEl) return null;
   const posterRect = toRect(posterEl.getBoundingClientRect());
   if (posterRect.width === 0) return null;
   return {
     cardRect: toRect(cardEl.getBoundingClientRect()),
     posterRect,
     posterSrc: posterEl.querySelector('img')?.currentSrc ?? null,
-    titleRect: toRect(titleEl.getBoundingClientRect()),
-    titleText: titleEl.textContent ?? '',
-    titleFont: parseFloat(getComputedStyle(titleEl).fontSize),
-    titleLh: parseFloat(getComputedStyle(titleEl).lineHeight),
   };
 }
 
-interface HeroParts {
-  posterRect: Rect;
-  titleRect: Rect;
-  titleFont: number;
-  titleLh: number;
-}
-
-function heroPartsBase(
+/** 히어로 포스터 rect — 측정 방식(레이아웃/시각 좌표)은 measure 함수가 결정 */
+function heroPosterRect(
   panel: HTMLElement | null,
   measure: (el: HTMLElement) => Rect,
-): HeroParts | null {
+): Rect | null {
   const posterEl = panel?.querySelector('[data-hero-poster]');
-  const titleEl = panel?.querySelector('[data-hero-title]');
-  if (!posterEl || !titleEl) return null;
-  const posterRect = measure(posterEl as HTMLElement);
-  const titleRect = measure(titleEl as HTMLElement);
-  if (posterRect.width === 0 || titleRect.width === 0) return null;
-  return {
-    posterRect,
-    titleRect,
-    titleFont: parseFloat(getComputedStyle(titleEl).fontSize),
-    titleLh: parseFloat(getComputedStyle(titleEl).lineHeight),
-  };
-}
-
-/** 진입 측정용 — transform 무시 레이아웃 좌표 (패널이 카드 변환 상태라도 정확) */
-function heroLayoutParts(panel: HTMLElement | null): HeroParts | null {
-  return heroPartsBase(panel, layoutRect);
-}
-
-/** 퇴장 측정용 — 시각 좌표 (패널은 identity, 모달 스크롤 가능) */
-function heroVisualParts(panel: HTMLElement | null): HeroParts | null {
-  return heroPartsBase(panel, (el) => toRect(el.getBoundingClientRect()));
+  if (!posterEl) return null;
+  const rect = measure(posterEl as HTMLElement);
+  return rect.width === 0 ? null : rect;
 }
 
 /** /anime/:id 라우트 모달 — 목록 페이지 위에 덮는다 (location.state.background 패턴).
@@ -134,7 +97,8 @@ function heroVisualParts(panel: HTMLElement | null): HeroParts | null {
      Safari가 한 프레임 늦게 적용해 완성 모달이 번쩍인다).
    - 히어로/패널 측정은 layoutRect(offset 체인, transform 무시) — 미리 시작된 애니메이션이
      없으므로 정확. finalPanelRect 미러와 실제 레이아웃 차이는 페인트 전 controls.set 교정.
-   - 클론(포스터/제목)은 CSS transition — framer는 font-size를 보간하지 못함(실측).
+   - 클론(포스터)은 CSS transition — 패널 밖 fixed라 중첩 transform 왜곡 없음.
+     제목은 클론 없이 비행 중 숨겼다가 착지와 함께 표시한다.
    - 히어로 자체 등장 애니메이션은 heroStatic으로 끈다 (켜져 있으면 측정이 왜곡됨).
    - 닫기: 패널 수축(exitTween) 완료 즉시 navigate. 퇴장 클론은 같은 시각에 시작해
      모달과 함께 언마운트된다 — 카드가 배경 목록에 없으면 열 때 기록한 위치(originCard)가 목표.
@@ -194,13 +158,20 @@ export function AnimeDetailModal({
       : '/';
   }, [background]);
 
+  // 진입 클론 착지: 실제 히어로 표시 + 클론 제거
+  const onEnterLanded = useCallback(() => {
+    setFlight(null);
+    setHideHero(false);
+    setPhase('idle');
+  }, []);
+
   // ── 진입: 첫 페인트 전에 측정·시작 ─────────────────────────────
   useLayoutEffect(() => {
     const panelEl = panelRef.current;
     if (!panelEl) return;
-    const hero = origin ? heroLayoutParts(panelEl) : null;
+    const heroPoster = origin ? heroPosterRect(panelEl, layoutRect) : null;
 
-    if (origin && originCard && hero) {
+    if (origin && originCard && heroPoster) {
       // 실제 패널 레이아웃과 미러(finalPanelRect)의 차이만큼 초기 변환을 교정
       // (스크롤바 거터 등으로 미러가 몇 px 어긋날 수 있음 — 페인트 전이라 안 보임)
       const actual = layoutRect(panelEl);
@@ -223,19 +194,17 @@ export function AnimeDetailModal({
       setFlight({
         posterSrc: originCard.posterSrc,
         posterFrom: originCard.posterRect,
-        posterTo: hero.posterRect,
-        titleText: originCard.titleText,
-        titleFrom: originCard.titleRect,
-        titleTo: hero.titleRect,
-        titleFromFont: originCard.titleFont,
-        titleToFont: hero.titleFont,
-        titleFromLh: originCard.titleLh,
-        titleToLh: hero.titleLh,
+        posterTo: heroPoster,
       });
       setHideHero(true);
       // 원본 카드 숨김은 클론 이미지가 디코드된 뒤에 — 미술 클론이 빈 프레임을 그리면
       // 카드가 먼저 사라져 포스터 자리가 한 프레임 비어 보인다(깜빡임).
-      if (!originCard.posterSrc) setAnimeModalOrigin(animeId);
+      // 포스터가 없으면 클론이 없으니 착지도 타이머로 처리한다.
+      let landTimer: number | undefined;
+      if (!originCard.posterSrc) {
+        setAnimeModalOrigin(animeId);
+        landTimer = window.setTimeout(onEnterLanded, FLIGHT_DURATION_MS + 60);
+      }
       void panelControls.start({
         x: 0,
         y: 0,
@@ -246,7 +215,9 @@ export function AnimeDetailModal({
       });
       void backdropControls.start({ opacity: 1, transition: { duration: 0.3 } });
       setPhase('enter');
-      return;
+      return () => {
+        if (landTimer !== undefined) clearTimeout(landTimer);
+      };
     }
 
     // 폴백: 카드/히어로 측정 불가(직접 진입, reduced motion) — 일반 팝인
@@ -254,14 +225,7 @@ export function AnimeDetailModal({
     void panelControls.start({ opacity: 1, y: 0, scale: 1, transition: springPop });
     void backdropControls.start({ opacity: 1, transition: { duration: 0.2 } });
     setPhase('idle');
-  }, [animeId, origin, originCard, panelControls, backdropControls, setAnimeModalOrigin]);
-
-  // 진입 클론 착지: 실제 히어로 표시 + 클론 제거
-  const onEnterLanded = useCallback(() => {
-    setFlight(null);
-    setHideHero(false);
-    setPhase('idle');
-  }, []);
+  }, [animeId, origin, originCard, panelControls, backdropControls, setAnimeModalOrigin, onEnterLanded]);
 
   // ── 닫기: 패널 수축 완료 즉시 navigate (클론은 같은 시각 시작, 별도 대기 없음) ──
   const close = useCallback(() => {
@@ -271,25 +235,21 @@ export function AnimeDetailModal({
 
     const origin = originRef.current;
     const panelEl = panelRef.current;
-    const hero = origin && !reducedMotion ? heroVisualParts(panelEl ?? null) : null;
+    const heroPoster =
+      origin && !reducedMotion
+        ? heroPosterRect(panelEl ?? null, (el) => toRect(el.getBoundingClientRect()))
+        : null;
     // 카드가 배경 목록에 없을 수도 있다(보관함 시청기록 등 카드가 아닌 행에서 온 플로우) —
     // 그때는 열 때 기록한 카드 위치(originCard)를 목표로 써서 클론이 항상 생성되게 한다.
     const cardNow = origin && !reducedMotion ? cardParts(animeId) : null;
     const cardTarget = cardNow ?? originCard;
 
-    if (origin && hero && panelEl && cardTarget) {
-      // 역방향 클론 (히어로→카드, 폰트 크기도 역보간)
+    if (origin && heroPoster && panelEl && cardTarget) {
+      // 역방향 클론 (히어로→카드)
       setFlight({
         posterSrc: cardTarget.posterSrc,
-        posterFrom: hero.posterRect,
+        posterFrom: heroPoster,
         posterTo: cardTarget.posterRect,
-        titleText: cardTarget.titleText,
-        titleFrom: hero.titleRect,
-        titleTo: cardTarget.titleRect,
-        titleFromFont: hero.titleFont,
-        titleToFont: cardTarget.titleFont,
-        titleFromLh: hero.titleLh,
-        titleToLh: cardTarget.titleLh,
       });
       setHideHero(true);
       setPhase('exit');
@@ -378,22 +338,13 @@ export function AnimeDetailModal({
         </motion.div>
       </div>
 
-      {/* FLIP 클론 — CSS transition 구동, 패널 밖 fixed라 중첩 transform 왜곡 없음 */}
+      {/* FLIP 포스터 클론 — CSS transition 구동, 패널 밖 fixed라 중첩 transform 왜곡 없음 */}
       {flight?.posterSrc && (
         <FlightClone
           key={`poster-${phase}`}
-          kind="poster"
           flight={flight}
           onLanded={phase === 'enter' ? onEnterLanded : undefined}
           onReady={phase === 'enter' ? () => setAnimeModalOrigin(animeId) : undefined}
-        />
-      )}
-      {flight && flight.titleText && (
-        <FlightClone
-          key={`title-${phase}`}
-          kind="title"
-          flight={flight}
-          onLanded={phase === 'enter' && !flight.posterSrc ? onEnterLanded : undefined}
         />
       )}
     </>,
@@ -401,36 +352,33 @@ export function AnimeDetailModal({
   );
 }
 
-/** CSS transition으로 움직이는 FLIP 클론 — 마운트 시 from 스타일로 렌더 후
-   첫 페인트 직후(rAF)에 to로 전환, transitionend(width/font-size)로 완료 보고 */
+/** CSS transition으로 움직이는 FLIP 포스터 클론 — 마운트 시 from 스타일로 렌더 후
+   첫 페인트 직후에 to로 전환, transitionend(width)로 완료 보고 */
 function FlightClone({
-  kind,
   flight,
   onLanded,
   onReady,
 }: {
-  kind: 'poster' | 'title';
   flight: Flight;
   onLanded?: () => void;
-  /** 포스터: 클론 이미지가 실제로 그릴 준비가 됐을 때 (카드 숨김 시점 결정용) */
+  /** 클론 이미지가 실제로 그릴 준비가 됐을 때 (카드 숨김 시점 결정용) */
   onReady?: () => void;
 }) {
-  const ref = useRef<HTMLElement | null>(null);
+  const ref = useRef<HTMLImageElement | null>(null);
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (kind === 'poster' && onReady) {
-      const img = el as HTMLImageElement;
-      if (img.complete && img.naturalWidth > 0) {
+    if (onReady) {
+      if (el.complete && el.naturalWidth > 0) {
         onReady();
       } else {
-        img.addEventListener('load', onReady, { once: true });
+        el.addEventListener('load', onReady, { once: true });
       }
     }
     const onEnd = (e: TransitionEvent) => {
       if (e.target !== el) return;
-      if (e.propertyName === (kind === 'poster' ? 'width' : 'font-size')) {
+      if (e.propertyName === 'width') {
         land();
       }
     };
@@ -445,16 +393,11 @@ function FlightClone({
     // (rAF로 하면 WebKit은 첫 페인트 전에 적용해 transition이 시작되지 않고
     // 클론이 최종 위치로 순간이동한다 — Safari 퇴장 클론 무애니메이션 버그)
     void el.offsetWidth;
-    const to = kind === 'poster' ? flight.posterTo : flight.titleTo;
+    const to = flight.posterTo;
     el.style.left = `${to.left}px`;
     el.style.top = `${to.top}px`;
     el.style.width = `${to.width}px`;
-    if (kind === 'poster') {
-      el.style.height = `${to.height}px`;
-    } else {
-      el.style.fontSize = `${flight.titleToFont}px`;
-      el.style.lineHeight = `${flight.titleToLh}px`;
-    }
+    el.style.height = `${to.height}px`;
     return () => {
       if (timer !== undefined) clearTimeout(timer);
       if (onLanded) el.removeEventListener('transitionend', onEnd);
@@ -462,41 +405,21 @@ function FlightClone({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (kind === 'poster') {
-    return (
-      <img
-        ref={(el) => {
-          ref.current = el;
-        }}
-        src={flight.posterSrc ?? ''}
-        alt=""
-        className={styles.clonePoster}
-        style={{
-          left: flight.posterFrom.left,
-          top: flight.posterFrom.top,
-          width: flight.posterFrom.width,
-          height: flight.posterFrom.height,
-          transition: FLIGHT_TRANSITION,
-        }}
-      />
-    );
-  }
   return (
-    <span
+    <img
       ref={(el) => {
         ref.current = el;
       }}
-      className={styles.cloneTitle}
+      src={flight.posterSrc ?? ''}
+      alt=""
+      className={styles.clonePoster}
       style={{
-        left: flight.titleFrom.left,
-        top: flight.titleFrom.top,
-        width: flight.titleFrom.width,
-        fontSize: flight.titleFromFont,
-        lineHeight: `${flight.titleFromLh}px`,
+        left: flight.posterFrom.left,
+        top: flight.posterFrom.top,
+        width: flight.posterFrom.width,
+        height: flight.posterFrom.height,
         transition: FLIGHT_TRANSITION,
       }}
-    >
-      {flight.titleText}
-    </span>
+    />
   );
 }

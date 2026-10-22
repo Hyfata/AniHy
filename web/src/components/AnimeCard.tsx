@@ -15,7 +15,7 @@ interface AnimeCardProps {
 export function AnimeCard({ anime, broadcastDay, index = 0 }: AnimeCardProps) {
   const location = useLocation();
   // 카드→모달 FLIP 전환: 모달이 이 카드에서 열려 있는 동안(클론 비행~퇴장 착지까지)
-  // 원본 포스터/제목은 숨긴다. 해제는 App.tsx 모달 AnimatePresence의 onExitComplete.
+  // 원본 포스터만 숨긴다 — 제목은 클론이 없으므로 그대로 둔다.
   const isModalOrigin = useUiStore((s) => s.animeModalOriginId === anime.id);
   const hidden = isModalOrigin ? { opacity: 0 } : undefined;
   return (
@@ -25,7 +25,7 @@ export function AnimeCard({ anime, broadcastDay, index = 0 }: AnimeCardProps) {
       transition={{ duration: 0.35, ease: 'easeOut', delay: Math.min(index, 6) * 0.04 }}
     >
       {/* background location을 실어 상세를 라우트 모달로 연다 (App.tsx 참조)
-          마크업 계약(FLIP 측정이 의존): 첫째 자식=포스터 div, h3=제목 */}
+          마크업 계약(FLIP 측정이 의존): 첫째 자식=포스터 div */}
       <Link
         to={`/anime/${anime.id}`}
         state={{ background: location }}
@@ -37,9 +37,7 @@ export function AnimeCard({ anime, broadcastDay, index = 0 }: AnimeCardProps) {
           {broadcastDay && <span className={styles.dayBadge}>{broadcastDay}</span>}
         </div>
         <div className={styles.body}>
-          <h3 className={styles.title} style={hidden}>
-            {anime.title}
-          </h3>
+          <h3 className={styles.title}>{anime.title}</h3>
         </div>
       </Link>
     </motion.div>

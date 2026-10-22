@@ -262,7 +262,7 @@ export function AnimeDetailView({
         transition={heroTransition}
       >
         <div className={styles.posterCol}>
-          {/* FLIP 클론의 착지 지점 — 모달이 측정/숨김에 사용 (data-hero-poster/title) */}
+          {/* FLIP 클론의 착지 지점 — 모달이 측정/숨김에 사용 (data-hero-poster) */}
           <div className={styles.poster} data-hero-poster>
             {detail.cover && <img src={detail.cover} alt={detail.title} />}
           </div>
@@ -307,6 +307,8 @@ export function AnimeDetailView({
 
         <div className={styles.info}>
           <div className={styles.titleRow}>
+            {/* 제목은 클론/지연 fade 없이 히어로의 일부로 처음부터 표시 —
+                북마크 버튼 등 info 영역과 같이 패널 확장 애니메이션에 실려 움직인다 */}
             <h1 data-hero-title>{detail.title}</h1>
             {isAdmin && (
               <div className={styles.adminActions}>
