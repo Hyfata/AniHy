@@ -16,7 +16,7 @@ export function BookmarkTab() {
   const queryClient = useQueryClient();
   const [removingId, setRemovingId] = useState<number | null>(null);
 
-  const { data: items, error, isPending } = useQuery({
+  const { data: items, error, isPending, refetch } = useQuery({
     queryKey: ['bookmarks'],
     queryFn: async () => (await get<{ bookmarks: Bookmark[] }>('/bookmarks')).bookmarks,
   });
@@ -38,6 +38,21 @@ export function BookmarkTab() {
 
   if (loginRequired) {
     return <LoginPrompt feature="북마크" />;
+  }
+
+  // 에러를 스켈레톤과 구분 — 이전엔 비401 에러도 `!items`라 무한 스켈레톤이었다
+  if (error) {
+    return (
+      <div className={styles.empty}>
+        <p className={styles.emptyTitle}>북마크를 불러오지 못했습니다</p>
+        <p className={styles.emptyDesc}>
+          {error instanceof Error ? error.message : '알 수 없는 오류'}
+        </p>
+        <button type="button" className={styles.ctaBtn} onClick={() => void refetch()}>
+          다시 시도
+        </button>
+      </div>
+    );
   }
 
   if (isPending || !items) {

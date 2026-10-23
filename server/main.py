@@ -9,6 +9,17 @@ from .routers import auth
 
 app = FastAPI(title="AniHy API", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
+
+@app.middleware("http")
+async def no_store_api(request, call_next):
+    """JSON API 응답은 캐시 금지 — iOS Safari가 Cache-Control 없는 응답(특히 302)을
+    휴리스틱 디스크 캐시에 저장해 이후 요청을 네트워크 없이 오래된 HTML로 응답하는 사고 방지.
+    미디어(/api/files/*)는 예외 — 커버/영상은 캐시돼야 한다."""
+    response = await call_next(request)
+    if request.url.path.startswith("/api") and not request.url.path.startswith("/api/files"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
 api = APIRouter(prefix="/api")
 api.include_router(auth.router)
 

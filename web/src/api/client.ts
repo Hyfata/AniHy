@@ -73,6 +73,8 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     body: payload,
     signal,
     credentials: 'same-origin',
+    // 캐시된 302/HTML 응답(iOS Safari 휴리스틱 캐시)을 우회 — 서버도 no-store를 보낸다
+    cache: 'no-store',
   });
 
   if (res.status === 204) {
