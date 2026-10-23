@@ -3,11 +3,12 @@ import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE, ApiError, del as delReq, get, post } from '../../api/client';
+import { API_BASE, ApiError, del as delReq, get, post, put } from '../../api/client';
 import type {
   AnimeDetail,
   AnimeListResponse,
   Bookmark,
+  Episode,
   QuarterDetailResponse,
 } from '../../api/types';
 import detailStyles from '../../pages/AnimeDetailPage.module.css';
@@ -167,6 +168,9 @@ export function AnimeDetailView({
   const [editOpen, setEditOpen] = useState(false);
   const [addEpOpen, setAddEpOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [editEp, setEditEp] = useState<Episode | null>(null);
+  const [editEpTitle, setEditEpTitle] = useState('');
+  const [epBusy, setEpBusy] = useState(false);
   const [bookmarkBusy, setBookmarkBusy] = useState(false);
 
   const heroTransition = useMotionTransition({ ...tweenNormal, duration: 0.35 });
@@ -232,6 +236,35 @@ export function AnimeDetailView({
       `${API_BASE}/files/video/${animeId}/${encodeURIComponent(episodeNumber)}`,
     );
   }, [animeId]);
+
+  const openEpisodeEdit = (ep: Episode) => {
+    setEditEpTitle(ep.title);
+    setEditEp(ep);
+  };
+
+  const saveEpisodeTitle = async () => {
+    if (!editEp || epBusy) return;
+    setEpBusy(true);
+    try {
+      await put(`/admin/episodes/${editEp.id}`, { title: editEpTitle });
+      setEditEp(null);
+      await refetch();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : '수정 실패');
+    } finally {
+      setEpBusy(false);
+    }
+  };
+
+  const deleteEpisode = async (ep: Episode) => {
+    if (!window.confirm(`${ep.episode_number}화를 삭제하시겠습니까?`)) return;
+    try {
+      await delReq(`/admin/episodes/${ep.id}`);
+      await refetch();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : '삭제 실패');
+    }
+  };
 
   if (error) {
     return (
@@ -428,31 +461,61 @@ export function AnimeDetailView({
                     animeId={detail.id}
                     episode={ep}
                     actions={
-                      isNative() ? (
-                        <EpisodeDownloadButton
-                          animeId={detail.id}
-                          animeTitle={detail.title}
-                          coverUrl={detail.cover}
-                          episode={ep}
-                          className={styles.dlBtn}
-                        />
-                      ) : (
-                        /* 웹: 첨부 다운로드 엔드포인트로 바로 연결 (구 .episode-dl-btn 부활).
+                      <>
+                        {isNative() ? (
+                          <EpisodeDownloadButton
+                            animeId={detail.id}
+                            animeTitle={detail.title}
+                            coverUrl={detail.cover}
+                            episode={ep}
+                            className={styles.dlBtn}
+                          />
+                        ) : (
+                          /* 웹: 첨부 다운로드 엔드포인트로 바로 연결 (구 .episode-dl-btn 부활).
                            EpisodeRow가 <a>라 중첩 앵커 대신 버튼 + location.assign 사용 */
-                        <button
-                          type="button"
-                          className={styles.epDlBtn}
-                          title="다운로드"
-                          aria-label={`${ep.episode_number}화 다운로드`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            webDownload(ep.episode_number);
-                          }}
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="m6 11 6 6 6-6" /><path d="M4 21h16" /></svg>
-                        </button>
-                      )
+                          <button
+                            type="button"
+                            className={styles.epDlBtn}
+                            title="다운로드"
+                            aria-label={`${ep.episode_number}화 다운로드`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              webDownload(ep.episode_number);
+                            }}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="m6 11 6 6 6-6" /><path d="M4 21h16" /></svg>
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.epAdminBtn}
+                              title="제목 수정"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openEpisodeEdit(ep);
+                              }}
+                            >
+                              수정
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.epAdminBtn} ${styles.epAdminBtnDanger}`}
+                              title="삭제"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void deleteEpisode(ep);
+                              }}
+                            >
+                              삭제
+                            </button>
+                          </>
+                        )}
+                      </>
                     }
                   />
                 </motion.div>
@@ -481,6 +544,41 @@ export function AnimeDetailView({
           </button>
         </div>
       </Modal>
+
+      {isAdmin && (
+        <Modal
+          open={editEp !== null}
+          onClose={() => setEditEp(null)}
+          title={editEp ? `${editEp.episode_number}화 제목 수정` : '제목 수정'}
+          size="sm"
+        >
+          <input
+            className={styles.epEditInput}
+            value={editEpTitle}
+            placeholder="에피소드 제목"
+            onChange={(e) => setEditEpTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void saveEpisodeTitle();
+              }
+            }}
+          />
+          <div className={styles.epEditActions}>
+            <button type="button" className={styles.btnSm} onClick={() => setEditEp(null)}>
+              취소
+            </button>
+            <button
+              type="button"
+              className={`${styles.btnSm} ${styles.btnSmPrimary}`}
+              disabled={epBusy}
+              onClick={() => void saveEpisodeTitle()}
+            >
+              {epBusy ? '저장 중...' : '저장'}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {isAdmin && (
         <>

@@ -8,11 +8,12 @@ import styles from './admin.module.css';
 interface EditAnimeModalProps {
   open: boolean;
   onClose: () => void;
-  anime: AnimeDetail;
+  /** null이면 생성 모드 (구 index.php #add-anime-modal) */
+  anime: AnimeDetail | null;
   /** 저장 성공 후 (페이지가 상세를 다시 불러옴) */
   onSaved: () => void;
-  /** 삭제 성공 후 (페이지가 목록으로 이동) */
-  onDeleted: () => void;
+  /** 삭제 성공 후 (페이지가 목록으로 이동) — 수정 모드 전용 */
+  onDeleted?: () => void;
 }
 
 interface BroadcastPair {
@@ -22,8 +23,10 @@ interface BroadcastPair {
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
-/** 애니 정보 수정 모달 (inc/edit_anime_modal.php 대응) — PUT /api/admin/animes/{id} */
+/** 애니 추가/수정 모달 (index.php #add-anime-modal + inc/edit_anime_modal.php 대응)
+ *  생성: POST /api/admin/animes, 수정: PUT /api/admin/animes/{id} */
 export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: EditAnimeModalProps) {
+  const isCreate = anime === null;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [seasonId, setSeasonId] = useState('');
@@ -42,15 +45,15 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
 
   useEffect(() => {
     if (!open) return;
-    setTitle(anime.title);
-    setDescription(anime.description ?? '');
-    setSeasonId(anime.season_id ?? '');
-    setIsHidive(anime.is_hidive ? '1' : '0');
-    setBroadcastDay(anime.broadcast_day ?? '');
-    setDownloadUrl(anime.download_url ?? '');
-    setNamuwikiUrl(anime.namuwiki_url ?? '');
+    setTitle(anime?.title ?? '');
+    setDescription(anime?.description ?? '');
+    setSeasonId(anime?.season_id ?? '');
+    setIsHidive(anime?.is_hidive ? '1' : '0');
+    setBroadcastDay(anime?.broadcast_day ?? '');
+    setDownloadUrl(anime?.download_url ?? '');
+    setNamuwikiUrl(anime?.namuwiki_url ?? '');
     setPairs(
-      anime.broadcasts.length > 0
+      anime && anime.broadcasts.length > 0
         ? anime.broadcasts.map(([y, q]) => ({ year: String(y), quarter: String(q) }))
         : [{ year: '', quarter: '1' }],
     );
@@ -80,6 +83,7 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
   const submit = async () => {
     const nextErrors: Record<string, string> = {};
     if (!title.trim()) nextErrors.title = '제목을 입력하세요.';
+    if (isCreate && !cover) nextErrors.cover = '커버 이미지를 업로드하세요.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -99,17 +103,22 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
         fd.append('broadcast_quarter', p.quarter);
       }
       if (cover) fd.append('cover', cover);
-      await api('/admin/animes/' + anime.id, { method: 'PUT', formData: fd });
+      if (isCreate) {
+        await api('/admin/animes', { method: 'POST', formData: fd });
+      } else {
+        await api('/admin/animes/' + anime.id, { method: 'PUT', formData: fd });
+      }
       onSaved();
       onClose();
     } catch (err) {
-      setErrors({ form: err instanceof Error ? err.message : '수정 실패' });
+      setErrors({ form: err instanceof Error ? err.message : '저장 실패' });
     } finally {
       setSubmitting(false);
     }
   };
 
   const remove = async () => {
+    if (!anime || !onDeleted) return;
     if (!window.confirm('이 애니와 모든 에피소드를 삭제하시겠습니까?')) return;
     setDeleting(true);
     try {
@@ -122,8 +131,8 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="애니 정보 수정">
-      {anime.cover && (
+    <Modal open={open} onClose={onClose} title={isCreate ? '애니 추가' : '애니 정보 수정'}>
+      {!isCreate && anime.cover && (
         <div className={styles.field}>
           <span className={styles.label}>현재 커버</span>
           <img className={styles.coverPreview} src={anime.cover} alt="" />
@@ -142,13 +151,16 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
       </div>
 
       <div className={styles.field}>
-        <label className={styles.label} htmlFor="edit-anime-cover">새 커버 이미지 (변경 시에만 선택)</label>
+        <label className={styles.label} htmlFor="edit-anime-cover">
+          {isCreate ? '커버 이미지 (세로 포스터 권장)' : '새 커버 이미지 (변경 시에만 선택)'}
+        </label>
         <input
           id="edit-anime-cover"
           type="file"
           accept="image/*"
           onChange={(e) => setCover(e.target.files?.[0] ?? null)}
         />
+        {errors.cover && <div className={styles.error}>{errors.cover}</div>}
       </div>
 
       <div className={styles.field}>
@@ -307,21 +319,23 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
       {errors.form && <div className={styles.error}>{errors.form}</div>}
 
       <div className={styles.footerRow}>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnDanger}`}
-          disabled={deleting || submitting}
-          onClick={() => void remove()}
-        >
-          {deleting ? '삭제 중...' : '삭제'}
-        </button>
+        {!isCreate && onDeleted && (
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnDanger}`}
+            disabled={deleting || submitting}
+            onClick={() => void remove()}
+          >
+            {deleting ? '삭제 중...' : '삭제'}
+          </button>
+        )}
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}
           disabled={submitting || deleting}
           onClick={() => void submit()}
         >
-          {submitting ? '수정 중...' : '수정'}
+          {submitting ? '저장 중...' : isCreate ? '추가' : '수정'}
         </button>
       </div>
     </Modal>

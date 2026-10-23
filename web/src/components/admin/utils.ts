@@ -37,9 +37,15 @@ export async function fetchText(path: string): Promise<string> {
   return res.text();
 }
 
-/** 파일(blob) 응답 GET — 실패 JSON이 200으로 오는 케이스도 검사 (구 프론트 규약) */
-export async function fetchBlob(path: string): Promise<{ blob: Blob; filename: string }> {
-  const res = await fetch(`${API_BASE}${path}`, { credentials: 'same-origin' });
+/** 파일(blob) 응답 GET/POST — 실패 JSON이 200으로 오는 케이스도 검사 (구 프론트 규약) */
+export async function fetchBlob(
+  path: string,
+  options: { method?: 'GET' | 'POST' } = {},
+): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    credentials: 'same-origin',
+    method: options.method ?? 'GET',
+  });
   const ct = res.headers.get('Content-Type') ?? '';
   if (!res.ok || ct.includes('application/json')) {
     await extractError(res);

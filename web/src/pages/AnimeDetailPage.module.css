@@ -331,6 +331,23 @@
   gap: var(--space-2);
 }
 
+.epEditInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-light);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-text);
+  font-size: var(--text-md);
+}
+
+.epEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
 .empty {
   text-align: center;
   padding: 60px 20px;
@@ -410,6 +427,34 @@
 .epDlBtn:hover {
   color: var(--color-primary);
   background: rgba(124, 92, 255, 0.15);
+}
+}
+
+/* 관리자 회차 수정/삭제 — 구 .episode-actions의 btn-sm / btn-danger 포팅 */
+.epAdminBtn {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-light);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+
+.epAdminBtnDanger {
+  color: var(--color-danger, #ff6b6b);
+}
+
+@media (hover: hover) {
+
+.epAdminBtn:hover {
+  background: var(--border-strong);
+  color: var(--color-text);
+}
+
+.epAdminBtnDanger:hover {
+  background: rgba(255, 107, 107, 0.15);
+  color: var(--color-danger, #ff6b6b);
 }
 }
 

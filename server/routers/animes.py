@@ -135,6 +135,7 @@ def anime_detail(
         has_chapters = (base_dir / urls.chapter_vtt_rel(anime_id, safe_ep)).is_file()
 
         item = {
+            "id": ep.id,
             "episode_number": ep.episode_number,
             "title": ep.title,
             "duration_ms": ep.duration_ms,

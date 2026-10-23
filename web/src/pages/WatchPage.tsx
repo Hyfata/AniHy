@@ -152,6 +152,8 @@ export function WatchPage() {
                 namuwiki_url: null,
                 broadcasts: [],
                 episodes: item.episodes.map((ep) => ({
+                  // 오프라인 저장본에는 서버 id가 없음 — 관리자 액션은 온라인 전용이라 0으로 둔다
+                  id: 0,
                   episode_number: ep.episodeNumber,
                   title: ep.title,
                   duration_ms: null,

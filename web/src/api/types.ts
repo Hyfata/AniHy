@@ -31,6 +31,7 @@ export interface WatchProgress {
 }
 
 export interface Episode {
+  id: number;
   episode_number: string;
   title: string;
   duration_ms: number | null;

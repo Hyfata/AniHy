@@ -9,7 +9,7 @@ import type {
 } from '../../api/types';
 import { Modal } from '../Modal';
 import { ServerFileList } from './ServerFileList';
-import { fetchBlob, fetchText, saveBlobAs } from './utils';
+import { fetchBlob, saveBlobAs } from './utils';
 import styles from './admin.module.css';
 
 type SourceTab = 'stream' | 'upload' | 'server';
@@ -31,6 +31,7 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
   // 공통 필드
   const [epNumber, setEpNumber] = useState('');
   const [epTitle, setEpTitle] = useState('');
+  const [subFile, setSubFile] = useState<File | null>(null);
   const [trimEnabled, setTrimEnabled] = useState(false);
   const [trimSeconds, setTrimSeconds] = useState('7.5');
   const [syncEnabled, setSyncEnabled] = useState(false);
@@ -38,10 +39,6 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
   const [isTest, setIsTest] = useState(false);
 
   // 스트리밍 탭
-  const [seasonId, setSeasonId] = useState('');
-  const [keyword, setKeyword] = useState('');
-  const [searchResult, setSearchResult] = useState('');
-  const [searching, setSearching] = useState(false);
   const [lookupLines, setLookupLines] = useState('');
   const [lookupRunning, setLookupRunning] = useState(false);
   const [lookupEps, setLookupEps] = useState<string[]>([]);
@@ -49,7 +46,6 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
 
   // 업로드 탭
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [subFile, setSubFile] = useState<File | null>(null);
 
   // 서버 파일 탭
   const [serverFiles, setServerFiles] = useState<ServerFileItem[]>([]);
@@ -65,6 +61,7 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [enDownloading, setEnDownloading] = useState(false);
 
   const service = anime.is_hidive ? 'hidive' : 'crunchy';
 
@@ -80,11 +77,9 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
       return;
     }
     setTab('stream');
-    setSeasonId(anime.season_id ?? '');
     setErrors({});
     setLookupLines('');
     setLookupEps([]);
-    setSearchResult('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, anime.id]);
 
@@ -92,26 +87,10 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
 
   // ---------- 스트리밍 탭 ----------
 
-  const searchTitle = async () => {
-    if (!keyword.trim()) return;
-    setSearching(true);
-    setSearchResult('검색 중...');
-    try {
-      const text = await fetchText(
-        `/anidown/search?keyword=${encodeURIComponent(keyword.trim())}&service=${service}`,
-      );
-      setSearchResult(text || '결과가 없습니다.');
-    } catch (err) {
-      setSearchResult(err instanceof Error ? err.message : '검색 중 오류가 발생했습니다.');
-    } finally {
-      setSearching(false);
-    }
-  };
-
   const startLookup = () => {
-    const sid = seasonId.trim();
+    const sid = anime.season_id?.trim();
     if (!sid) {
-      setErrors((e) => ({ ...e, season: '시즌 ID를 입력하세요.' }));
+      setErrors((e) => ({ ...e, season: '시즌 ID가 없습니다. 애니 정보 수정에서 먼저 설정하세요.' }));
       return;
     }
     stopLookup();
@@ -276,12 +255,38 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
     }
   };
 
+  // ---------- 영어 자막 다운로드 (구 download-en-subtitle-btn) ----------
+
+  const downloadEnSubtitle = async () => {
+    const ep = epNumber.trim();
+    if (!ep) {
+      setErrors((e) => ({ ...e, ep: '에피소드 번호를 입력하세요.' }));
+      return;
+    }
+    setEnDownloading(true);
+    try {
+      const { blob } = await fetchBlob(
+        `/downloads/en-subtitle?aid=${anime.id}&ep=${encodeURIComponent(ep)}`,
+        { method: 'POST' },
+      );
+      saveBlobAs(blob, `${ep}_en.ass`);
+    } catch (err) {
+      setErrors((e) => ({
+        ...e,
+        enSub: err instanceof Error ? err.message : '영어 자막 다운로드 실패',
+      }));
+    } finally {
+      setEnDownloading(false);
+    }
+  };
+
   // ---------- 제출 ----------
 
   const submit = async () => {
     const nextErrors: Record<string, string> = {};
     if (!epNumber.trim()) nextErrors.ep = '에피소드 번호를 입력하세요.';
-    if (tab === 'stream' && !seasonId.trim()) nextErrors.season = '시즌 ID를 입력하세요.';
+    if (tab === 'stream' && !anime.season_id?.trim())
+      nextErrors.season = '시즌 ID가 없습니다. 애니 정보 수정에서 먼저 설정하세요.';
     if (tab === 'upload') {
       if (!videoFile) nextErrors.video = '원본 영상 파일을 선택하세요.';
       else {
@@ -303,14 +308,15 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
       if (syncEnabled) fd.append('subtitle_offset', subOffset);
       if (isTest) fd.append('is_test', '1');
       if (tab === 'stream') {
-        fd.append('season_id', seasonId.trim());
+        fd.append('season_id', anime.season_id!.trim());
         if (subFile) fd.append('subtitle', subFile);
       } else if (tab === 'upload') {
         if (videoFile) fd.append('source_video', videoFile);
         if (subFile) fd.append('subtitle', subFile);
       } else if (selectedServerFile) {
         fd.append('server_video_path', selectedServerFile.path);
-        if (attachedSub) fd.append('subtitle', attachedSub);
+        const subtitle = attachedSub ?? subFile;
+        if (subtitle) fd.append('subtitle', subtitle);
       }
       const res = await api<AddJobResponse>('/jobs', { method: 'POST', formData: fd });
       window.alert(res.message || '대기열에 추가되었습니다.');
@@ -382,102 +388,54 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
         />
       </div>
 
+      {subtitleInput}
+
       {tab === 'stream' && (
-        <>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="add-ep-season">시즌 ID</label>
-            <input
-              id="add-ep-season"
-              className={styles.input}
-              placeholder="예: GS0012345678"
-              value={seasonId}
-              onChange={(e) => setSeasonId(e.target.value)}
-            />
-            {errors.season && <div className={styles.error}>{errors.season}</div>}
-          </div>
-
-          <div className={styles.field}>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnBlock}`}
-              disabled={lookupRunning}
-              onClick={startLookup}
-            >
-              {lookupRunning ? '조회 중...' : '회차 조회'}
-            </button>
-            {lookupLines && (
-              <>
-                <div className={styles.logBox} style={{ marginTop: 8 }}>
-                  {lookupLines}
-                </div>
-                {lookupEps.length > 0 && (
-                  <div className={styles.epChips}>
-                    {lookupEps.map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        className={styles.epChip}
-                        onClick={() => setEpNumber(n)}
-                      >
-                        {n}화
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="add-ep-keyword">aniDL 제목 검색</label>
-            <div className={styles.row}>
-              <input
-                id="add-ep-keyword"
-                className={styles.input}
-                placeholder="예: one piece"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    void searchTitle();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className={`${styles.btn} ${styles.btnPrimary}`}
-                disabled={searching}
-                onClick={() => void searchTitle()}
-              >
-                검색
-              </button>
-            </div>
-            {searchResult && (
+        <div className={styles.field}>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnBlock}`}
+            disabled={lookupRunning}
+            onClick={startLookup}
+          >
+            {lookupRunning ? '조회 중...' : '회차 조회'}
+          </button>
+          {errors.season && <div className={styles.error}>{errors.season}</div>}
+          {lookupLines && (
+            <>
               <div className={styles.logBox} style={{ marginTop: 8 }}>
-                {searchResult}
+                {lookupLines}
               </div>
-            )}
-          </div>
-
-          {subtitleInput}
-        </>
+              {lookupEps.length > 0 && (
+                <div className={styles.epChips}>
+                  {lookupEps.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={styles.epChip}
+                      onClick={() => setEpNumber(n)}
+                    >
+                      {n}화
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {tab === 'upload' && (
-        <>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="add-ep-video">원본 영상 파일 (mkv/mp4/mov/avi/webm)</label>
-            <input
-              id="add-ep-video"
-              type="file"
-              accept="video/*"
-              onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
-            />
-            {errors.video && <div className={styles.error}>{errors.video}</div>}
-          </div>
-          {subtitleInput}
-        </>
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="add-ep-video">원본 영상 파일 (mkv/mp4/mov/avi/webm)</label>
+          <input
+            id="add-ep-video"
+            type="file"
+            accept="video/*"
+            onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+          />
+          {errors.video && <div className={styles.error}>{errors.video}</div>}
+        </div>
       )}
 
       {tab === 'server' && (
@@ -596,6 +554,18 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
           )}
         </div>
       )}
+
+      <div className={styles.field}>
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.btnBlock}`}
+          disabled={enDownloading}
+          onClick={() => void downloadEnSubtitle()}
+        >
+          {enDownloading ? '영어 자막 다운로드 중...' : '영어 자막 다운로드'}
+        </button>
+        {errors.enSub && <div className={styles.error}>{errors.enSub}</div>}
+      </div>
 
       <div className={styles.field}>
         <div className={styles.checkboxRow}>
