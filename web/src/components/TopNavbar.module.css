@@ -72,15 +72,16 @@
 }
 }
 
-.links a.active {
-  color: var(--color-text);
-  font-weight: var(--font-weight-semibold);
-}
-
 .addBtn {
   padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   background: var(--color-primary);
   color: #fff !important;
   font-weight: var(--font-weight-semibold);
+}
+
+.authIcon {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
