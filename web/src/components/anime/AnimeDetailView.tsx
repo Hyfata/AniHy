@@ -303,6 +303,15 @@ export function AnimeDetailView({
           </div>
           {!isPlaceholderData && (
             <div className={styles.posterActions}>
+              <button
+                type="button"
+                className={`${styles.posterAction}${detail.is_bookmarked ? ` ${styles.posterActionActive}` : ''}`}
+                disabled={bookmarkBusy}
+                onClick={() => void toggleBookmark()}
+              >
+                <svg viewBox="0 0 24 24" fill={detail.is_bookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                <span>{detail.is_bookmarked ? '북마크 해제' : '북마크'}</span>
+              </button>
               {hasDesc && (
                 <button type="button" className={`${styles.posterAction} ${styles.posterActionSynopsis}`} onClick={() => setSynopsisOpen(true)}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
@@ -327,15 +336,6 @@ export function AnimeDetailView({
                   <span>전체 다운로드</span>
                 </DownloadAllButton>
               )}
-              <button
-                type="button"
-                className={`${styles.posterAction}${detail.is_bookmarked ? ` ${styles.posterActionActive}` : ''}`}
-                disabled={bookmarkBusy}
-                onClick={() => void toggleBookmark()}
-              >
-                <svg viewBox="0 0 24 24" fill={detail.is_bookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                <span>{detail.is_bookmarked ? '북마크 해제' : '북마크'}</span>
-              </button>
             </div>
           )}
         </div>

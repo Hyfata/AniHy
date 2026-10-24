@@ -75,8 +75,15 @@ export function BottomTabbar() {
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [indicator, setIndicator] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
 
+  // 모달 경로(/anime/:id)는 오버레이 — 배경 페이지의 탭을 활성으로 유지.
+  // 배경 location은 state.background, 직접 접속은 App이 홈을 배경으로 까니 '/'로 간주.
+  const bg = (location.state as { background?: { pathname?: string } } | null)?.background;
+  const effectivePathname = location.pathname.startsWith('/anime/')
+    ? (bg?.pathname ?? '/')
+    : location.pathname;
+
   const activeIndex = TABS.findIndex((t) =>
-    t.to === '/' ? location.pathname === '/' : location.pathname.startsWith(t.to),
+    t.to === '/' ? effectivePathname === '/' : effectivePathname.startsWith(t.to),
   );
 
   // 활성 탭/리사이즈 시 인디케이터 위치를 아이템의 offset으로 측정 (레이아웃 좌표)
@@ -107,7 +114,7 @@ export function BottomTabbar() {
 
   // 현재 탭 재탭 → 맨 위로 부드럽게 스크롤 (네비게이션 대신)
   const onTabClick = (tab: TabDef) => (e: React.MouseEvent) => {
-    const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to);
+    const active = tab.to === '/' ? effectivePathname === '/' : effectivePathname.startsWith(tab.to);
     if (!active) return;
     e.preventDefault();
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -137,9 +144,9 @@ export function BottomTabbar() {
           ref={(el) => {
             itemRefs.current[i] = el;
           }}
-          className={({ isActive }) =>
-            `${styles.item}${isActive ? ` ${styles.itemActive}` : ''}`
-          }
+          /* NavLink isActive 대신 effectivePathname 기준 — 모달(/anime/:id)이 떠도
+             배경 탭의 선택 상태가 풀리지 않게 */
+          className={`${styles.item}${activeIndex === i ? ` ${styles.itemActive}` : ''}`}
         >
           <span className={styles.pill}>
             <span className={styles.pillContent}>

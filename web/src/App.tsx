@@ -9,7 +9,6 @@ import { DownloadsTab } from './components/library/DownloadsTab';
 import { TopNavbar } from './components/TopNavbar';
 import { useScrollRestoration } from './lib/scrollRestoration';
 import { isOfflineMode } from './lib/native';
-import { AnimeDetailPage } from './pages/AnimeDetailPage';
 import { GatePage } from './pages/GatePage';
 import { HomePage } from './pages/HomePage';
 import { LibraryPage } from './pages/LibraryPage';
@@ -44,7 +43,10 @@ export default function App() {
   }, [fetchIdentity]);
 
   useEffect(() => {
-    setActiveTab(tabForPath(location.pathname));
+    // 모달 경로(/anime/:id)는 오버레이라 활성 탭을 바꾸지 않는다 — 배경 페이지의 탭 유지
+    if (!location.pathname.startsWith('/anime/')) {
+      setActiveTab(tabForPath(location.pathname));
+    }
     // 목록 페이지 경로를 기억 — watch에서 애니 제목 탭 시 이 위치를 배경으로 모달을 연다
     if (
       location.pathname === '/' ||
@@ -74,17 +76,23 @@ export default function App() {
   }, [navigate]);
 
   useEffect(() => {
+    // 네이티브 탭 동기화도 모달 경로는 배경 탭 기준
+    const effPath = animeMatch ? (effectiveBackground?.pathname ?? '/') : location.pathname;
     import('./lib/tabs')
-      .then((m) => m.syncNativeTab(location.pathname))
+      .then((m) => m.syncNativeTab(effPath))
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
   // 라우트 모달: 카드에서 /anime/:id 진입 시 state.background에 이전 location을 실어 보냄.
   // background가 있으면 배경 페이지는 그대로 마운트 유지 + 상세는 모달로 오버레이.
   const background = (location.state as { background?: Location } | null)?.background;
   const animeMatch = useMatch('/anime/:id');
-  const modalAnimeId =
-    background && animeMatch ? Number(animeMatch.params.id) : null;
+  // 직접 접속/새 탭/새로고침도 모달로 — 배경이 없으면 홈을 배경으로 깐다
+  // (구 PHP의 anime.php?embed=1 모달과 동일한 UX. 카드가 없으면 모달이 자체 팝 애니메이션으로 열림)
+  const HOME_BACKGROUND: Location = { pathname: '/', search: '', hash: '', state: null, key: 'home-bg' };
+  const effectiveBackground = animeMatch ? (background ?? HOME_BACKGROUND) : background;
+  const modalAnimeId = animeMatch ? Number(animeMatch.params.id) : null;
 
   if (isGate) {
     return (
@@ -123,13 +131,12 @@ export default function App() {
       <main className="appMain">
         {/* 페이지 전환 페이드 없음 (사용자 요청) — 라우트만 교체 */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <Routes location={background ?? location}>
+          <Routes location={effectiveBackground ?? location}>
             <Route path="/" element={<HomePage />} />
             <Route path="/quarter" element={<QuarterPage />} />
             <Route path="/quarter/:year/:q" element={<QuarterDetailPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/library" element={<LibraryPage />} />
-            <Route path="/anime/:id" element={<AnimeDetailPage />} />
             <Route path="/watch/:aid/:ep" element={<WatchPage />} />
             <Route path="*" element={<HomePage />} />
           </Routes>
@@ -140,7 +147,7 @@ export default function App() {
           (여기서 onExitComplete로 지우면 빠른 재오픈 시 새 세션의 숨김을 늦게 지워 겹침) */}
       <AnimatePresence>
         {modalAnimeId !== null && Number.isFinite(modalAnimeId) && (
-          <AnimeDetailModal key={modalAnimeId} animeId={modalAnimeId} background={background} />
+          <AnimeDetailModal key={modalAnimeId} animeId={modalAnimeId} background={effectiveBackground} />
         )}
       </AnimatePresence>
       <QueueLauncher />
