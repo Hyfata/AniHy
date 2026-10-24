@@ -151,7 +151,6 @@ export function HistoryTab() {
               >
                 <div className={styles.historyThumbWrap}>
                   {g.cover ? <img src={g.cover} alt="" loading="lazy" /> : null}
-                  {g.latest.completed && <span className={styles.completedBadge}>시청 완료</span>}
                 </div>
                 <div className={styles.historyBody}>
                   <h3 className={styles.historyTitle}>{g.title}</h3>
