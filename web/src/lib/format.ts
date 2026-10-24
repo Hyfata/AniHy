@@ -19,6 +19,15 @@ export function relativeTime(iso: string | null | undefined): string {
   ).padStart(2, '0')}`;
 }
 
+/** ISO 타임스탐프 → "2026.10.24 10:38" 형식의 절대 날짜·시각. */
+export function dateTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /** 바이트 → "3.1 MB" 형식. */
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return '0 B';

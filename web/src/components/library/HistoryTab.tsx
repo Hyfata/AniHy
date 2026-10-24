@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { del, get, ApiError } from '../../api/client';
 import type { HistoryItem } from '../../api/types';
-import { formatPlaytime, relativeTime } from '../../lib/format';
+import { dateTime, formatPlaytime, relativeTime } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { useAuthStore } from '../../stores/auth';
 import { Modal } from '../Modal';
@@ -153,12 +153,17 @@ export function HistoryTab() {
                 </div>
                 <div className={styles.historyBody}>
                   <h3 className={styles.historyTitle}>{g.title}</h3>
-                  <p className={styles.historyEp}>최근 시청 {epLabelOf(g.latest)}</p>
+                  <p className={styles.historyEp}>최근 시청: {epLabelOf(g.latest)}</p>
                   <div className={styles.historyMeta}>
                     <div className={styles.historyProgress}>
                       <div className={styles.historyProgressFill} style={{ width: `${ratio * 100}%` }} />
                     </div>
                     <span>{Math.round(ratio * 100)}%</span>
+                    {g.latest.duration_ms > 0 && (
+                      <span>
+                        {formatPlaytime(g.latest.position_ms)} / {formatPlaytime(g.latest.duration_ms)}
+                      </span>
+                    )}
                     {g.latest.updated_at && <span>{relativeTime(g.latest.updated_at)}</span>}
                   </div>
                   <Link
@@ -222,7 +227,7 @@ export function HistoryTab() {
                                 {h.duration_ms > 0 && (
                                   <> · {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}</>
                                 )}
-                                {h.updated_at && <> · {relativeTime(h.updated_at)}</>}
+                                {h.updated_at && <> · {dateTime(h.updated_at)}</>}
                               </span>
                             </span>
                             <button
