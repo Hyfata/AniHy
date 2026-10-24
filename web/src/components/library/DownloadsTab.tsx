@@ -12,6 +12,7 @@ import { useConnectivityStore } from '../../stores/connectivity';
 import { useDownloadsStore } from '../../stores/downloads';
 import { Skeleton } from '../Spinner';
 import styles from './library.module.css';
+import { dialog } from '../../stores/dialog';
 
 /** 보관함 > 다운로드 — 오프라인 저장본은 네이티브(Tauri) 앱 전용.
    웹에서는 안내 카드만 표시하고, 네이티브에서는 애니 카드 목록으로 렌더한다.
@@ -78,13 +79,17 @@ export function DownloadsTab() {
   }
 
   const removeAnime = (a: DownloadedAnime) => {
-    if (!window.confirm(`'${a.title}' 저장본 ${a.episodes.length}개 회차를 삭제할까요?`)) return;
-    void deleteAnimeDownloads(a.animeId).then(reload);
+    void (async () => {
+      if (!(await dialog.confirm(`'${a.title}' 저장본 ${a.episodes.length}개 회차를 삭제할까요?`, { confirmLabel: '삭제', danger: true }))) return;
+      void deleteAnimeDownloads(a.animeId).then(reload);
+    })();
   };
 
   const removeAll = () => {
-    if (!window.confirm('저장본 전체를 삭제할까요?')) return;
-    void deleteAllDownloads().then(reload);
+    void (async () => {
+      if (!(await dialog.confirm('저장본 전체를 삭제할까요?', { confirmLabel: '전체 삭제', danger: true }))) return;
+      void deleteAllDownloads().then(reload);
+    })();
   };
 
   return (

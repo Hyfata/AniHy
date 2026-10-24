@@ -6,6 +6,7 @@ import type { HistoryItem } from '../../api/types';
 import { dateTime, formatPlaytime, relativeTime } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { useAuthStore } from '../../stores/auth';
+import { dialog } from '../../stores/dialog';
 import { Modal } from '../Modal';
 import { Skeleton } from '../Spinner';
 import { LoginPrompt } from './LoginPrompt';
@@ -76,6 +77,7 @@ export function HistoryTab() {
   }, [load]);
 
   const removeOne = async (animeId: number, ep: string) => {
+    if (!(await dialog.confirm(`${ep}화 시청 기록을 삭제할까요?`, { confirmLabel: '삭제', danger: true }))) return;
     await del(`/history/${animeId}/${encodeURIComponent(ep)}`);
     setItems((prev) =>
       prev ? prev.filter((h) => !(h.anime_id === animeId && h.episode_number === ep)) : prev,

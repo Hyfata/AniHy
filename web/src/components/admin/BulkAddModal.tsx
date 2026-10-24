@@ -4,6 +4,7 @@ import type { AddJobResponse, AnimeDetail, ServerFileItem } from '../../api/type
 import { Modal } from '../Modal';
 import { ServerFileList } from './ServerFileList';
 import { nameSort } from './utils';
+import { dialog } from '../../stores/dialog';
 import styles from './admin.module.css';
 
 type BulkTab = 'stream' | 'server' | 'upload';
@@ -244,7 +245,7 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
     setSubmitting(false);
     let msg = `${succeeded}개 에피소드를 대기열에 추가했습니다.`;
     if (failures.length > 0) msg += '\n\n실패:\n' + failures.join('\n');
-    window.alert(msg);
+    await dialog.alert(msg);
     if (succeeded > 0) {
       onAdded?.();
       onClose();

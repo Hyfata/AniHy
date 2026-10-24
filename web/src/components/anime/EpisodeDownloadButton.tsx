@@ -3,6 +3,7 @@ import type { Episode } from '../../api/types';
 import { formatSpeed } from '../../lib/format';
 import { cancelDownload, deleteDownload, downloadEpisode } from '../../lib/native';
 import { dlKey, useDownloadsStore } from '../../stores/downloads';
+import { dialog } from '../../stores/dialog';
 import { ProgressRing } from '../ProgressRing';
 
 interface EpisodeDownloadButtonProps {
@@ -35,19 +36,21 @@ export function EpisodeDownloadButton({
     if (busy) return;
 
     if (active) {
-      if (window.confirm('다운로드를 취소할까요?')) {
+      void (async () => {
+        if (!(await dialog.confirm('다운로드를 취소할까요?', { confirmLabel: '취소하기', danger: true }))) return;
         setBusy(true);
         void cancelDownload(animeId, episode.episode_number).finally(() => setBusy(false));
-      }
+      })();
       return;
     }
     if (downloaded) {
-      if (window.confirm('저장된 회차를 삭제할까요?')) {
+      void (async () => {
+        if (!(await dialog.confirm('저장된 회차를 삭제할까요?', { confirmLabel: '삭제', danger: true }))) return;
         setBusy(true);
         void deleteDownload(animeId, episode.episode_number)
           .then(() => useDownloadsStore.getState().refresh())
           .finally(() => setBusy(false));
-      }
+      })();
       return;
     }
     setBusy(true);
@@ -55,7 +58,7 @@ export function EpisodeDownloadButton({
       chaptersUrl: episode.chapters_url,
       coverUrl,
     })
-      .catch((err: unknown) => window.alert(err instanceof Error ? err.message : String(err)))
+      .catch((err: unknown) => void dialog.alert(err instanceof Error ? err.message : String(err)))
       .finally(() => setBusy(false));
   };
 

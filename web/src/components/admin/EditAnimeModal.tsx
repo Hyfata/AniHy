@@ -3,6 +3,7 @@ import { api, del } from '../../api/client';
 import type { AnimeDetail } from '../../api/types';
 import { Modal } from '../Modal';
 import { fetchText } from './utils';
+import { dialog } from '../../stores/dialog';
 import styles from './admin.module.css';
 
 interface EditAnimeModalProps {
@@ -119,7 +120,7 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
 
   const remove = async () => {
     if (!anime || !onDeleted) return;
-    if (!window.confirm('이 애니와 모든 에피소드를 삭제하시겠습니까?')) return;
+    if (!(await dialog.confirm('이 애니와 모든 에피소드를 삭제하시겠습니까?', { confirmLabel: '삭제', danger: true }))) return;
     setDeleting(true);
     try {
       await del(`/admin/animes/${anime.id}`);

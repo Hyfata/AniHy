@@ -2,6 +2,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import type { Location } from 'react-router-dom';
 import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'react-router-dom';
+import { AppDialog } from './components/AppDialog';
 import { BottomTabbar } from './components/BottomTabbar';
 import { AnimeDetailModal } from './components/anime/AnimeDetailModal';
 import { QueueLauncher } from './components/admin/QueueLauncher';
@@ -151,6 +152,7 @@ export default function App() {
         )}
       </AnimatePresence>
       <QueueLauncher />
+      <AppDialog />
       <BottomTabbar />
     </>
   );

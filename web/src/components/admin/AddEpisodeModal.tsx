@@ -10,6 +10,7 @@ import type {
 import { Modal } from '../Modal';
 import { ServerFileList } from './ServerFileList';
 import { fetchBlob, saveBlobAs } from './utils';
+import { dialog } from '../../stores/dialog';
 import styles from './admin.module.css';
 
 type SourceTab = 'stream' | 'upload' | 'server';
@@ -339,7 +340,7 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
         if (subtitle) fd.append('subtitle', subtitle);
       }
       const res = await api<AddJobResponse>('/jobs', { method: 'POST', formData: fd });
-      window.alert(res.message || '대기열에 추가되었습니다.');
+      await dialog.alert(res.message || '대기열에 추가되었습니다.');
       stopLookup();
       onAdded?.();
       onClose();

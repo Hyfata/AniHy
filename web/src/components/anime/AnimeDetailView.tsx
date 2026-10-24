@@ -18,6 +18,7 @@ import { Skeleton } from '../Spinner';
 import { useMotionTransition, useReducedMotion, tweenNormal } from '../../lib/motion';
 import { isNative } from '../../lib/native';
 import { useAuthStore } from '../../stores/auth';
+import { dialog } from '../../stores/dialog';
 import { useDownloadsStore } from '../../stores/downloads';
 import { AddEpisodeModal } from '../admin/AddEpisodeModal';
 import { BulkAddModal } from '../admin/BulkAddModal';
@@ -226,7 +227,7 @@ export function AnimeDetailView({
       if (err instanceof ApiError && err.isLoginRequired) {
         setLoginPromptOpen(true);
       } else {
-        window.alert(err instanceof Error ? err.message : '북마크 변경 실패');
+        await dialog.alert(err instanceof Error ? err.message : '북마크 변경 실패');
       }
     } finally {
       setBookmarkBusy(false);
@@ -252,19 +253,19 @@ export function AnimeDetailView({
       setEditEp(null);
       await refetch();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : '수정 실패');
+      await dialog.alert(err instanceof Error ? err.message : '수정 실패');
     } finally {
       setEpBusy(false);
     }
   };
 
   const deleteEpisode = async (ep: Episode) => {
-    if (!window.confirm(`${ep.episode_number}화를 삭제하시겠습니까?`)) return;
+    if (!(await dialog.confirm(`${ep.episode_number}화를 삭제하시겠습니까?`, { confirmLabel: '삭제', danger: true }))) return;
     try {
       await delReq(`/admin/episodes/${ep.id}`);
       await refetch();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : '삭제 실패');
+      await dialog.alert(err instanceof Error ? err.message : '삭제 실패');
     }
   };
 
@@ -360,12 +361,12 @@ export function AnimeDetailView({
                   className={`${styles.adminIconBtn} ${styles.adminIconDanger}`}
                   title="삭제"
                   onClick={async () => {
-                    if (!window.confirm('이 애니와 모든 에피소드를 삭제하시겠습니까?')) return;
+                    if (!(await dialog.confirm('이 애니와 모든 에피소드를 삭제하시겠습니까?', { confirmLabel: '삭제', danger: true }))) return;
                     try {
                       await delReq(`/admin/animes/${detail.id}`);
                       navigate('/');
                     } catch (err) {
-                      window.alert(err instanceof Error ? err.message : '삭제 실패');
+                      await dialog.alert(err instanceof Error ? err.message : '삭제 실패');
                     }
                   }}
                 >

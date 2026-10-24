@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { del, get, ApiError } from '../../api/client';
 import type { Bookmark } from '../../api/types';
 import { useAuthStore } from '../../stores/auth';
+import { dialog } from '../../stores/dialog';
 import { AnimeCard } from '../AnimeCard';
 import { Skeleton } from '../Spinner';
 import { LoginPrompt } from './LoginPrompt';
@@ -26,7 +27,8 @@ export function BookmarkTab() {
   const loginRequired =
     (error instanceof ApiError && error.status === 401) || (identity && !identity.logged_in);
 
-  const unbookmark = async (animeId: number) => {
+  const unbookmark = async (animeId: number, title: string) => {
+    if (!(await dialog.confirm(`'${title}' 북마크를 해제할까요?`, { confirmLabel: '해제' }))) return;
     setRemovingId(animeId);
     try {
       await del(`/bookmarks/${animeId}`);
@@ -92,7 +94,7 @@ export function BookmarkTab() {
             disabled={removingId === b.id}
             onClick={(e) => {
               e.preventDefault();
-              void unbookmark(b.id);
+              void unbookmark(b.id, b.title);
             }}
           >
             ×

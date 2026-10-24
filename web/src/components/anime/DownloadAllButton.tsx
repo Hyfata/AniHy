@@ -4,6 +4,7 @@ import type { Episode, ZipJob } from '../../api/types';
 import { formatSpeed } from '../../lib/format';
 import { cancelDownload, downloadAll, isNative } from '../../lib/native';
 import { useDownloadsStore } from '../../stores/downloads';
+import { dialog } from '../../stores/dialog';
 import { ProgressRing } from '../ProgressRing';
 
 interface DownloadAllButtonProps {
@@ -88,7 +89,7 @@ function NativeDownloadAll({
   const onClick = async () => {
     if (busy) return;
     if (showProgress) {
-      if (window.confirm('전체 다운로드를 취소할까요?')) {
+      if (await dialog.confirm('전체 다운로드를 취소할까요?', { confirmLabel: '취소하기', danger: true })) {
         setBusy(true);
         try {
           await cancelDownload(animeId);
@@ -103,7 +104,7 @@ function NativeDownloadAll({
       (e) => !downloaded[`${animeId}/${e.episode_number}`],
     );
     if (remaining.length === 0) return;
-    if (!window.confirm(`${remaining.length}개 회차를 기기에 저장할까요?`)) return;
+    if (!(await dialog.confirm(`${remaining.length}개 회차를 기기에 저장할까요?`))) return;
     setBusy(true);
     try {
       await downloadAll(
@@ -114,7 +115,7 @@ function NativeDownloadAll({
       );
       setRunning(true);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : '다운로드를 시작할 수 없습니다.');
+      await dialog.alert(err instanceof Error ? err.message : '다운로드를 시작할 수 없습니다.');
     } finally {
       setBusy(false);
     }
@@ -175,7 +176,7 @@ function WebZipDownload({ animeId, className, children }: DownloadAllButtonProps
       } else if (job.status === 'failed') {
         stopPolling();
         reset();
-        window.alert(job.message || '압축에 실패했습니다.');
+        void dialog.alert(job.message || '압축에 실패했습니다.');
       } else {
         setPercent(job.percent ?? 0);
       }
@@ -186,7 +187,7 @@ function WebZipDownload({ animeId, className, children }: DownloadAllButtonProps
 
   const onClick = async () => {
     if (timerRef.current) return;
-    if (!window.confirm('압축이 완료된 후 다운로드가 시작됩니다.\n한번 시작된 압축 작업은 취소할 수 없습니다.\n\n계속하시겠습니까?')) {
+    if (!(await dialog.confirm('압축이 완료된 후 다운로드가 시작됩니다.\n한번 시작된 압축 작업은 취소할 수 없습니다.\n\n계속하시겠습니까?'))) {
       return;
     }
     setPercent(0);
@@ -196,7 +197,7 @@ function WebZipDownload({ animeId, className, children }: DownloadAllButtonProps
       void poll();
     } catch (err) {
       reset();
-      window.alert(err instanceof Error ? err.message : '압축을 시작할 수 없습니다.');
+      await dialog.alert(err instanceof Error ? err.message : '압축을 시작할 수 없습니다.');
     }
   };
 
