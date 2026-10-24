@@ -9,7 +9,7 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
-  size?: 'md' | 'sm';
+  size?: 'md' | 'sm' | 'lg';
   children: ReactNode;
   /** 스크롤과 무관하게 모달 하단에 고정되는 푸터 (주 액션 버튼 등) */
   footer?: ReactNode;
@@ -45,7 +45,7 @@ export function Modal({ open, onClose, title, size = 'md', children, footer }: M
           }}
         >
           <motion.div
-            className={`${styles.modal}${size === 'sm' ? ` ${styles.modalSm}` : ''}`}
+            className={`${styles.modal}${size === 'sm' ? ` ${styles.modalSm}` : ''}${size === 'lg' ? ` ${styles.modalLg}` : ''}`}
             role="dialog"
             aria-modal="true"
             initial={{ opacity: 0, y: 18, scale: 0.95 }}

@@ -61,10 +61,12 @@ function useJobDetail(jobId: number, enabled: boolean) {
   return { detail, encodePct };
 }
 
-/** 로그 뷰어 — offset 증분 append + 하단 40px 이내일 때만 자동 스크롤. */
+/** 로그 뷰어 — offset 증분 append + 하단 40px 이내일 때만 자동 스크롤.
+   스크롤은 content 커밋 후 이펙트에서 수행 (rAF는 React 렌더보다 먼저 돌아 옛 높이로 스크롤하는 버그). */
 function JobLog({ jobId }: { jobId: number }) {
   const boxRef = useRef<HTMLPreElement>(null);
   const offsetRef = useRef(0);
+  const followRef = useRef(true);
   const [content, setContent] = useState('');
 
   useEffect(() => {
@@ -75,21 +77,16 @@ function JobLog({ jobId }: { jobId: number }) {
           `/jobs/${jobId}/log?offset=${offsetRef.current}`,
         );
         if (cancelled) return;
+        const isFirst = offsetRef.current === 0;
         offsetRef.current = res.offset;
-        const append = res.content || (offsetRef.current === 0 && res.message ? res.message : '');
+        const append = res.content || (isFirst && res.message ? res.message : '');
         if (append) {
-          setContent((prev) => prev + append);
+          // append 전에 follow 여부를 기록 — 커밋 후 이펙트가 바닥으로 스크롤
           const box = boxRef.current;
-          if (box) {
-            const nearBottom =
-              box.scrollHeight - box.scrollTop - box.clientHeight <= LOG_AUTOSCROLL_THRESHOLD_PX;
-            if (nearBottom) {
-              // append 반영 후 스크롤
-              requestAnimationFrame(() => {
-                box.scrollTop = box.scrollHeight;
-              });
-            }
-          }
+          followRef.current =
+            !box ||
+            box.scrollHeight - box.scrollTop - box.clientHeight <= LOG_AUTOSCROLL_THRESHOLD_PX;
+          setContent((prev) => prev + append);
         }
       } catch {
         /* 로그 폴릴 실패는 무시 */
@@ -103,8 +100,22 @@ function JobLog({ jobId }: { jobId: number }) {
     };
   }, [jobId]);
 
+  // 커밋된 높이 기준으로 바닥 스크롤
+  useEffect(() => {
+    const box = boxRef.current;
+    if (box && followRef.current) box.scrollTop = box.scrollHeight;
+  }, [content]);
+
   return (
-    <pre ref={boxRef} className={styles.logBox}>
+    <pre
+      ref={boxRef}
+      className={styles.logBox}
+      onScroll={(e) => {
+        const el = e.currentTarget;
+        followRef.current =
+          el.scrollHeight - el.scrollTop - el.clientHeight <= LOG_AUTOSCROLL_THRESHOLD_PX;
+      }}
+    >
       {content || '로그를 불러오는 중…'}
     </pre>
   );
@@ -112,11 +123,13 @@ function JobLog({ jobId }: { jobId: number }) {
 
 function ActiveJobCard({
   job,
+  index,
   animeTitle,
   modalOpen,
   onAction,
 }: {
   job: QueueJob;
+  index: number;
   animeTitle: string;
   modalOpen: boolean;
   onAction: () => void;
@@ -164,7 +177,7 @@ function ActiveJobCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
-      transition={tweenFast}
+      transition={{ ...tweenFast, delay: Math.min(index, 5) * 0.04 }}
       className={`${styles.jobCard}${status === 'failed' ? ` ${styles.jobCardFailed}` : ''}`}
     >
       <div className={styles.jobTop}>
@@ -232,10 +245,12 @@ interface QueueModalProps {
 /** 완료·실패 탭 카드 — 로그 보기 복구 (구 PHP 대기열의 완료 작업 로그) */
 function CompletedJobCard({
   job,
+  index,
   retryBusy,
   onRetry,
 }: {
   job: QueueCompletedJob;
+  index: number;
   retryBusy: boolean;
   onRetry: (jobId: number) => void;
 }) {
@@ -246,7 +261,7 @@ function CompletedJobCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
-      transition={tweenFast}
+      transition={{ ...tweenFast, delay: Math.min(index, 5) * 0.04 }}
       className={`${styles.jobCard}${job.status === 'failed' ? ` ${styles.jobCardFailed}` : ''}`}
     >
       <div className={styles.jobTop}>
@@ -313,7 +328,7 @@ export function QueueModal({ open, onClose }: QueueModalProps) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="대기열">
+    <Modal open={open} onClose={onClose} title="대기열" size="lg">
       <div className={styles.modalTabs}>
         <button
           type="button"
@@ -344,10 +359,11 @@ export function QueueModal({ open, onClose }: QueueModalProps) {
                 </span>
               </div>
               <AnimatePresence>
-                {g.episodes.map((job) => (
+                {g.episodes.map((job, i) => (
                   <ActiveJobCard
                     key={job.job_id}
                     job={job}
+                    index={i}
                     animeTitle={g.title}
                     modalOpen={open}
                     onAction={() => void poll()}
@@ -361,10 +377,11 @@ export function QueueModal({ open, onClose }: QueueModalProps) {
         <div className={styles.empty}>최근 24시간 내 완료/실패한 작업이 없습니다.</div>
       ) : (
         <AnimatePresence>
-          {completed.map((job) => (
+          {completed.map((job, i) => (
             <CompletedJobCard
               key={job.job_id}
               job={job}
+              index={i}
               retryBusy={retryBusyId === job.job_id}
               onRetry={(id) => void retry(id)}
             />

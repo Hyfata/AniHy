@@ -26,6 +26,10 @@
   max-width: 360px;
 }
 
+.modalLg {
+  max-width: 640px;
+}
+
 .header {
   display: flex;
   align-items: center;
