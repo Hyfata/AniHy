@@ -196,6 +196,7 @@ export function WatchPage() {
 
   useEffect(() => {
     playedRef.current = false;
+    resumeDoneRef.current = false;
   }, [aid, ep]);
 
   const handlePlay = useCallback(() => {
@@ -245,22 +246,29 @@ export function WatchPage() {
     resumeDoneRef.current = true;
     const { aid: a, ep: e, loggedIn: li, online: on } = liveRef.current;
     void (async () => {
-      // 오프라인은 로컬 기록으로 이어보기
-      if (!on && isNative()) {
-        const entry = await getLocalHistory(a, e).catch(() => null);
-        if (!entry || entry.durationMs <= 0) return;
-        const ratio = entry.positionMs / entry.durationMs;
-        if (entry.positionMs > 0 && ratio < COMPLETED_RATIO) {
-          playerRef.current?.seekTo(entry.positionMs / 1000);
+      try {
+        // 오프라인은 로컬 기록으로 이어보기
+        if (!on && isNative()) {
+          const entry = await getLocalHistory(a, e).catch(() => null);
+          if (entry && entry.durationMs > 0) {
+            const ratio = entry.positionMs / entry.durationMs;
+            if (entry.positionMs > 0 && ratio < COMPLETED_RATIO) {
+              playerRef.current?.seekTo(entry.positionMs / 1000);
+            }
+          }
+        } else if (li) {
+          const entry = await getHistory(a, e);
+          if (entry && entry.duration_ms > 0) {
+            const ratio = entry.position_ms / entry.duration_ms;
+            if (entry.position_ms > 0 && ratio < COMPLETED_RATIO) {
+              playerRef.current?.seekTo(entry.position_ms / 1000);
+            }
+          }
         }
-        return;
-      }
-      if (!li) return;
-      const entry = await getHistory(a, e);
-      if (!entry || entry.duration_ms <= 0) return;
-      const ratio = entry.position_ms / entry.duration_ms;
-      if (entry.position_ms > 0 && ratio < COMPLETED_RATIO) {
-        playerRef.current?.seekTo(entry.position_ms / 1000);
+      } finally {
+        // SPA 자동재생 — seekTo의 pendingSeek은 play()가 적용. iOS처럼 제스처 없이
+        // 거부되는 환경은 플레이어가 rejection을 무시하고 대기 상태로 둔다
+        playerRef.current?.play();
       }
     })();
   }, []);
@@ -395,7 +403,6 @@ export function WatchPage() {
         <div>
           <div ref={playerAreaRef} className={styles.playerWrap}>
             <PlayerWrapper
-              key={ep}
               src={
                 isDownloaded
                   ? localVideoUrl(aid, ep)

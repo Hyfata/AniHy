@@ -27,7 +27,34 @@ export interface PlayerWrapperProps {
   playerRef?: MutableRefObject<VideoPlayerInstance | null>;
 }
 
-/** 바닐라 VideoPlayer의 React 래퍼. src/chaptersUrl이 바뀌면 부모가 key로 리마운트할 것. */
+/* --- 최소 WebVTT 파서 (플레이어 내부 parseVTT는 비공개라 소스 스왑 시 여기서 파싱해
+      player._applyChapters에 주입) --- */
+function vttTime(t: string): number {
+  const parts = t.trim().split(':');
+  let sec = 0;
+  for (const p of parts) sec = sec * 60 + parseFloat(p);
+  return Number.isFinite(sec) ? sec : 0;
+}
+
+function parseVtt(text: string): { start: number; end: number; title: string }[] {
+  const cues: { start: number; end: number; title: string }[] = [];
+  for (const block of text.replace(/\r/g, '').split('\n\n')) {
+    const lines = block.trim().split('\n');
+    const ti = lines.findIndex((l) => l.includes('-->'));
+    if (ti < 0) continue;
+    const [s, e] = lines[ti].split('-->');
+    cues.push({
+      start: vttTime(s),
+      end: vttTime(e),
+      title: lines.slice(ti + 1).join(' ').trim(),
+    });
+  }
+  return cues;
+}
+
+/** 바닐라 VideoPlayer의 React 래퍼.
+   플레이어는 마운트 시 1회 생성하고, src/chaptersUrl 변경은 **인스턴스 유지한 채 소스만 교체**
+   (SPA 자동 다음화 — 비디오 엘리먼트가 파괴되지 않아 배터리/깜빡임/버퍼 리셋 방지). */
 export function PlayerWrapper({
   src,
   chaptersUrl,
@@ -41,6 +68,8 @@ export function PlayerWrapper({
   playerRef,
 }: PlayerWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const instanceRef = useRef<VideoPlayerInstance | null>(null);
+  const lastSrcRef = useRef<string | null>(null);
   // 콜백은 최신 ref로만 참조 — 플레이어를 매 렌더 재생성하지 않기 위함
   const callbacks = useRef({ onTimeUpdate, onEnded, onPause, onPlay, onLoadedMetadata });
   callbacks.current = { onTimeUpdate, onEnded, onPause, onPlay, onLoadedMetadata };
@@ -57,6 +86,8 @@ export function PlayerWrapper({
       ...(fullscreenMode !== undefined ? { fullscreenMode } : {}),
       ...(onFullscreenChange ? { onFullscreenChange } : {}),
     });
+    instanceRef.current = player;
+    lastSrcRef.current = src;
     if (playerRef) playerRef.current = player;
 
     const video = player.video;
@@ -78,11 +109,53 @@ export function PlayerWrapper({
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('loadedmetadata', handleMeta);
       player.destroy();
+      instanceRef.current = null;
+      lastSrcRef.current = null;
       if (playerRef) playerRef.current = null;
     };
-    // 콜백 변경이 아니라 소스 변경 시에만 재생성 (부모는 key로 리마운트)
+    // 생성은 마운트 시 1회 — 소스 변경은 아래 스왑 이펙트가 처리
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, chaptersUrl, fullscreenMode]);
+  }, []);
+
+  // 소스/챕터 교체: 플레이어 재생성 없이 video.src만 교체.
+  // 'emptied' 핸들러가 다른 소스를 감지해 pending seek/skip 상태를 초기화한다.
+  useEffect(() => {
+    const player = instanceRef.current;
+    if (!player || lastSrcRef.current === src) return;
+    lastSrcRef.current = src;
+
+    // 이전 회차 챕터 제거 후 새 VTT 로드 (없으면 내장 챕터만 tryEmbedded가 처리)
+    const p = player as unknown as {
+      chapters: unknown[];
+      chaptersSource: string | null;
+      options: { chaptersUrl?: string };
+      _renderSections: () => void;
+      _updateSkipButton: () => void;
+      _applyChapters: (cues: { start: number; end: number; title: string }[], source: string) => void;
+    };
+    p.chapters = [];
+    p.chaptersSource = null;
+    p.options.chaptersUrl = chaptersUrl ?? undefined;
+    p._renderSections();
+    p._updateSkipButton();
+
+    player.video.src = src;
+    player.video.load();
+
+    if (chaptersUrl) {
+      fetch(chaptersUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.text();
+        })
+        .then((text) => {
+          const cues = parseVtt(text);
+          // 스왑 후 또 다른 스왑이 있었으면 폐기
+          if (cues.length && lastSrcRef.current === src) p._applyChapters(cues, 'vtt');
+        })
+        .catch(() => {});
+    }
+  }, [src, chaptersUrl]);
 
   return <div ref={containerRef} />;
 }
