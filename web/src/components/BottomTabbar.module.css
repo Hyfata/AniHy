@@ -1,9 +1,11 @@
-/* 하단 탭바: 모바일에서는 fixed 금지 — sticky + flex 컬럼(#root) 구조.
-   (iOS Safari 툴터/safe-area 변동·러버밴드 때 fixed가 뛰어다니는 문제 대응) */
+/* 하단 탭바: 구 규약(.bottom-tabbar, style.css)과 동일하게 fixed.
+   sticky는 iOS 러버밴드 스크롤에 본문과 같이 튀는 문제가 있었다 (대기열 버튼 등
+   다른 fixed 요소는 튀지 않음). 본문 하단 여백은 global.css의 .appMain이 담당. */
 .tabbar {
-  position: sticky;
+  position: fixed;
   bottom: calc(var(--space-3) + var(--sab));
-  margin: auto var(--space-4) calc(var(--space-3) + var(--sab));
+  left: calc(var(--space-4) + var(--sal));
+  right: calc(var(--space-4) + var(--sar));
   display: flex;
   gap: var(--space-1);
   padding: 5px;

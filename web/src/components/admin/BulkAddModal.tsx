@@ -9,7 +9,7 @@ import styles from './admin.module.css';
 type BulkTab = 'stream' | 'server' | 'upload';
 
 type BulkPayload =
-  | { type: 'stream' }
+  | { type: 'stream'; sub: File | null }
   | { type: 'server'; path: string; sub: File | null }
   | { type: 'upload'; file: File; sub: File | null };
 
@@ -31,7 +31,9 @@ interface BulkAddModalProps {
 
 /** 에피소드 일괄 추가 모달 (anime.php #bulk-add-modal 대응) — 회차별 순차 POST /api/jobs */
 export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProps) {
-  const [tab, setTab] = useState<BulkTab>('stream');
+  const hasSeason = !!anime.season_id?.trim();
+  const [tab, setTab] = useState<BulkTab>(hasSeason ? 'stream' : 'server');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // 스트리밍 범위
   const [streamStart, setStreamStart] = useState('1');
@@ -45,7 +47,6 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
   const [serverLastIndex, setServerLastIndex] = useState<number | null>(null);
   const [rangeMode, setRangeMode] = useState(false);
   const [rangeAnchor, setRangeAnchor] = useState<number | null>(null);
-  const [serverSubs, setServerSubs] = useState<File[]>([]);
 
   // 업로드
   const [videos, setVideos] = useState<File[]>([]);
@@ -65,10 +66,12 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
 
   useEffect(() => {
     if (!open) return;
+    setTab(anime.season_id?.trim() ? 'stream' : 'server');
     setRows(null);
     setError('');
     setProgress('');
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, anime.id]);
 
   const loadServerFiles = async () => {
     if (serverListOpen) {
@@ -135,6 +138,9 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
       : `자막이 영상보다 ${videoCount - subCount}개 적습니다. 나머지 회차는 자막 없이 진행됩니다.`;
   };
 
+  // 시즌 ID 없으면 스트리밍 탭 자체가 없으므로 stream 상태로 남아있으면 서버 파일로 간주
+  const effTab: BulkTab = tab === 'stream' && !hasSeason ? 'server' : tab;
+
   const buildPreview = () => {
     setError('');
     let seq = 0;
@@ -146,17 +152,19 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
       payload: BulkPayload,
     ) => nextRows.push({ key: seq++, ep, title: '', sourceLabel, subLabel, payload });
 
-    if (tab === 'stream') {
+    if (effTab === 'stream') {
       const start = parseInt(streamStart, 10);
       const end = parseInt(streamEnd, 10);
       if (Number.isNaN(start) || Number.isNaN(end) || start > end || end - start > 100) {
         setError('회차 범위를 확인하세요. (시작 ≤ 끝, 최대 100개)');
         return;
       }
+      const sortedSubs = [...subs].sort(nameSort);
       for (let ep = start; ep <= end; ep++) {
-        push(String(ep), '스트리밍 다운로드', null, { type: 'stream' });
+        const sub = sortedSubs[ep - start] ?? null;
+        push(String(ep), '스트리밍 다운로드', sub ? sub.name : '없음', { type: 'stream', sub });
       }
-    } else if (tab === 'server') {
+    } else if (effTab === 'server') {
       if (serverSelected.size === 0) {
         setError('서버 파일을 선택하세요.');
         return;
@@ -167,7 +175,7 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
         .sort((a, b) => a - b)
         .map((i) => serverFiles[i])
         .sort((a, b) => a.path.localeCompare(b.path, 'ko', { numeric: true }));
-      const sortedSubs = [...serverSubs].sort(nameSort);
+      const sortedSubs = [...subs].sort(nameSort);
       files.forEach((file, i) => {
         const sub = sortedSubs[i] ?? null;
         push(String(ep++), file.name, sub ? sub.name : '없음', {
@@ -216,7 +224,9 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
       fd.append('episode_title', row.title.trim());
       if (trimEnabled) fd.append('trim_seconds', trimSeconds);
       if (syncEnabled) fd.append('subtitle_offset', subOffset);
-      if (row.payload.type === 'upload') {
+      if (row.payload.type === 'stream') {
+        if (row.payload.sub) fd.append('subtitle', row.payload.sub);
+      } else if (row.payload.type === 'upload') {
         fd.append('source_video', row.payload.file);
         if (row.payload.sub) fd.append('subtitle', row.payload.sub);
       } else if (row.payload.type === 'server') {
@@ -241,39 +251,76 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
     }
   };
 
+  const rangeCount = (() => {
+    const start = parseInt(streamStart, 10);
+    const end = parseInt(streamEnd, 10);
+    return Number.isNaN(start) || Number.isNaN(end) || start > end ? 0 : end - start + 1;
+  })();
   const currentWarning =
-    tab === 'server'
-      ? subWarning(serverSelected.size, serverSubs.length)
-      : tab === 'upload'
+    effTab === 'server'
+      ? subWarning(serverSelected.size, subs.length)
+      : effTab === 'upload'
         ? subWarning(videos.length, subs.length)
-        : null;
+        : subWarning(rangeCount, subs.length);
 
   return (
-    <Modal open={open} onClose={onClose} title="에피소드 일괄 추가">
-      <div className={styles.tabs}>
-        {(
-          [
-            ['stream', '스트리밍'],
-            ['server', '서버 파일'],
-            ['upload', '업로드'],
-          ] as [BulkTab, string][]
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            className={`${styles.tab}${tab === key ? ` ${styles.tabActive}` : ''}`}
-            onClick={() => {
-              setTab(key);
-              setRows(null);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="에피소드 일괄 추가"
+      footer={
+        <>
+          {error && <div className={styles.error} style={{ marginBottom: 8 }}>{error}</div>}
+          {rows === null ? (
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
+              onClick={buildPreview}
+              disabled={submitting}
+            >
+              매핑 확인
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
+                disabled={submitting || rows.length === 0}
+                onClick={() => void submit()}
+              >
+                {submitting ? '추가 중...' : `${rows.length}개 에피소드 추가`}
+              </button>
+              {progress && <div className={styles.progressText}>{progress}</div>}
+            </>
+          )}
+        </>
+      }
+    >
+      <div className={styles.sourceBox}>
+        <div className={styles.tabs}>
+          {(
+            [
+              ...(hasSeason ? [['stream', '스트리밍'] as [BulkTab, string]] : []),
+              ['server', '서버 파일'],
+              ['upload', '업로드'],
+            ] as [BulkTab, string][]
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={`${styles.tab}${effTab === key ? ` ${styles.tabActive}` : ''}`}
+              onClick={() => {
+                setTab(key);
+                setRows(null);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
-      {tab === 'stream' && (
-        <div className={styles.field}>
+      {effTab === 'stream' && (
+        <div className={styles.field} style={{ marginBottom: 0 }}>
           <span className={styles.label}>회차 범위</span>
           <div className={styles.row}>
             <input
@@ -297,19 +344,17 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
         </div>
       )}
 
-      {tab === 'server' && (
+      {effTab === 'server' && (
         <>
-          <div className={styles.field}>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnBlock}`}
-              onClick={() => void loadServerFiles()}
-            >
-              {serverListOpen ? '목록 닫기' : '서버 파일 선택'}
-            </button>
-          </div>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnBlock}`}
+            onClick={() => void loadServerFiles()}
+          >
+            {serverListOpen ? '목록 닫기' : '서버 파일 선택'}
+          </button>
           {serverListOpen && (
-            <>
+            <div style={{ marginTop: 8 }}>
               <div className={styles.fileToolbar}>
                 <button
                   type="button"
@@ -333,24 +378,12 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
                   onItemClick={onServerItemClick}
                 />
               )}
-            </>
+            </div>
           )}
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="bulk-server-subs">
-              자막 파일들 (ass/smi, 선택, 이름순으로 영상과 매핑)
-            </label>
-            <input
-              id="bulk-server-subs"
-              type="file"
-              accept=".ass,.smi"
-              multiple
-              onChange={(e) => setServerSubs(Array.from(e.target.files ?? []))}
-            />
-          </div>
         </>
       )}
 
-      {tab === 'upload' && (
+      {effTab === 'upload' && (
         <>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="bulk-videos">원본 영상 파일들 (이름순 정렬됨)</label>
@@ -362,24 +395,26 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
               onChange={(e) => setVideos(Array.from(e.target.files ?? []))}
             />
           </div>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="bulk-subs">
-              자막 파일들 (ass/smi, 선택, 이름순으로 영상과 매핑)
-            </label>
-            <input
-              id="bulk-subs"
-              type="file"
-              accept=".ass,.smi"
-              multiple
-              onChange={(e) => setSubs(Array.from(e.target.files ?? []))}
-            />
-          </div>
         </>
       )}
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="bulk-subs">
+          자막 파일들 (ass/smi, 선택, 이름순으로 회차에 매핑)
+        </label>
+        <input
+          id="bulk-subs"
+          type="file"
+          accept=".ass,.smi"
+          multiple
+          onChange={(e) => setSubs(Array.from(e.target.files ?? []))}
+        />
+      </div>
 
       {currentWarning && <div className={styles.warning}>{currentWarning}</div>}
 
-      {tab !== 'stream' && (
+      {effTab !== 'stream' && (
         <div className={styles.field}>
           <label className={styles.label} htmlFor="bulk-start">시작 회차 번호</label>
           <input
@@ -395,63 +430,73 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
       )}
 
       <div className={styles.field}>
-        <div className={styles.checkboxRow}>
-          <input
-            id="bulk-trim"
-            type="checkbox"
-            checked={trimEnabled}
-            onChange={(e) => setTrimEnabled(e.target.checked)}
-          />
-          <label htmlFor="bulk-trim">앞부분 자르기 (전체 적용)</label>
-        </div>
-        <div className={styles.trimRow}>
-          <input
-            className={styles.input}
-            type="number"
-            step="0.1"
-            min="0"
-            value={trimSeconds}
-            disabled={!trimEnabled}
-            onChange={(e) => setTrimSeconds(e.target.value)}
-          />
-        </div>
+        <button
+          type="button"
+          className={styles.advancedToggle}
+          onClick={() => setAdvancedOpen((v) => !v)}
+          aria-expanded={advancedOpen}
+        >
+          <svg
+            className={`${styles.advancedIcon}${advancedOpen ? ` ${styles.advancedIconOpen}` : ''}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+          세부 설정
+        </button>
+        {advancedOpen && (
+          <>
+            <div className={styles.checkboxRow}>
+              <input
+                id="bulk-trim"
+                type="checkbox"
+                checked={trimEnabled}
+                onChange={(e) => setTrimEnabled(e.target.checked)}
+              />
+              <label htmlFor="bulk-trim">앞부분 자르기 (전체 적용)</label>
+            </div>
+            <div className={styles.trimRow}>
+              <input
+                className={styles.input}
+                type="number"
+                step="0.1"
+                min="0"
+                value={trimSeconds}
+                disabled={!trimEnabled}
+                onChange={(e) => setTrimSeconds(e.target.value)}
+              />
+            </div>
+            <div className={styles.checkboxRow} style={{ marginTop: 8 }}>
+              <input
+                id="bulk-sync"
+                type="checkbox"
+                checked={syncEnabled}
+                onChange={(e) => setSyncEnabled(e.target.checked)}
+              />
+              <label htmlFor="bulk-sync">자막 싱크 조절 (초, 전체 적용)</label>
+            </div>
+            <div className={styles.trimRow}>
+              <input
+                className={styles.input}
+                type="number"
+                step="any"
+                value={subOffset}
+                disabled={!syncEnabled}
+                onChange={(e) => setSubOffset(e.target.value)}
+              />
+            </div>
+          </>
+        )}
       </div>
-
-      <div className={styles.field}>
-        <div className={styles.checkboxRow}>
-          <input
-            id="bulk-sync"
-            type="checkbox"
-            checked={syncEnabled}
-            onChange={(e) => setSyncEnabled(e.target.checked)}
-          />
-          <label htmlFor="bulk-sync">자막 싱크 조절 (초, 전체 적용)</label>
-        </div>
-        <div className={styles.trimRow}>
-          <input
-            className={styles.input}
-            type="number"
-            step="any"
-            value={subOffset}
-            disabled={!syncEnabled}
-            onChange={(e) => setSubOffset(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {error && <div className={styles.error}>{error}</div>}
-
-      <button
-        type="button"
-        className={`${styles.btn} ${styles.btnBlock}`}
-        onClick={buildPreview}
-        disabled={submitting}
-      >
-        매핑 확인
-      </button>
 
       {rows && (
-        <div style={{ marginTop: 16 }}>
+        <div>
           {rows.map((row, i) => (
             <div className={styles.mappingRow} key={row.key}>
               <input
@@ -484,15 +529,6 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
               </button>
             </div>
           ))}
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
-            disabled={submitting || rows.length === 0}
-            onClick={() => void submit()}
-          >
-            {submitting ? '추가 중...' : `${rows.length}개 에피소드 추가`}
-          </button>
-          {progress && <div className={styles.progressText}>{progress}</div>}
         </div>
       )}
     </Modal>
