@@ -60,3 +60,10 @@
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+.footer {
+  flex: none;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--color-surface);
+}

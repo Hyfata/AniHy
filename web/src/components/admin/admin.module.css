@@ -111,15 +111,18 @@
   font-size: var(--text-md);
   font-weight: var(--font-weight-semibold);
   padding: 10px 16px;
-  background: var(--color-surface-light);
+  /* 박스(surface-light) 안/밖 어디서든 구분되게 한 단계 더 밝은 면 + 헤어라인 */
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: var(--color-text);
-  transition: background var(--duration-fast);
+  transition: background var(--duration-fast), border-color var(--duration-fast);
 }
 
 @media (hover: hover) {
 
 .btn:hover:not(:disabled) {
-  background: var(--border-strong);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 }
 
@@ -130,6 +133,7 @@
 
 .btnPrimary {
   background: var(--color-primary);
+  border-color: transparent;
   color: #fff;
 }
 
@@ -142,6 +146,7 @@
 
 .btnDanger {
   background: var(--color-danger-soft);
+  border-color: transparent;
   color: var(--color-danger);
 }
 
@@ -167,18 +172,20 @@
   display: flex;
   gap: var(--space-2);
   margin-bottom: var(--space-5);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 4px;
 }
 
 .tab {
   flex: 1;
   padding: 8px 0;
-  background: var(--color-bg);
-  border-radius: var(--radius-sm);
+  border-radius: calc(var(--radius-sm) - 2px);
   color: var(--color-text-muted);
   font-size: var(--text-md);
   font-weight: var(--font-weight-semibold);
   text-align: center;
-  transition: background var(--duration-fast), color var(--duration-fast);
+  transition: background var(--duration-fast), color var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 @media (hover: hover) {
@@ -188,12 +195,51 @@
 }
 }
 
-@media (hover: hover) {
-
 .tabActive,
 .tabActive:hover {
-  background: var(--color-accent);
-  color: var(--color-bg);
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(124, 92, 255, 0.35);
+}
+
+/* 탭별 소스 입력 영역 — 탭 전환 시 위/아래 공통 영역은 그대로, 이 박스만 교체.
+   테두리 없이 모달보다 한 단계 밝은 면으로 구분 */
+.sourceBox {
+  background: var(--color-surface-light);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  min-height: 56px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.advancedToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  padding: 10px 2px;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.advancedIcon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  transition: transform var(--duration-fast);
+}
+
+.advancedIconOpen {
+  transform: rotate(180deg);
+}
+
+@media (hover: hover) {
+
+.advancedToggle:hover {
+  color: var(--color-text);
 }
 }
 

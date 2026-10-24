@@ -11,11 +11,13 @@ interface ModalProps {
   title?: string;
   size?: 'md' | 'sm';
   children: ReactNode;
+  /** 스크롤과 무관하게 모달 하단에 고정되는 푸터 (주 액션 버튼 등) */
+  footer?: ReactNode;
 }
 
 /** 모달 베이스: spring 진입/퇴장, 백드롭 클릭·Esc 닫기, 열린 동안 body 스크롤 잠금.
    중첩 모달은 이 컴포넌트를 쌓아서 사용 (z-index는 ui store가 관리할 때 조정). */
-export function Modal({ open, onClose, title, size = 'md', children }: ModalProps) {
+export function Modal({ open, onClose, title, size = 'md', children, footer }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -60,6 +62,7 @@ export function Modal({ open, onClose, title, size = 'md', children }: ModalProp
               </div>
             )}
             <div className={styles.body}>{children}</div>
+            {footer && <div className={styles.footer}>{footer}</div>}
           </motion.div>
         </motion.div>
       )}

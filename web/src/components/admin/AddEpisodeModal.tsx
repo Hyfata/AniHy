@@ -26,7 +26,9 @@ const VIDEO_EXTS = ['mkv', 'mp4', 'mov', 'avi', 'webm'];
 
 /** 에피소드 추가 모달 (anime.php #add-episode-modal 대응) — POST /api/jobs */
 export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeModalProps) {
-  const [tab, setTab] = useState<SourceTab>('stream');
+  const hasSeason = !!anime.season_id?.trim();
+  const [tab, setTab] = useState<SourceTab>(hasSeason ? 'stream' : 'server');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // 공통 필드
   const [epNumber, setEpNumber] = useState('');
@@ -64,6 +66,8 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
   const [enDownloading, setEnDownloading] = useState(false);
 
   const service = anime.is_hidive ? 'hidive' : 'crunchy';
+  // 시즌 ID 없으면 스트리밍 탭 자체가 없으므로 stream 상태로 남아있으면 서버 파일로 간주
+  const effTab: SourceTab = tab === 'stream' && !hasSeason ? 'server' : tab;
 
   const stopLookup = () => {
     lookupRef.current?.close();
@@ -76,7 +80,7 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
       stopLookup();
       return;
     }
-    setTab('stream');
+    setTab(anime.season_id?.trim() ? 'stream' : 'server');
     setErrors({});
     setLookupLines('');
     setLookupEps([]);
@@ -218,6 +222,22 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
     }
   };
 
+  /** 자막 트랙 추출 → 파일로 다운로드 (구 extract-subtitle-btn 동작) */
+  const downloadSubtitle = async (index: number) => {
+    if (!selectedServerFile) return;
+    setExtracting(true);
+    try {
+      const { blob, filename } = await fetchBlob(
+        `/server-files/subtitles/extract?path=${encodeURIComponent(selectedServerFile.path)}&index=${index}`,
+      );
+      saveBlobAs(blob, filename);
+    } catch (err) {
+      setErrors((e) => ({ ...e, subtitle: err instanceof Error ? err.message : '자막 추출 실패' }));
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   const listAudioTracks = async () => {
     if (!selectedServerFile) return;
     setExtracting(true);
@@ -285,16 +305,16 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
   const submit = async () => {
     const nextErrors: Record<string, string> = {};
     if (!epNumber.trim()) nextErrors.ep = '에피소드 번호를 입력하세요.';
-    if (tab === 'stream' && !anime.season_id?.trim())
+    if (effTab === 'stream' && !anime.season_id?.trim())
       nextErrors.season = '시즌 ID가 없습니다. 애니 정보 수정에서 먼저 설정하세요.';
-    if (tab === 'upload') {
+    if (effTab === 'upload') {
       if (!videoFile) nextErrors.video = '원본 영상 파일을 선택하세요.';
       else {
         const ext = videoFile.name.split('.').pop()?.toLowerCase() ?? '';
         if (!VIDEO_EXTS.includes(ext)) nextErrors.video = '지원하지 않는 영상 형식입니다. (mkv/mp4/mov/avi/webm)';
       }
     }
-    if (tab === 'server' && !selectedServerFile) nextErrors.server = '서버 파일을 선택하세요.';
+    if (effTab === 'server' && !selectedServerFile) nextErrors.server = '서버 파일을 선택하세요.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -307,10 +327,10 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
       if (trimEnabled) fd.append('trim_seconds', trimSeconds);
       if (syncEnabled) fd.append('subtitle_offset', subOffset);
       if (isTest) fd.append('is_test', '1');
-      if (tab === 'stream') {
+      if (effTab === 'stream') {
         fd.append('season_id', anime.season_id!.trim());
         if (subFile) fd.append('subtitle', subFile);
-      } else if (tab === 'upload') {
+      } else if (effTab === 'upload') {
         if (videoFile) fd.append('source_video', videoFile);
         if (subFile) fd.append('subtitle', subFile);
       } else if (selectedServerFile) {
@@ -331,7 +351,7 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
   };
 
   const submitLabel =
-    tab === 'upload' ? '업로드 및 변환' : tab === 'server' ? '서버 파일 변환' : '다운로드 및 변환';
+    effTab === 'upload' ? '업로드 및 변환' : effTab === 'server' ? '서버 파일 변환' : '다운로드 및 변환';
 
   const subtitleInput = (
     <div className={styles.field}>
@@ -346,26 +366,24 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
   );
 
   return (
-    <Modal open={open} onClose={onClose} title="에피소드 추가">
-      <div className={styles.tabs}>
-        {(
-          [
-            ['stream', '스트리밍'],
-            ['upload', '업로드'],
-            ['server', '서버 파일'],
-          ] as [SourceTab, string][]
-        ).map(([key, label]) => (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="에피소드 추가"
+      footer={
+        <>
+          {errors.form && <div className={styles.error} style={{ marginBottom: 8 }}>{errors.form}</div>}
           <button
-            key={key}
             type="button"
-            className={`${styles.tab}${tab === key ? ` ${styles.tabActive}` : ''}`}
-            onClick={() => setTab(key)}
+            className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
+            disabled={submitting}
+            onClick={() => void submit()}
           >
-            {label}
+            {submitting ? '추가 중...' : submitLabel}
           </button>
-        ))}
-      </div>
-
+        </>
+      }
+    >
       <div className={styles.field}>
         <label className={styles.label} htmlFor="add-ep-number">에피소드 번호</label>
         <input
@@ -388,10 +406,27 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
         />
       </div>
 
-      {subtitleInput}
-
-      {tab === 'stream' && (
-        <div className={styles.field}>
+      <div className={styles.sourceBox}>
+        <div className={styles.tabs}>
+          {(
+            [
+              ...(hasSeason ? [['stream', '스트리밍'] as [SourceTab, string]] : []),
+              ['server', '서버 파일'],
+              ['upload', '업로드'],
+            ] as [SourceTab, string][]
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={`${styles.tab}${effTab === key ? ` ${styles.tabActive}` : ''}`}
+              onClick={() => setTab(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      {effTab === 'stream' && (
+        <>
           <button
             type="button"
             className={`${styles.btn} ${styles.btnBlock}`}
@@ -422,11 +457,21 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
               )}
             </>
           )}
-        </div>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnBlock}`}
+            style={{ marginTop: 8 }}
+            disabled={enDownloading}
+            onClick={() => void downloadEnSubtitle()}
+          >
+            {enDownloading ? '영어 자막 다운로드 중...' : '영어 자막 다운로드'}
+          </button>
+          {errors.enSub && <div className={styles.error}>{errors.enSub}</div>}
+        </>
       )}
 
-      {tab === 'upload' && (
-        <div className={styles.field}>
+      {effTab === 'upload' && (
+        <div className={styles.field} style={{ marginBottom: 0 }}>
           <label className={styles.label} htmlFor="add-ep-video">원본 영상 파일 (mkv/mp4/mov/avi/webm)</label>
           <input
             id="add-ep-video"
@@ -438,7 +483,7 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
         </div>
       )}
 
-      {tab === 'server' && (
+      {effTab === 'server' && (
         <div className={styles.field}>
           <button
             type="button"
@@ -488,7 +533,7 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
                 </button>
               </div>
               {subTracks && (
-                <div className={styles.field} style={{ marginTop: 8 }}>
+                <div className={styles.field} style={{ marginTop: 8, marginBottom: 0 }}>
                   <div className={styles.row}>
                     <select
                       className={styles.select}
@@ -501,6 +546,8 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className={styles.footerRow}>
                     <button
                       type="button"
                       className={`${styles.btn} ${styles.btnPrimary}`}
@@ -509,9 +556,17 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
                     >
                       {extracting ? '추출 중...' : '추출해서 첨부'}
                     </button>
+                    <button
+                      type="button"
+                      className={styles.btn}
+                      disabled={extracting}
+                      onClick={() => void downloadSubtitle(subTrackIndex)}
+                    >
+                      다운로드
+                    </button>
                   </div>
                   <div className={styles.hint}>
-                    {subTracks.length}개의 자막 트랙 — 선택 후 추출하면 이 작업에 자막으로 첨부됩니다.
+                    {subTracks.length}개의 자막 트랙 — 첨부하면 이 작업의 자막으로, 다운로드는 파일로 저장합니다.
                   </div>
                 </div>
               )}
@@ -554,86 +609,84 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
           )}
         </div>
       )}
+      </div>
+
+      {subtitleInput}
 
       <div className={styles.field}>
         <button
           type="button"
-          className={`${styles.btn} ${styles.btnBlock}`}
-          disabled={enDownloading}
-          onClick={() => void downloadEnSubtitle()}
+          className={styles.advancedToggle}
+          onClick={() => setAdvancedOpen((v) => !v)}
+          aria-expanded={advancedOpen}
         >
-          {enDownloading ? '영어 자막 다운로드 중...' : '영어 자막 다운로드'}
+          <svg
+            className={`${styles.advancedIcon}${advancedOpen ? ` ${styles.advancedIconOpen}` : ''}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+          세부 설정
         </button>
-        {errors.enSub && <div className={styles.error}>{errors.enSub}</div>}
+        {advancedOpen && (
+          <>
+            <div className={styles.checkboxRow}>
+              <input
+                id="add-ep-trim"
+                type="checkbox"
+                checked={trimEnabled}
+                onChange={(e) => setTrimEnabled(e.target.checked)}
+              />
+              <label htmlFor="add-ep-trim">앞부분 자르기</label>
+            </div>
+            <div className={styles.trimRow}>
+              <input
+                className={styles.input}
+                type="number"
+                step="0.1"
+                min="0"
+                value={trimSeconds}
+                disabled={!trimEnabled}
+                onChange={(e) => setTrimSeconds(e.target.value)}
+              />
+            </div>
+            <div className={styles.checkboxRow} style={{ marginTop: 8 }}>
+              <input
+                id="add-ep-sync"
+                type="checkbox"
+                checked={syncEnabled}
+                onChange={(e) => setSyncEnabled(e.target.checked)}
+              />
+              <label htmlFor="add-ep-sync">자막 싱크 조절 (초)</label>
+            </div>
+            <div className={styles.trimRow}>
+              <input
+                className={styles.input}
+                type="number"
+                step="any"
+                value={subOffset}
+                disabled={!syncEnabled}
+                onChange={(e) => setSubOffset(e.target.value)}
+              />
+            </div>
+            <div className={styles.checkboxRow} style={{ marginTop: 8 }}>
+              <input
+                id="add-ep-test"
+                type="checkbox"
+                checked={isTest}
+                onChange={(e) => setIsTest(e.target.checked)}
+              />
+              <label htmlFor="add-ep-test">테스트 인코딩 (낮은 비트레이트·빠름, 자막 싱크 검증용)</label>
+            </div>
+          </>
+        )}
       </div>
-
-      <div className={styles.field}>
-        <div className={styles.checkboxRow}>
-          <input
-            id="add-ep-trim"
-            type="checkbox"
-            checked={trimEnabled}
-            onChange={(e) => setTrimEnabled(e.target.checked)}
-          />
-          <label htmlFor="add-ep-trim">앞부분 자르기</label>
-        </div>
-        <div className={styles.trimRow}>
-          <input
-            className={styles.input}
-            type="number"
-            step="0.1"
-            min="0"
-            value={trimSeconds}
-            disabled={!trimEnabled}
-            onChange={(e) => setTrimSeconds(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className={styles.field}>
-        <div className={styles.checkboxRow}>
-          <input
-            id="add-ep-sync"
-            type="checkbox"
-            checked={syncEnabled}
-            onChange={(e) => setSyncEnabled(e.target.checked)}
-          />
-          <label htmlFor="add-ep-sync">자막 싱크 조절 (초)</label>
-        </div>
-        <div className={styles.trimRow}>
-          <input
-            className={styles.input}
-            type="number"
-            step="any"
-            value={subOffset}
-            disabled={!syncEnabled}
-            onChange={(e) => setSubOffset(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className={styles.field}>
-        <div className={styles.checkboxRow}>
-          <input
-            id="add-ep-test"
-            type="checkbox"
-            checked={isTest}
-            onChange={(e) => setIsTest(e.target.checked)}
-          />
-          <label htmlFor="add-ep-test">테스트 인코딩 (낮은 비트레이트·빠름, 자막 싱크 검증용)</label>
-        </div>
-      </div>
-
-      {errors.form && <div className={styles.error}>{errors.form}</div>}
-
-      <button
-        type="button"
-        className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
-        disabled={submitting}
-        onClick={() => void submit()}
-      >
-        {submitting ? '추가 중...' : submitLabel}
-      </button>
     </Modal>
   );
 }
