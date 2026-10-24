@@ -41,7 +41,8 @@ function finalPanelRect(): Rect {
   const vh = window.innerHeight;
   const mobile = vw <= 640;
   const w = mobile ? vw : Math.min(960, vw - 32);
-  const h = mobile ? vh : vh * 0.86;
+  // CSS: height 86vh + max-height calc(100dvh - 2*space-4)
+  const h = mobile ? vh : Math.min(vh * 0.86, vh - 32);
   return { left: mobile ? 0 : (vw - w) / 2, top: mobile ? 0 : (vh - h) / 2, width: w, height: h };
 }
 

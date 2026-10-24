@@ -23,6 +23,8 @@
   width: 100%;
   max-width: 960px;
   height: 86vh;
+  /* 오버레이 패딩(16px×2)까지 포함해 뷰포트를 넘지 않게 캡 — 낮은 창에서 패널(과 닫기 버튼)이 잘리는 것 방지 */
+  max-height: calc(100dvh - 2 * var(--space-4));
   background: var(--color-bg);
   border-radius: var(--radius);
   overflow: hidden;
@@ -49,8 +51,8 @@
 
 .close {
   position: absolute;
-  top: calc(10px + var(--sat));
-  right: 12px;
+  top: calc(12px + var(--sat));
+  right: 14px;
   z-index: 5;
   width: 34px;
   height: 34px;
