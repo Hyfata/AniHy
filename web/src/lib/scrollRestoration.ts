@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { isScrollLocked, requestTopOnUnlock } from './scrollLock';
 
 /** 페이지 이동 시 항상 맨 위로 (SPA는 브라우저가 스크롤을 리셋하지 않음).
    예외:
@@ -24,6 +25,13 @@ export function useScrollRestoration() {
     if (prevBg && prevBg.pathname === location.pathname) return; // 모달 닫기
 
     if (prev.pathname === location.pathname && prev.search === location.search) return;
+
+    // 모달 등으로 body가 fixed 잠금 상태면 window.scrollTo가 시각적으로 무효하고
+    // 해제 시점에 옛 위치로 되돌아간다 — 해제 때 맨 위로 복원하도록 예약
+    if (isScrollLocked()) {
+      requestTopOnUnlock();
+      return;
+    }
 
     window.scrollTo(0, 0);
   }, [location]);

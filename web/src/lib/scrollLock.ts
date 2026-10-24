@@ -5,10 +5,17 @@
    중첩 모달 대비 refcount. */
 let lockCount = 0;
 let lockedY = 0;
+/** 잠금 해제 시 lockedY 복원 대신 맨 위로 — 잠금 중 페이지 이동(watch 진입 등) 대응 */
+let topOnUnlock = false;
+
+export function requestTopOnUnlock() {
+  topOnUnlock = true;
+}
 
 export function lockScroll() {
   if (lockCount++ > 0) return;
   lockedY = window.scrollY;
+  topOnUnlock = false;
   const b = document.body;
   b.style.position = 'fixed';
   b.style.top = `-${lockedY}px`;
@@ -25,7 +32,8 @@ export function unlockScroll() {
   b.style.left = '';
   b.style.right = '';
   b.style.width = '';
-  window.scrollTo(0, lockedY);
+  window.scrollTo(0, topOnUnlock ? 0 : lockedY);
+  topOnUnlock = false;
 }
 
 export function isScrollLocked() {

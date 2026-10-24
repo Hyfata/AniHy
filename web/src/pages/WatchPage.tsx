@@ -8,7 +8,7 @@ import { Modal } from '../components/Modal';
 import { PlayerWrapper } from '../components/player/PlayerWrapper';
 import { usePlayerSwipe } from '../components/player/usePlayerSwipe';
 import type { VideoPlayerInstance } from '../components/player/video-player.d';
-import { Spinner } from '../components/Spinner';
+import { Skeleton } from '../components/Spinner';
 import {
   getHistory,
   migrateLocalHistory,
@@ -330,7 +330,21 @@ export function WatchPage() {
   if (!detail) {
     return (
       <div className="container">
-        <Spinner centered />
+        <div className={styles.layout} aria-hidden="true">
+          <div>
+            <Skeleton style={{ aspectRatio: '16 / 9', borderRadius: 'var(--radius-sm)' }} />
+            <div style={{ marginTop: 'var(--space-4)' }}>
+              <Skeleton height={22} style={{ width: '55%', marginBottom: 10 }} />
+              <Skeleton height={16} style={{ width: '35%' }} />
+            </div>
+          </div>
+          <div className={styles.sidebar}>
+            <Skeleton height={20} style={{ width: '40%', marginBottom: 12 }} />
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} height={64} style={{ borderRadius: 'var(--radius-sm)', marginBottom: 8 }} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
