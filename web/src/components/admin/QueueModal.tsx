@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { get, post } from '../../api/client';
-import type { JobProgress, QueueJob, QueueStatusResponse } from '../../api/types';
+import type { JobProgress, QueueCompletedJob, QueueJob, QueueStatusResponse } from '../../api/types';
 import { tweenFast } from '../../lib/motion';
 import { Modal } from '../Modal';
 import styles from './QueueModal.module.css';
@@ -229,6 +229,55 @@ interface QueueModalProps {
   onClose: () => void;
 }
 
+/** 완료·실패 탭 카드 — 로그 보기 복구 (구 PHP 대기열의 완료 작업 로그) */
+function CompletedJobCard({
+  job,
+  retryBusy,
+  onRetry,
+}: {
+  job: QueueCompletedJob;
+  retryBusy: boolean;
+  onRetry: (jobId: number) => void;
+}) {
+  const [logOpen, setLogOpen] = useState(false);
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={tweenFast}
+      className={`${styles.jobCard}${job.status === 'failed' ? ` ${styles.jobCardFailed}` : ''}`}
+    >
+      <div className={styles.jobTop}>
+        <span className={styles.jobEp}>
+          [{job.anime_title}] {job.episode_title}
+        </span>
+        <span className={`${styles.statusBadge} ${statusClass(job.status)}`}>
+          {statusLabel(job.status)}
+        </span>
+      </div>
+      {job.message && <p className={styles.jobMessage}>{job.message}</p>}
+      <div className={styles.jobActions}>
+        <button type="button" className={styles.jobBtn} onClick={() => setLogOpen((v) => !v)}>
+          {logOpen ? '로그 닫기' : '로그'}
+        </button>
+        {job.status === 'failed' && (
+          <button
+            type="button"
+            className={styles.jobBtn}
+            disabled={retryBusy}
+            onClick={() => onRetry(job.job_id)}
+          >
+            {retryBusy ? '재시도 중…' : '재시도'}
+          </button>
+        )}
+      </div>
+      {logOpen && <JobLog jobId={job.job_id} />}
+    </motion.div>
+  );
+}
+
 /** 관리자 대기열 모달 — /api/jobs 3초 폴릴, 진행 중/완료·실패 탭. */
 export function QueueModal({ open, onClose }: QueueModalProps) {
   const [data, setData] = useState<QueueStatusResponse | null>(null);
@@ -313,37 +362,12 @@ export function QueueModal({ open, onClose }: QueueModalProps) {
       ) : (
         <AnimatePresence>
           {completed.map((job) => (
-            <motion.div
+            <CompletedJobCard
               key={job.job_id}
-              layout
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={tweenFast}
-              className={`${styles.jobCard}${job.status === 'failed' ? ` ${styles.jobCardFailed}` : ''}`}
-            >
-              <div className={styles.jobTop}>
-                <span className={styles.jobEp}>
-                  [{job.anime_title}] {job.episode_title}
-                </span>
-                <span className={`${styles.statusBadge} ${statusClass(job.status)}`}>
-                  {statusLabel(job.status)}
-                </span>
-              </div>
-              {job.message && <p className={styles.jobMessage}>{job.message}</p>}
-              {job.status === 'failed' && (
-                <div className={styles.jobActions}>
-                  <button
-                    type="button"
-                    className={styles.jobBtn}
-                    disabled={retryBusyId === job.job_id}
-                    onClick={() => void retry(job.job_id)}
-                  >
-                    {retryBusyId === job.job_id ? '재시도 중…' : '재시도'}
-                  </button>
-                </div>
-              )}
-            </motion.div>
+              job={job}
+              retryBusy={retryBusyId === job.job_id}
+              onRetry={(id) => void retry(id)}
+            />
           ))}
         </AnimatePresence>
       )}

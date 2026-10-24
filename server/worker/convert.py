@@ -553,8 +553,10 @@ async def _convert_job_inner(job_id, session_factory, settings, enc_cfg, env, lo
         thumb_path.unlink(missing_ok=True)
         _log(log_file, "WARNING: thumbnail extraction failed")
 
-    # 정리
-    mkv_path.unlink(missing_ok=True)
+    # 정리 — 서버 파일 소스는 사용자 원본이므로 절대 삭제하지 않는다
+    # (다운로드/업로드는 임시본이라 삭제). 구 PHP는 무조건 unlink했으나 요구사항 변경.
+    if not (source_type == "server" and source_file and mkv_path == Path(source_file)):
+        mkv_path.unlink(missing_ok=True)
     output_path.unlink(missing_ok=True)
 
     # ---------- episodes UPSERT ----------
