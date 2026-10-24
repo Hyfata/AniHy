@@ -26,6 +26,9 @@
   width: 100%;
   aspect-ratio: 2 / 3;
   overflow: hidden;
+  /* 카드의 overflow:hidden 클립에만 의존하면 VT 캡처가 라운딩을 못 구움(닫기 모핑이 네모남) —
+     포스터 자체에 위쪽 라운드를 구워둔다. 카드 시각은 동일 */
+  border-radius: var(--radius) var(--radius) 0 0;
   background: var(--color-surface-light);
 }
 

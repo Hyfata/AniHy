@@ -2,6 +2,8 @@
    sticky는 iOS 러버밴드 스크롤에 본문과 같이 튀는 문제가 있었다 (대기열 버튼 등
    다른 fixed 요소는 튀지 않음). 본문 하단 여백은 global.css의 .appMain이 담당. */
 .tabbar {
+  /* VT 참여: 캡처에서 날아간 backdrop-filter를 그룹이 다시 그림 (global.css) */
+  view-transition-name: anihy-tabbar;
   position: fixed;
   bottom: calc(var(--space-3) + var(--sab));
   left: calc(var(--space-4) + var(--sal));

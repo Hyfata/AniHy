@@ -28,6 +28,7 @@ import {
 } from '../lib/native';
 import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
+import { openAnimeModalVt } from '../lib/viewTransition';
 import { useConnectivityStore } from '../stores/connectivity';
 import { dlKey, useDownloadsStore } from '../stores/downloads';
 import styles from './WatchPage.module.css';
@@ -64,7 +65,7 @@ export function WatchPage() {
     const listPath = lastListPath || '/';
     navigate(listPath);
     const background = { pathname: listPath };
-    const openModal = () => navigate(`/anime/${aid}`, { state: { background } });
+    const openModal = () => openAnimeModalVt(aid, background, navigate);
     // 목록 렌더를 기다리며 카드를 찾아 중앙으로 스크롤 (무한스크롤 1페이지 밖이면 best-effort 포기)
     let tries = 0;
     const attempt = () => {

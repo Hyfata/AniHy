@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE, ApiError, del as delReq, get, post, put } from '../../api/client';
@@ -17,6 +18,7 @@ import { EpisodeRow } from '../EpisodeRow';
 import { Modal } from '../Modal';
 import { Skeleton } from '../Spinner';
 import { useMotionTransition, useReducedMotion, tweenNormal } from '../../lib/motion';
+import { VT_POSTER } from '../../lib/viewTransition';
 import { isNative } from '../../lib/native';
 import { useAuthStore } from '../../stores/auth';
 import { dialog } from '../../stores/dialog';
@@ -364,8 +366,12 @@ export function AnimeDetailView({
         transition={heroTransition}
       >
         <div className={styles.posterCol}>
-          {/* FLIP 클론의 착지 지점 — 모달이 측정/숨김에 사용 (data-hero-poster) */}
-          <div className={styles.poster} data-hero-poster>
+          {/* VT 공유 요소 전환의 착지 지점 — 카드 포스터와 같은 view-transition-name */}
+          <div
+            className={styles.poster}
+            data-hero-poster
+            style={{ viewTransitionName: VT_POSTER } as CSSProperties}
+          >
             {detail.cover && <img src={detail.cover} alt={detail.title} />}
           </div>
           {!isPlaceholderData && (

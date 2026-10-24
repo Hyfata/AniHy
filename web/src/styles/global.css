@@ -133,3 +133,74 @@ select {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* --- 카드↔애니 모달 전환 (View Transitions API, lib/viewTransition.ts) ---
+   이름 없는 요소는 root 스냅샷인데 root는 정지 — 배경이 통째로 크로스페이드되는 것 방지.
+   포스터/제목은 기본 그룹 모핑(위치+크기 보간, 스냅샷이라 텍스트 크기도 자연스럽게 변함) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* 쌓임: 백드롭 < 패널 < 모핑 중인 포스터/제목.
+   지정 없으면 DOM 순서를 따라 모달 포털(패널)이 카드(포스터) 그룹 위에 그려져
+   모핑이 모달 뒤로 숨고 끝날 때 번쩍인다 */
+::view-transition-group(anime-vt-backdrop) {
+  z-index: 1;
+}
+
+::view-transition-group(anime-vt-panel) {
+  z-index: 2;
+  animation-duration: 0.32s;
+  animation-timing-function: cubic-bezier(0.3, 0, 0.4, 1);
+}
+
+::view-transition-group(anime-vt-poster) {
+  z-index: 3;
+  animation-duration: 0.42s;
+  animation-timing-function: cubic-bezier(0.22, 0.9, 0.28, 1);
+}
+
+::view-transition-group(anihy-tabbar) {
+  animation: none;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+
+::view-transition-group(anihy-topnav) {
+  z-index: 1;
+  animation: none;
+}
+
+
+
+
+
+/* 착지 목표(카드)가 없는 닫기 — 제자리 페이드 */
+::view-transition-old(anime-vt-poster):only-child {
+  animation: vtFadeOut 0.24s ease both;
+}
+
+@keyframes vtFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes vtFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* vtPanelGrow keyframes는 매 전환마다 측정값으로 주입됨 (lib/viewTransition.ts의
+   #vt-panel-motion <style>) — WebKit은 VT 의사요소의 keyframes 안 var()를 읽지 못한다 */
+
+::view-transition-new(anime-vt-backdrop) {
+  animation: vtFadeIn 0.25s ease both;
+}
+
+
+::view-transition-new(anime-vt-panel) {
+  transform-origin: top left;
+  animation: vtPanelGrow 0.4s cubic-bezier(0.22, 0.9, 0.28, 1) both;
+}
+
