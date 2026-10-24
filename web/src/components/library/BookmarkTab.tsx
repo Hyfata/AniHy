@@ -19,6 +19,8 @@ export function BookmarkTab() {
   const { data: items, error, isPending, refetch } = useQuery({
     queryKey: ['bookmarks'],
     queryFn: async () => (await get<{ bookmarks: Bookmark[] }>('/bookmarks')).bookmarks,
+    // 보관함 진입 시 항상 최신 — 기본 staleTime(30s)에 걸리면 방금 한 북마크가 안 뜬다
+    refetchOnMount: 'always',
   });
 
   const loginRequired =

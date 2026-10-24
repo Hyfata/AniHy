@@ -220,6 +220,8 @@ export function AnimeDetailView({
         await post(`/bookmarks/${detail.id}`);
         queryClient.setQueryData<AnimeDetail>(['anime', animeId], { ...detail, is_bookmarked: true });
       }
+      // 보관함 북마크 탭 캐시 무효화 — 다음 진입 시 최신 목록
+      void queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
     } catch (err) {
       if (err instanceof ApiError && err.isLoginRequired) {
         setLoginPromptOpen(true);
