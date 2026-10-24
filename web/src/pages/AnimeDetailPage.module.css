@@ -169,6 +169,11 @@
   padding: 14px 16px;
 }
 
+.descWrap {
+  overflow: hidden;
+  transition: height 0.3s ease;
+}
+
 .desc {
   margin: 0;
   color: var(--color-text-muted);

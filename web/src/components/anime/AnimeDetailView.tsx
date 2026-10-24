@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE, ApiError, del as delReq, get, post, put } from '../../api/client';
 import type {
@@ -38,6 +39,72 @@ function initialOrder(): SortOrder {
     return 'desc';
   }
 }
+
+/** 인라인 줄거리 (데스크톱) — 구 app.js desc-more 규약:
+   - 넘치지 않으면 더보기 버튼을 렌더하지 않음 (scrollHeight > clientHeight 감지 + resize)
+   - 펼침/접힘은 래퍼 높이 측정값 transition (0.3s ease). 접힘은 끝날 때까지 전체 텍스트 유지. */
+function CollapsibleDesc({ text }: { text: string }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const pRef = useRef<HTMLParagraphElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  const animatingRef = useRef(false);
+  const reducedMotion = useReducedMotion();
+
+  useLayoutEffect(() => {
+    const p = pRef.current;
+    if (!p) return;
+    const check = () => setOverflowing(p.scrollHeight > p.clientHeight + 1);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [text]);
+
+  const toggle = () => {
+    const wrap = wrapRef.current;
+    if (!wrap || reducedMotion) {
+      setExpanded((v) => !v);
+      return;
+    }
+    if (animatingRef.current) return;
+    animatingRef.current = true;
+    const willExpand = !expanded;
+
+    // 접힘: 클램프 높이를 재려면 클래스를 잠깐 제거했다 되돌린다 (동기 커밋이라 페인트 없음)
+    wrap.style.height = '';
+    const startH = wrap.offsetHeight;
+    flushSync(() => setExpanded(willExpand));
+    const endH = wrap.offsetHeight;
+    if (!willExpand) flushSync(() => setExpanded(true));
+
+    wrap.style.height = `${startH}px`;
+    requestAnimationFrame(() => {
+      wrap.style.height = `${endH}px`;
+    });
+    // transitionend 미발생(높이 동일, 중단) 대비 타이머 정리 (구 350ms 규약)
+    window.setTimeout(() => {
+      if (!willExpand) setExpanded(false);
+      wrap.style.height = '';
+      animatingRef.current = false;
+    }, 350);
+  };
+
+  return (
+    <div className={styles.descBox}>
+      <div ref={wrapRef} className={styles.descWrap}>
+        <p ref={pRef} className={`${styles.desc}${expanded ? ` ${styles.descExpanded}` : ''}`}>
+          {text}
+        </p>
+      </div>
+      {(overflowing || expanded) && (
+        <button type="button" className={styles.descMore} onClick={toggle}>
+          {expanded ? '접기' : '더보기'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 
 /** 목록 캐시(홈 무한/검색/분기 상세/북마크)에서 포스터+제목만 꺼내 히어로를 즉시 렌더하기 위한
    placeholder detail — episodes/뱃지/액션은 isPlaceholderData로 게이트한다. */
@@ -163,7 +230,6 @@ export function AnimeDetailView({
   const identity = useAuthStore((s) => s.identity);
 
   const [order, setOrder] = useState<SortOrder>(initialOrder);
-  const [descExpanded, setDescExpanded] = useState(false);
   const [synopsisOpen, setSynopsisOpen] = useState(false);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -390,20 +456,7 @@ export function AnimeDetailView({
           )}
         </div>
 
-        {hasDesc && (
-          <div className={styles.descBox}>
-            <p className={`${styles.desc}${descExpanded ? ` ${styles.descExpanded}` : ''}`}>
-              {detail.description}
-            </p>
-            <button
-              type="button"
-              className={styles.descMore}
-              onClick={() => setDescExpanded((v) => !v)}
-            >
-              {descExpanded ? '접기' : '더보기'}
-            </button>
-          </div>
-        )}
+        {hasDesc && <CollapsibleDesc text={detail.description ?? ''} />}
       </motion.section>
 
       {/* 카드 확장 전환 중엔(contentDelay>0) 히어로만 보이고 나머지는 지연 fade in */}
