@@ -9,13 +9,46 @@ import { Skeleton } from '../Spinner';
 import { LoginPrompt } from './LoginPrompt';
 import styles from './library.module.css';
 
-/** 보관함 > 시청기록 — updated_at 내림차순, 개별/전체 삭제. */
+interface AnimeGroup {
+  anime_id: number;
+  title: string;
+  cover: string | null;
+  latest: HistoryItem;
+  /** updated_at 내림차순 */
+  items: HistoryItem[];
+}
+
+const epLabelOf = (h: HistoryItem) =>
+  h.episode_title ? `${h.episode_number}화 · ${h.episode_title}` : `${h.episode_number}화`;
+
+const watchPath = (h: HistoryItem) =>
+  `/watch/${h.anime_id}/${encodeURIComponent(h.episode_number)}`;
+
+/** 서버는 updated_at 내림차순 flat 목록 — 애니별로 묶고, 그룹 순서는 최근 시청 순 */
+function groupByAnime(items: HistoryItem[]): AnimeGroup[] {
+  const groups: AnimeGroup[] = [];
+  const byId = new Map<number, AnimeGroup>();
+  for (const h of items) {
+    let g = byId.get(h.anime_id);
+    if (!g) {
+      g = { anime_id: h.anime_id, title: h.title, cover: h.cover, latest: h, items: [] };
+      byId.set(h.anime_id, g);
+      groups.push(g);
+    }
+    g.items.push(h);
+  }
+  return groups;
+}
+
+/** 보관함 > 시청기록 — 애니별 그룹 카드. 카드 탭하면 회차 목록 드롭다운,
+   하단 이어보기 버튼은 가장 최근 회차로 바로 이동. */
 export function HistoryTab() {
   const identity = useAuthStore((s) => s.identity);
   const [items, setItems] = useState<HistoryItem[] | null>(null);
   const [loginRequired, setLoginRequired] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -64,8 +97,8 @@ export function HistoryTab() {
   if (items === null) {
     return (
       <div className={styles.historyList}>
-        {Array.from({ length: 5 }, (_, i) => (
-          <Skeleton key={i} height={96} style={{ borderRadius: 'var(--radius)' }} />
+        {Array.from({ length: 3 }, (_, i) => (
+          <Skeleton key={i} height={132} style={{ borderRadius: 'var(--radius)' }} />
         ))}
       </div>
     );
@@ -83,6 +116,8 @@ export function HistoryTab() {
     );
   }
 
+  const groups = groupByAnime(items);
+
   return (
     <>
       <div className={styles.historyHeader}>
@@ -91,47 +126,97 @@ export function HistoryTab() {
         </button>
       </div>
       <div className={styles.historyList}>
-        {items.map((h) => {
-          const ratio = Math.min(1, Math.max(0, h.ratio));
-          const epLabel = h.episode_title
-            ? `${h.episode_number}화 · ${h.episode_title}`
-            : `${h.episode_number}화`;
+        {groups.map((g) => {
+          const ratio = Math.min(1, Math.max(0, g.latest.ratio));
+          const open = expandedId === g.anime_id;
           return (
-            <Link key={`${h.anime_id}-${h.episode_number}`} to={`/watch/${h.anime_id}/${encodeURIComponent(h.episode_number)}`} className={styles.historyRow}>
-              <div className={styles.historyThumbWrap}>
-                {h.cover ? <img src={h.cover} alt="" loading="lazy" /> : null}
-                {h.completed && <span className={styles.completedBadge}>시청 완료</span>}
-              </div>
-              <div className={styles.historyBody}>
-                <h3 className={styles.historyTitle}>{h.title}</h3>
-                <p className={styles.historyEp}>{epLabel}</p>
-                <div className={styles.historyMeta}>
-                  <div className={styles.historyProgress}>
-                    <div className={styles.historyProgressFill} style={{ width: `${ratio * 100}%` }} />
-                  </div>
-                  <span>{Math.round(ratio * 100)}%</span>
-                  {h.duration_ms > 0 && (
-                    <span>
-                      {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}
-                    </span>
-                  )}
-                  <span>{relativeTime(h.updated_at)}</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                className={styles.historyDeleteBtn}
-                aria-label="기록 삭제"
-                title="기록 삭제"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  void removeOne(h.anime_id, h.episode_number);
+            <div key={g.anime_id} className={styles.historyGroup}>
+              <div
+                className={styles.historyGroupMain}
+                role="button"
+                tabIndex={0}
+                aria-expanded={open}
+                onClick={() => setExpandedId(open ? null : g.anime_id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedId(open ? null : g.anime_id);
+                  }
                 }}
               >
-                ×
-              </button>
-            </Link>
+                <div className={styles.historyThumbWrap}>
+                  {g.cover ? <img src={g.cover} alt="" loading="lazy" /> : null}
+                  {g.latest.completed && <span className={styles.completedBadge}>시청 완료</span>}
+                </div>
+                <div className={styles.historyBody}>
+                  <h3 className={styles.historyTitle}>{g.title}</h3>
+                  <p className={styles.historyEp}>최근 시청 {epLabelOf(g.latest)}</p>
+                  <div className={styles.historyMeta}>
+                    <div className={styles.historyProgress}>
+                      <div className={styles.historyProgressFill} style={{ width: `${ratio * 100}%` }} />
+                    </div>
+                    <span>{Math.round(ratio * 100)}%</span>
+                    {g.latest.updated_at && <span>{relativeTime(g.latest.updated_at)}</span>}
+                  </div>
+                </div>
+                <svg
+                  className={`${styles.historyChevron}${open ? ` ${styles.historyChevronOpen}` : ''}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
+
+              {open && (
+                <div className={styles.historyEpisodes}>
+                  {g.items.map((h) => {
+                    const r = Math.min(1, Math.max(0, h.ratio));
+                    return (
+                      <Link
+                        key={h.episode_number}
+                        to={watchPath(h)}
+                        className={styles.historyEpRow}
+                      >
+                        <span className={styles.historyEpLabel}>{epLabelOf(h)}</span>
+                        <span className={styles.historyEpMeta}>
+                          {Math.round(r * 100)}%
+                          {h.duration_ms > 0 && (
+                            <> · {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}</>
+                          )}
+                          {h.updated_at && <> · {relativeTime(h.updated_at)}</>}
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.historyDeleteBtn}
+                          aria-label="기록 삭제"
+                          title="기록 삭제"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void removeOne(h.anime_id, h.episode_number);
+                          }}
+                        >
+                          ×
+                        </button>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
+              <Link to={watchPath(g.latest)} className={styles.resumeBtn}>
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M8 5.14v14l11-7-11-7z" />
+                </svg>
+                {epLabelOf(g.latest)} 이어보기
+              </Link>
+            </div>
           );
         })}
       </div>
