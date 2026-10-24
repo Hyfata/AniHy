@@ -19,6 +19,8 @@ export interface PlayerWrapperProps {
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
   onPause?: (currentTime: number, duration: number) => void;
+  /** 실제 재생이 시작된 첫 시점 (시청기록은 이 이벤트 이후에만 저장) */
+  onPlay?: () => void;
   onLoadedMetadata?: (duration: number) => void;
   onFullscreenChange?: (isFullscreen: boolean) => void;
   /** 부모가 player.pause() 등을 호출할 수 있도록 인스턴스를 노출 */
@@ -33,14 +35,15 @@ export function PlayerWrapper({
   onTimeUpdate,
   onEnded,
   onPause,
+  onPlay,
   onLoadedMetadata,
   onFullscreenChange,
   playerRef,
 }: PlayerWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // 콜백은 최신 ref로만 참조 — 플레이어를 매 렌더 재생성하지 않기 위함
-  const callbacks = useRef({ onTimeUpdate, onEnded, onPause, onLoadedMetadata });
-  callbacks.current = { onTimeUpdate, onEnded, onPause, onLoadedMetadata };
+  const callbacks = useRef({ onTimeUpdate, onEnded, onPause, onPlay, onLoadedMetadata });
+  callbacks.current = { onTimeUpdate, onEnded, onPause, onPlay, onLoadedMetadata };
 
   useEffect(() => {
     const el = containerRef.current;
@@ -60,16 +63,19 @@ export function PlayerWrapper({
     const handleTimeUpdate = () => callbacks.current.onTimeUpdate?.(video.currentTime, video.duration);
     const handleEnded = () => callbacks.current.onEnded?.();
     const handlePause = () => callbacks.current.onPause?.(video.currentTime, video.duration);
+    const handlePlay = () => callbacks.current.onPlay?.();
     const handleMeta = () => callbacks.current.onLoadedMetadata?.(video.duration);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('ended', handleEnded);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('play', handlePlay);
     video.addEventListener('loadedmetadata', handleMeta);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('pause', handlePause);
+      video.removeEventListener('play', handlePlay);
       video.removeEventListener('loadedmetadata', handleMeta);
       player.destroy();
       if (playerRef) playerRef.current = null;

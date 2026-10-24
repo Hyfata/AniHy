@@ -94,6 +94,8 @@ export function WatchPage() {
   const modalListRef = useRef<HTMLDivElement>(null);
   const lastSaveRef = useRef({ time: -1, at: 0 });
   const resumeDoneRef = useRef(false);
+  // 실제 재생('play' 이벤트)이 있어야 시청기록 저장 — 진입만 하고 나간 경우 제외
+  const playedRef = useRef(false);
   const online = useConnectivityStore((s) => s.online);
   const initConnectivity = useConnectivityStore((s) => s.init);
   const initDownloads = useDownloadsStore((s) => s.init);
@@ -192,8 +194,17 @@ export function WatchPage() {
     if (detail) scrollActiveToTop(sidebarListRef.current);
   }, [detail, ep]);
 
+  useEffect(() => {
+    playedRef.current = false;
+  }, [aid, ep]);
+
+  const handlePlay = useCallback(() => {
+    playedRef.current = true;
+  }, []);
+
   const persistNow = useCallback(
     (keepalive: boolean) => {
+      if (!playedRef.current) return;
       const video = playerRef.current?.video;
       if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
       const { aid: a, ep: e, loggedIn: li, online: on } = liveRef.current;
@@ -386,6 +397,7 @@ export function WatchPage() {
               onTimeUpdate={handleTimeUpdate}
               onPause={handlePause}
               onEnded={handleEnded}
+              onPlay={handlePlay}
             />
           </div>
 
