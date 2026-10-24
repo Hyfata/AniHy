@@ -356,11 +356,11 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
 
   const subtitleInput = (
     <div className={styles.field}>
-      <label className={styles.label} htmlFor="add-ep-sub">자막 파일 (ass/smi, 선택)</label>
+      <label className={styles.label} htmlFor="add-ep-sub">자막 파일 (선택)</label>
       <input
         id="add-ep-sub"
         type="file"
-        accept=".ass,.smi"
+        accept="*"
         onChange={(e) => setSubFile(e.target.files?.[0] ?? null)}
       />
     </div>

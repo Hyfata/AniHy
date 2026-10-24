@@ -402,12 +402,12 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="bulk-subs">
-          자막 파일들 (ass/smi, 선택, 이름순으로 회차에 매핑)
+          자막 파일들 (선택, 이름순으로 회차에 매핑)
         </label>
         <input
           id="bulk-subs"
           type="file"
-          accept=".ass,.smi"
+          accept="*"
           multiple
           onChange={(e) => setSubs(Array.from(e.target.files ?? []))}
         />
