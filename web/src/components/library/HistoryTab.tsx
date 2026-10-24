@@ -158,13 +158,17 @@ export function HistoryTab() {
                     <div className={styles.historyProgress}>
                       <div className={styles.historyProgressFill} style={{ width: `${ratio * 100}%` }} />
                     </div>
-                    <span>{Math.round(ratio * 100)}%</span>
-                    {g.latest.duration_ms > 0 && (
-                      <span>
-                        {formatPlaytime(g.latest.position_ms)} / {formatPlaytime(g.latest.duration_ms)}
-                      </span>
-                    )}
-                    {g.latest.updated_at && <span>{relativeTime(g.latest.updated_at)}</span>}
+                    <span>
+                      {Math.round(ratio * 100)}%
+                      {g.latest.duration_ms > 0 && (
+                        <>
+                          {' '}
+                          · {formatPlaytime(g.latest.position_ms)} /{' '}
+                          {formatPlaytime(g.latest.duration_ms)}
+                        </>
+                      )}
+                      {g.latest.updated_at && <> · {relativeTime(g.latest.updated_at)}</>}
+                    </span>
                   </div>
                   <Link
                     to={watchPath(g.latest)}
@@ -227,7 +231,12 @@ export function HistoryTab() {
                                 {h.duration_ms > 0 && (
                                   <> · {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}</>
                                 )}
-                                {h.updated_at && <> · {dateTime(h.updated_at)}</>}
+                                {h.updated_at && (
+                                  <>
+                                    {' '}
+                                    · {relativeTime(h.updated_at)} ({dateTime(h.updated_at)})
+                                  </>
+                                )}
                               </span>
                             </span>
                             <button
