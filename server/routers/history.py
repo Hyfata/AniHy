@@ -1,11 +1,14 @@
 """시청기록 API — plan §1.6. 로그인(Keycloak 계정) 단위로 완전 분리, 비로그인 401."""
+import os
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from ..core.config import Settings, get_settings
 from ..core.db import get_db
 from ..core.security import Identity, get_current_identity, require_access
 from ..models import Anime, Episode, WatchHistory
@@ -108,6 +111,7 @@ def list_history(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     identity: Identity = Depends(require_login),
+    settings: Settings = Depends(get_settings),
 ):
     """보관함 시청기록 탭 — updated_at 내림차순, 애니/회차 조인."""
     rows = db.execute(
@@ -124,12 +128,21 @@ def list_history(
         .offset(offset)
     ).all()
 
+    base_dir = Path(settings.base_dir)
     items = []
     for h, a, ep in rows:
+        # 회차 썸네일이 있으면 그것, 없으면 커버 (상세 API와 같은 규약)
+        safe_ep = urls.sanitize_filename(h.episode_number)
+        thumb_path = base_dir / urls.episode_thumb_rel(a.id, safe_ep)
+        if thumb_path.is_file():
+            thumb = f"{urls.episode_thumb_url(a.id, safe_ep)}?v={int(os.path.getmtime(thumb_path))}"
+        else:
+            thumb = urls.cover_url(a.cover_image)
         items.append({
             **_entry(h),
             "title": a.title,
             "cover": urls.cover_url(a.cover_image),
+            "thumb_url": thumb,
             "episode_title": ep.title if ep else None,
             "episode_duration_ms": ep.duration_ms if ep else None,
         })

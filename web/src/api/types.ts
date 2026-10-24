@@ -98,6 +98,8 @@ export interface HistoryItem {
   updated_at: string | null;
   title: string;
   cover: string | null;
+  /** 최근 시청 회차 썸네일(없으면 커버) */
+  thumb_url?: string | null;
   episode_title: string | null;
   episode_duration_ms: number | null;
 }

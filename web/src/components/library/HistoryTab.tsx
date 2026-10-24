@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { del, get, ApiError } from '../../api/client';
 import type { HistoryItem } from '../../api/types';
 import { formatPlaytime, relativeTime } from '../../lib/format';
+import { useReducedMotion } from '../../lib/motion';
 import { useAuthStore } from '../../stores/auth';
 import { Modal } from '../Modal';
 import { Skeleton } from '../Spinner';
@@ -40,10 +42,11 @@ function groupByAnime(items: HistoryItem[]): AnimeGroup[] {
   return groups;
 }
 
-/** 보관함 > 시청기록 — 애니별 그룹 카드. 카드 탭하면 회차 목록 드롭다운,
-   하단 이어보기 버튼은 가장 최근 회차로 바로 이동. */
+/** 보관함 > 시청기록 — 애니별 그룹 카드. 카드 탭하면 회차 목록이 부드럽게 펼쳐지고,
+   프로그레스 바 아래의 '바로 이어보기'는 가장 최근 회차로 직행. */
 export function HistoryTab() {
   const identity = useAuthStore((s) => s.identity);
+  const reducedMotion = useReducedMotion();
   const [items, setItems] = useState<HistoryItem[] | null>(null);
   const [loginRequired, setLoginRequired] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -158,6 +161,16 @@ export function HistoryTab() {
                     <span>{Math.round(ratio * 100)}%</span>
                     {g.latest.updated_at && <span>{relativeTime(g.latest.updated_at)}</span>}
                   </div>
+                  <Link
+                    to={watchPath(g.latest)}
+                    className={styles.resumeBtn}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M8 5.14v14l11-7-11-7z" />
+                    </svg>
+                    바로 이어보기
+                  </Link>
                 </div>
                 <svg
                   className={`${styles.historyChevron}${open ? ` ${styles.historyChevronOpen}` : ''}`}
@@ -173,49 +186,65 @@ export function HistoryTab() {
                 </svg>
               </div>
 
-              {open && (
-                <div className={styles.historyEpisodes}>
-                  {g.items.map((h) => {
-                    const r = Math.min(1, Math.max(0, h.ratio));
-                    return (
-                      <Link
-                        key={h.episode_number}
-                        to={watchPath(h)}
-                        className={styles.historyEpRow}
-                      >
-                        <span className={styles.historyEpLabel}>{epLabelOf(h)}</span>
-                        <span className={styles.historyEpMeta}>
-                          {Math.round(r * 100)}%
-                          {h.duration_ms > 0 && (
-                            <> · {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}</>
-                          )}
-                          {h.updated_at && <> · {relativeTime(h.updated_at)}</>}
-                        </span>
-                        <button
-                          type="button"
-                          className={styles.historyDeleteBtn}
-                          aria-label="기록 삭제"
-                          title="기록 삭제"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            void removeOne(h.anime_id, h.episode_number);
-                          }}
-                        >
-                          ×
-                        </button>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-
-              <Link to={watchPath(g.latest)} className={styles.resumeBtn}>
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M8 5.14v14l11-7-11-7z" />
-                </svg>
-                {epLabelOf(g.latest)} 이어보기
-              </Link>
+              <AnimatePresence initial={false}>
+                {open && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={
+                      reducedMotion ? { duration: 0 } : { duration: 0.28, ease: [0.25, 0.9, 0.28, 1] }
+                    }
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className={styles.historyEpisodes}>
+                      {g.items.map((h) => {
+                        const r = Math.min(1, Math.max(0, h.ratio));
+                        return (
+                          <Link
+                            key={h.episode_number}
+                            to={watchPath(h)}
+                            className={styles.historyEpRow}
+                          >
+                            <span className={styles.historyEpThumb}>
+                              {h.thumb_url ? <img src={h.thumb_url} alt="" loading="lazy" /> : null}
+                            </span>
+                            <span className={styles.historyEpBody}>
+                              <span className={styles.historyEpLabel}>{epLabelOf(h)}</span>
+                              <span className={styles.historyEpProgress}>
+                                <span
+                                  className={styles.historyProgressFill}
+                                  style={{ width: `${r * 100}%` }}
+                                />
+                              </span>
+                              <span className={styles.historyEpMeta}>
+                                {Math.round(r * 100)}%
+                                {h.duration_ms > 0 && (
+                                  <> · {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}</>
+                                )}
+                                {h.updated_at && <> · {relativeTime(h.updated_at)}</>}
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              className={styles.historyDeleteBtn}
+                              aria-label="기록 삭제"
+                              title="기록 삭제"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void removeOne(h.anime_id, h.episode_number);
+                              }}
+                            >
+                              ×
+                            </button>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}
