@@ -120,7 +120,8 @@ function findCachedPartial(queryClient: QueryClient, id: number): AnimeDetail | 
   }
   if (!found) {
     for (const [, data] of queryClient.getQueriesData<AnimeListResponse>({ queryKey: ['search'] })) {
-      found ??= data?.animes.find((a) => a.id === id);
+      // ['search', 'trending'] also prefix-matches but caches {trending: [...]} — same shape guard as the quarters loop
+      if (data && Array.isArray(data.animes)) found ??= data.animes.find((a) => a.id === id);
     }
   }
   if (!found) {
