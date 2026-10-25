@@ -1,4 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { get } from '../api/client';
+import type { Bookmark } from '../api/types';
 import { BookmarkTab } from '../components/library/BookmarkTab';
 import { DownloadsTab } from '../components/library/DownloadsTab';
 import { HistoryTab } from '../components/library/HistoryTab';
@@ -18,6 +21,11 @@ export function LibraryPage() {
   const raw = params.get('sub');
   const sub: LibrarySub = SUB_TABS.some((t) => t.id === raw) ? (raw as LibrarySub) : 'bookmark';
 
+  const { data: bookmarks } = useQuery({
+    queryKey: ['bookmarks'],
+    queryFn: async () => (await get<{ bookmarks: Bookmark[] }>('/bookmarks')).bookmarks,
+  });
+
   const select = (id: LibrarySub) => {
     setParams({ sub: id }, { replace: true });
   };
@@ -35,7 +43,12 @@ export function LibraryPage() {
             className={`${libStyles.subtab}${sub === t.id ? ` ${libStyles.subtabActive}` : ''}`}
             onClick={() => select(t.id)}
           >
-            <span style={{ position: 'relative', zIndex: 1 }}>{t.label}</span>
+            <span style={{ position: 'relative', zIndex: 1 }}>
+              {t.label}
+              {t.id === 'bookmark' && (
+                <span className={libStyles.subtabCount}>{bookmarks?.length ?? 0}</span>
+              )}
+            </span>
           </button>
         ))}
       </nav>
