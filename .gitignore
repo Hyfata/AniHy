@@ -8,6 +8,7 @@ downloader/config/hd_new_token.yml
 downloader/config/archive.json
 downloader/videos/
 AGENTS.md
+.idea/
 logs/
 subtitles/
 animes
