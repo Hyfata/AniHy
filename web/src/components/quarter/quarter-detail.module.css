@@ -1,5 +1,7 @@
 /* 요일 필터 탭 + 스티키 헤더 — quarter.php 이식 */
 .stickyHeader {
+  /* Same VT group pattern as the tab/top bars: re-apply blur on the group */
+  view-transition-name: anihy-quarter-header;
   position: sticky;
   top: calc(var(--navbar-height) + var(--sat));
   z-index: var(--z-sticky-header);

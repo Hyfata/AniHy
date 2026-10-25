@@ -172,6 +172,12 @@ select {
   animation: none;
 }
 
+::view-transition-group(anihy-quarter-header) {
+  animation: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
 
 
 
