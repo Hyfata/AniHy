@@ -22,7 +22,9 @@
   font-size: var(--text-3xl);
   font-weight: var(--font-weight-extrabold);
   text-align: center;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  letter-spacing: -0.03em;
+  /* same wordmark as the top navbar */
+  background: linear-gradient(180deg, #ddd2ff 0%, var(--color-primary) 75%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

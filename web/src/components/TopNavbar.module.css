@@ -47,7 +47,9 @@
 .logo {
   font-size: var(--text-2xl);
   font-weight: var(--font-weight-extrabold);
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  letter-spacing: -0.03em;
+  /* purple wordmark with a subtle white sheen at the top */
+  background: linear-gradient(180deg, #ddd2ff 0%, var(--color-primary) 75%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

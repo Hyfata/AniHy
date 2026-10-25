@@ -38,20 +38,47 @@ export const VT_POSTER = 'anime-vt-poster';
 export const VT_PANEL = 'anime-vt-panel';
 export const VT_BACKDROP = 'anime-vt-backdrop';
 
-function cardEls(animeId: number) {
-  const card = document.querySelector<HTMLElement>(`[data-anime-id="${animeId}"]`);
-  if (!card) return null;
+interface CardEls {
+  card: HTMLElement;
+  poster: HTMLElement;
+}
+
+function elsOf(card: HTMLElement): CardEls | null {
   const poster = card.firstElementChild as HTMLElement | null;
-  if (!poster) return null;
-  return { card, poster };
+  return poster ? { card, poster } : null;
 }
 
-function tagCard(animeId: number) {
-  cardEls(animeId)?.poster.style.setProperty('view-transition-name', VT_POSTER);
+/** The same anime card can appear multiple times on one page (home rows + grid).
+   Prefer the clicked card when given, otherwise the copy most visible in the viewport. */
+function cardEls(animeId: number, preferred?: HTMLElement | null): CardEls | null {
+  if (preferred) {
+    const els = elsOf(preferred);
+    if (els) return els;
+  }
+  const cards = document.querySelectorAll<HTMLElement>(`[data-anime-id="${animeId}"]`);
+  let best: CardEls | null = null;
+  let bestArea = -1;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  for (const card of cards) {
+    const r = card.getBoundingClientRect();
+    const area =
+      Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0)) *
+      Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+    if (area > bestArea) {
+      bestArea = area;
+      best = elsOf(card);
+    }
+  }
+  return best;
 }
 
-function untagCard(animeId: number) {
-  cardEls(animeId)?.poster.style.removeProperty('view-transition-name');
+function tagCard(els: CardEls | null) {
+  els?.poster.style.setProperty('view-transition-name', VT_POSTER);
+}
+
+function untagCard(els: CardEls | null) {
+  els?.poster.style.removeProperty('view-transition-name');
 }
 
 /** 패널 스냅샷의 시작(열기)/끝(닫기) 변환 — 측정값을 담은 keyframes를 <style>로 주입.
@@ -89,11 +116,14 @@ function rectOf(el: HTMLElement): Rect {
 
 const panelEl = () => document.querySelector<HTMLElement>('[data-vt-panel]');
 
-/** 카드 → 모달. VT 불가/reduced motion이면 일반 navigate (모달이 자체 팝으로 열림). */
+/** Card → modal. Falls back to plain navigate when VT is unavailable or reduced-motion
+   (the modal pops by itself). cardEl is the clicked card — pinpoints the exact origin
+   on pages where the same id appears twice. */
 export function openAnimeModalVt(
   animeId: number,
   background: { pathname: string; search?: string; hash?: string },
   navigate: NavigateFunction,
+  cardEl?: HTMLElement,
 ): void {
   const go = () => navigate(`/anime/${animeId}`, { state: { background } });
   const doc = document as DocWithVt;
@@ -101,15 +131,16 @@ export function openAnimeModalVt(
     go();
     return;
   }
-  const cardRect = cardEls(animeId) ? rectOf(cardEls(animeId)!.card) : null;
+  const els = cardEls(animeId, cardEl);
+  const cardRect = els ? rectOf(els.card) : null;
   // 스크롤 잠금을 transition "이전"으로 — 콜백 안(모달 마운트)에서 잠그면 old/new 스냅샷 사이에
   // body가 fixed로 리레이아웃돼 iOS에서 스크롤된 상태일수록 배경이 깜빡인다.
   // 모달도 마운트 시 자체 lock을 걸고 언마운트 때 푸니 refcount로 균형이 맞는다.
   lockScroll();
-  tagCard(animeId);
+  tagCard(els);
   const vt = doc.startViewTransition!(() => {
     flushSync(go);
-    untagCard(animeId);
+    untagCard(els);
     // 원본 카드 포스터는 새 스냅샷에서 숨김 — 모핑이 끝날 때까지 카드 자리에 남지 않게
     flushSync(() => useUiStore.getState().setAnimeModalOrigin(animeId));
     const panel = panelEl();
@@ -137,17 +168,19 @@ export function closeAnimeModalVt(
   // 잠금 해제는 전환 종료 후 — 시작 즉시 풀면 전환 중 스크롤이 가능해져 스냅샷과
   // 라이브가 어긋난다. (끝날 때의 뚝 끊김은 iOS의 fixed→static 리플로우 자체의 문제)
   lockScroll();
+  let tagged: CardEls | null = null;
   const vt = doc.startViewTransition!(() => {
     // 카드 포스터를 먼저 복구(숨김 상태면 스냅샷에서 제외됨)
     flushSync(() => useUiStore.getState().setAnimeModalOrigin(null));
-    tagCard(animeId);
+    tagged = cardEls(animeId);
+    tagCard(tagged);
     // 백드롭 페이드아웃도 같은-이름 모핑으로 — 전화면 투명 플레이스홀더가 착지 대상
     // (old-only 커스텀 애니메이션은 WebKit/iOS에서 렌더되지 않음)
     const bph = document.createElement('div');
     bph.id = 'vt-close-backdrop-target';
     bph.style.cssText = `position:fixed;inset:0;view-transition-name:${VT_BACKDROP};pointer-events:none;`;
     document.body.appendChild(bph);
-    const card = cardEls(animeId)?.card ?? null;
+    const card = tagged?.card ?? null;
     if (card) {
       const c = rectOf(card);
       const ph = document.createElement('div');
@@ -170,7 +203,7 @@ export function closeAnimeModalVt(
     flushSync(() => navigate(target));
   });
   void vt.finished.catch(() => {}).then(() => {
-    untagCard(animeId);
+    untagCard(tagged);
     document.getElementById('vt-close-target')?.remove();
     document.getElementById('vt-close-backdrop-target')?.remove();
     unlockScroll();

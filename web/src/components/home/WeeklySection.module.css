@@ -1,0 +1,64 @@
+/* Home weekly section — day-of-week tabs + horizontal poster row */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--space-4);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  flex: none;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  transition:
+    background var(--duration-fast),
+    color var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabActive:hover {
+  color: #fff;
+}
+}
+
+.tabActive {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* dot marking today's tab */
+.todayDot {
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.tabActive .todayDot {
+  background: #fff;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-6) 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}

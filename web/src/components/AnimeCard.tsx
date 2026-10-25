@@ -10,9 +10,11 @@ interface AnimeCardProps {
   anime: Anime;
   broadcastDay?: string;
   index?: number;
+  /** auxiliary text under the title (e.g. relative time in the recent-updates row) */
+  subLabel?: string;
 }
 
-export function AnimeCard({ anime, broadcastDay, index = 0 }: AnimeCardProps) {
+export function AnimeCard({ anime, broadcastDay, index = 0, subLabel }: AnimeCardProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isModalOrigin = useUiStore((s) => s.animeModalOriginId === anime.id);
@@ -33,7 +35,7 @@ export function AnimeCard({ anime, broadcastDay, index = 0 }: AnimeCardProps) {
         onClick={(e) => {
           if (!vtEnabled()) return;
           e.preventDefault();
-          openAnimeModalVt(anime.id, location, navigate);
+          openAnimeModalVt(anime.id, location, navigate, e.currentTarget);
         }}
       >
         <div className={styles.poster} style={hidden}>
@@ -47,6 +49,7 @@ export function AnimeCard({ anime, broadcastDay, index = 0 }: AnimeCardProps) {
         </div>
         <div className={styles.body}>
           <h3 className={styles.title}>{anime.title}</h3>
+          {subLabel && <p className={styles.subLabel}>{subLabel}</p>}
         </div>
       </Link>
     </motion.div>

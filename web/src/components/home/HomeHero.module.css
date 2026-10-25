@@ -1,0 +1,160 @@
+/* Home hero — current-quarter banner */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 160px;
+  margin: var(--space-5) 0 var(--space-10);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: linear-gradient(120deg, #171a23 0%, #101218 60%);
+  overflow: hidden;
+  transition:
+    border-color var(--duration-fast),
+    transform var(--duration-normal),
+    box-shadow var(--duration-normal);
+}
+
+@media (hover: hover) {
+
+.hero:hover {
+  border-color: rgba(124, 92, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+}
+
+/* loading skeleton — same box as .hero (background/border come from Skeleton) */
+.heroSkeleton {
+  height: 160px;
+  margin: var(--space-5) 0 var(--space-10);
+  border-radius: var(--radius);
+}
+
+/* QuarterCard glow pattern scaled up — poster colors bleed into the backdrop */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  opacity: 0.45;
+  filter: blur(48px) saturate(1.6);
+  transform: scale(1.6);
+  pointer-events: none;
+}
+
+.backdrop img {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* scrim for text readability */
+.backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(11, 12, 15, 0.88) 0%,
+    rgba(11, 12, 15, 0.5) 55%,
+    rgba(11, 12, 15, 0.25) 100%
+  );
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.badge {
+  padding: 4px 10px;
+  border: 1px solid rgba(124, 92, 255, 0.35);
+  border-radius: var(--radius-pill);
+  background: rgba(124, 92, 255, 0.16);
+  color: var(--color-primary-text);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: -0.01em;
+}
+
+.meta {
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.cta {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-text);
+}
+
+/* right-side poster collage (hidden on narrow screens) */
+.posters {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .posters {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    padding-right: var(--space-2);
+  }
+
+  .poster {
+    width: 88px;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+  }
+
+  .poster:nth-child(1) {
+    transform: rotate(-8deg) translateY(6px);
+    margin-right: -28px;
+  }
+
+  .poster:nth-child(2) {
+    position: relative;
+    z-index: 1;
+    transform: rotate(3deg);
+  }
+
+  .poster:nth-child(3) {
+    transform: rotate(9deg) translateY(8px);
+    margin-left: -28px;
+  }
+}
+
+@media (min-width: 768px) {
+  .hero {
+    min-height: 200px;
+    padding: var(--space-6) var(--space-8);
+  }
+
+  .heroSkeleton {
+    height: 200px;
+  }
+
+  .title {
+    font-size: var(--text-3xl);
+  }
+
+  .poster {
+    width: 104px;
+  }
+}

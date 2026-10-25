@@ -101,3 +101,12 @@
     font-size: var(--text-md);
   }
 }
+
+.subLabel {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

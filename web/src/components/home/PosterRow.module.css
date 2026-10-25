@@ -1,0 +1,27 @@
+/* Home horizontal poster row (streaming-site style section row) */
+.row {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  /* headroom so card hover translate/shadow is not clipped at the row edges */
+  padding: var(--space-1) var(--space-1) var(--space-3);
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) 0;
+  scrollbar-width: none;
+}
+
+.row::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  flex: none;
+  width: 132px;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 768px) {
+  .item {
+    width: 152px;
+  }
+}
