@@ -8,6 +8,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useAuthStore } from '../../stores/auth';
 import { dialog } from '../../stores/dialog';
 import { Modal } from '../Modal';
+import { TrashIcon } from '../icons';
 import { Skeleton } from '../Spinner';
 import { LoginPrompt } from './LoginPrompt';
 import styles from './library.module.css';
@@ -45,7 +46,17 @@ function groupByAnime(items: HistoryItem[]): AnimeGroup[] {
 
 /** 보관함 > 시청기록 — 애니별 그룹 카드. 카드 탭하면 회차 목록이 부드럽게 펼쳐지고,
    프로그레스 바 아래의 '바로 이어보기'는 가장 최근 회차로 직행. */
-export function HistoryTab() {
+export function HistoryTab({
+  selectMode,
+  onSelectModeChange,
+  clearSignal,
+  onClearHandled,
+}: {
+  selectMode: boolean;
+  onSelectModeChange: (value: boolean) => void;
+  clearSignal: number;
+  onClearHandled: () => void;
+}) {
   const identity = useAuthStore((s) => s.identity);
   const reducedMotion = useReducedMotion();
   const [items, setItems] = useState<HistoryItem[] | null>(null);
@@ -95,6 +106,33 @@ export function HistoryTab() {
     }
   };
 
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (clearSignal === 0) return;
+    setConfirmClear(true);
+    onClearHandled();
+  }, [clearSignal, onClearHandled]);
+
+  const toggle = (animeId: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(animeId)) next.delete(animeId);
+      else next.add(animeId);
+      return next;
+    });
+  };
+
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    if (!(await dialog.confirm(`${selected.size}개 애니의 시청 기록을 삭제할까요?`, { confirmLabel: '삭제', danger: true }))) return;
+    const targets = items!.filter((h) => selected.has(h.anime_id));
+    await Promise.all(targets.map((h) => del(`/history/${h.anime_id}/${encodeURIComponent(h.episode_number)}`)));
+    setItems((prev) => (prev ? prev.filter((h) => !selected.has(h.anime_id)) : prev));
+    setSelected(new Set());
+    onSelectModeChange(false);
+  };
+
   if (loginRequired || (identity && !identity.logged_in)) {
     return <LoginPrompt feature="시청기록" />;
   }
@@ -125,11 +163,24 @@ export function HistoryTab() {
 
   return (
     <>
-      <div className={styles.historyHeader}>
-        <button type="button" className={styles.clearAllBtn} onClick={() => setConfirmClear(true)}>
-          전체 삭제
-        </button>
-      </div>
+      {selectMode && (
+        <div className={styles.selectBar}>
+          <span className={styles.selectCount}>{selected.size}개 선택</span>
+          <button type="button" className={styles.selectActionBtn} onClick={() => void deleteSelected()}>
+            선택 삭제
+          </button>
+          <button
+            type="button"
+            className={styles.selectCancelBtn}
+            onClick={() => {
+              setSelected(new Set());
+              onSelectModeChange(false);
+            }}
+          >
+            취소
+          </button>
+        </div>
+      )}
       <div className={styles.historyList}>
         {groups.map((g) => {
           const ratio = Math.min(1, Math.max(0, g.latest.ratio));
@@ -138,50 +189,83 @@ export function HistoryTab() {
             <div key={g.anime_id} className={styles.historyGroup}>
               <div
                 className={styles.historyGroupMain}
-                role="button"
-                tabIndex={0}
-                aria-expanded={open}
-                onClick={() => setExpandedId(open ? null : g.anime_id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setExpandedId(open ? null : g.anime_id);
-                  }
+                onClick={() => {
+                  if (selectMode) toggle(g.anime_id);
                 }}
               >
+                {selectMode && (
+                  <input
+                    type="checkbox"
+                    className={styles.selectCheck}
+                    checked={selected.has(g.anime_id)}
+                    onChange={() => toggle(g.anime_id)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`${g.title} 선택`}
+                  />
+                )}
                 <div className={styles.historyThumbWrap}>
                   {g.cover ? <img src={g.cover} alt="" loading="lazy" /> : null}
                 </div>
                 <div className={styles.historyBody}>
                   <h3 className={styles.historyTitle}>{g.title}</h3>
-                  <p className={styles.historyEp}>최근 시청: {epLabelOf(g.latest)}</p>
-                  <div className={styles.historyMeta}>
+                  <div className={styles.historyTime}>
+                    {g.latest.updated_at && relativeTime(g.latest.updated_at)}
+                    <span className={styles.infoIcon} tabIndex={0} aria-label="마지막 시청 시간">
+                      i
+                      <span className={styles.timeTooltip}>
+                        마지막 시청
+                        <br />
+                        {g.latest.updated_at && dateTime(g.latest.updated_at)}
+                      </span>
+                    </span>
+                  </div>
+                  <div className={styles.historyLatestCard}>
+                    <div className={styles.historyLatestRow}>
+                      <span className={styles.historyLatestEp}>{epLabelOf(g.latest)}</span>
+                      <Link
+                        to={watchPath(g.latest)}
+                        className={styles.resumeBtn}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M8 5.14v14l11-7-11-7z" />
+                        </svg>
+                        이어보기
+                      </Link>
+                    </div>
+                    {g.latest.duration_ms > 0 && (
+                      <div className={styles.historyPosition}>
+                        {formatPlaytime(g.latest.position_ms)} / {formatPlaytime(g.latest.duration_ms)}
+                      </div>
+                    )}
                     <div className={styles.historyProgress}>
                       <div className={styles.historyProgressFill} style={{ width: `${ratio * 100}%` }} />
                     </div>
-                    <span>
-                      {Math.round(ratio * 100)}%
-                      {g.latest.duration_ms > 0 && (
-                        <>
-                          {' '}
-                          · {formatPlaytime(g.latest.position_ms)} /{' '}
-                          {formatPlaytime(g.latest.duration_ms)}
-                        </>
-                      )}
-                      {g.latest.updated_at && <> · {relativeTime(g.latest.updated_at)}</>}
-                    </span>
                   </div>
-                  <Link
-                    to={watchPath(g.latest)}
-                    className={styles.resumeBtn}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M8 5.14v14l11-7-11-7z" />
-                    </svg>
-                    바로 이어보기
-                  </Link>
                 </div>
+              </div>
+
+              <div
+                className={styles.episodesHeader}
+                role="button"
+                tabIndex={0}
+                aria-expanded={open}
+                onClick={() => {
+                  if (selectMode) return;
+                  setExpandedId(open ? null : g.anime_id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (selectMode) return;
+                    setExpandedId(open ? null : g.anime_id);
+                  }
+                }}
+              >
+                <span className={styles.episodesHeaderTitle}>
+                  에피소드 기록
+                  <span className={styles.epCountBadge}>{g.items.length}</span>
+                </span>
                 <svg
                   className={`${styles.historyChevron}${open ? ` ${styles.historyChevronOpen}` : ''}`}
                   viewBox="0 0 24 24"
@@ -227,19 +311,15 @@ export function HistoryTab() {
                                   style={{ width: `${r * 100}%` }}
                                 />
                               </span>
-                              <span className={styles.historyEpMeta}>
-                                {Math.round(r * 100)}%
-                                {h.duration_ms > 0 && (
-                                  <> · {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}</>
-                                )}
-                                {h.updated_at && (
-                                  <>
-                                    {' '}
-                                    · {relativeTime(h.updated_at)} ({dateTime(h.updated_at)})
-                                  </>
-                                )}
-                              </span>
+                              {h.duration_ms > 0 && (
+                                <span className={styles.historyEpMeta}>
+                                  {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}
+                                </span>
+                              )}
                             </span>
+                            {h.updated_at && (
+                              <span className={styles.historyEpTime}>{relativeTime(h.updated_at)}</span>
+                            )}
                             <button
                               type="button"
                               className={styles.historyDeleteBtn}
@@ -251,7 +331,7 @@ export function HistoryTab() {
                                 void removeOne(h.anime_id, h.episode_number);
                               }}
                             >
-                              ×
+                              <TrashIcon />
                             </button>
                           </Link>
                         );

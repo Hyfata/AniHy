@@ -34,6 +34,14 @@ def test_bookmarks_latest_episode_at(user_client, db_session, seed_animes):
     assert items[0]["latest_episode_at"] == latest.isoformat()
 
 
+def test_bookmarks_clear_all(user_client, db_session, seed_animes):
+    user_client.post("/api/bookmarks/1")
+    user_client.post("/api/bookmarks/2")
+    resp = user_client.delete("/api/bookmarks")
+    assert resp.status_code == 200
+    assert user_client.get("/api/bookmarks").json()["bookmarks"] == []
+
+
 def test_bookmark_add_idempotent(user_client, db_session, seed_animes):
     user_client.post("/api/bookmarks/2")
     user_client.post("/api/bookmarks/2")

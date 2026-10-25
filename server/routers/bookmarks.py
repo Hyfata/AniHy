@@ -45,6 +45,16 @@ def remove_bookmark(
     return {"ok": True, "bookmarked": False}
 
 
+@router.delete("")
+def clear_bookmarks(
+    db: Session = Depends(get_db),
+    identity: Identity = Depends(require_login),
+):
+    db.execute(delete(Bookmark).where(Bookmark.user_id == identity.user_id))
+    db.commit()
+    return {"ok": True}
+
+
 @router.get("")
 def list_bookmarks(
     db: Session = Depends(get_db),

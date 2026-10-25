@@ -17,10 +17,21 @@ import { dialog } from '../../stores/dialog';
 /** 보관함 > 다운로드 — 오프라인 저장본은 네이티브(Tauri) 앱 전용.
    웹에서는 안내 카드만 표시하고, 네이티브에서는 애니 카드 목록으로 렌더한다.
    오프라인이면 카드를 펼쳐 저장 회차로 바로 재생(/watch)할 수 있다. */
-export function DownloadsTab() {
+export function DownloadsTab({
+  selectMode = false,
+  onSelectModeChange = () => {},
+  clearSignal = 0,
+  onClearHandled = () => {},
+}: {
+  selectMode?: boolean;
+  onSelectModeChange?: (value: boolean) => void;
+  clearSignal?: number;
+  onClearHandled?: () => void;
+}) {
   const [items, setItems] = useState<DownloadedAnime[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const navigate = useNavigate();
   const location = useLocation();
   const online = useConnectivityStore((s) => s.online);
@@ -37,6 +48,54 @@ export function DownloadsTab() {
   };
 
   useEffect(reload, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const removeAll = () => {
+    if (!isNative()) {
+      void dialog.alert('앱에서만 지원하는 기능입니다');
+      return;
+    }
+    void (async () => {
+      if (!(await dialog.confirm('저장본 전체를 삭제할까요?', { confirmLabel: '전체 삭제', danger: true }))) return;
+      void deleteAllDownloads().then(reload);
+    })();
+  };
+
+  const toggle = (animeId: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(animeId)) next.delete(animeId);
+      else next.add(animeId);
+      return next;
+    });
+  };
+
+  const deleteSelected = () => {
+    if (!isNative()) {
+      void dialog.alert('앱에서만 지원하는 기능입니다');
+      return;
+    }
+    if (selected.size === 0) return;
+    void (async () => {
+      if (!(await dialog.confirm(`${selected.size}개 애니의 저장본을 삭제할까요?`, { confirmLabel: '삭제', danger: true }))) return;
+      await Promise.all([...selected].map((id) => deleteAnimeDownloads(id)));
+      reload();
+      setSelected(new Set());
+      onSelectModeChange(false);
+    })();
+  };
+
+  useEffect(() => {
+    if (clearSignal === 0) return;
+    removeAll();
+    onClearHandled();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearSignal, onClearHandled]);
+
+  useEffect(() => {
+    if (!selectMode || isNative()) return;
+    void dialog.alert('앱에서만 지원하는 기능입니다');
+    onSelectModeChange(false);
+  }, [selectMode, onSelectModeChange]);
 
   if (!isNative()) {
     return (
@@ -85,20 +144,26 @@ export function DownloadsTab() {
     })();
   };
 
-  const removeAll = () => {
-    void (async () => {
-      if (!(await dialog.confirm('저장본 전체를 삭제할까요?', { confirmLabel: '전체 삭제', danger: true }))) return;
-      void deleteAllDownloads().then(reload);
-    })();
-  };
-
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-3)' }}>
-        <button type="button" className={styles.historyDeleteBtn} onClick={removeAll}>
-          저장본 전체 삭제
-        </button>
-      </div>
+      {selectMode && (
+        <div className={styles.selectBar}>
+          <span className={styles.selectCount}>{selected.size}개 선택</span>
+          <button type="button" className={styles.selectActionBtn} onClick={deleteSelected}>
+            선택 삭제
+          </button>
+          <button
+            type="button"
+            className={styles.selectCancelBtn}
+            onClick={() => {
+              setSelected(new Set());
+              onSelectModeChange(false);
+            }}
+          >
+            취소
+          </button>
+        </div>
+      )}
       <div className={styles.historyList}>
         {items.map((a) => (
           <div key={a.animeId}>
@@ -107,6 +172,10 @@ export function DownloadsTab() {
               role="button"
               tabIndex={0}
               onClick={() => {
+                if (selectMode) {
+                  toggle(a.animeId);
+                  return;
+                }
                 if (online) {
                   navigate(`/anime/${a.animeId}`, { state: { background: location } });
                 } else {
@@ -114,6 +183,16 @@ export function DownloadsTab() {
                 }
               }}
             >
+              {selectMode && (
+                <input
+                  type="checkbox"
+                  className={styles.selectCheck}
+                  checked={selected.has(a.animeId)}
+                  onChange={() => toggle(a.animeId)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`${a.title} 선택`}
+                />
+              )}
               <div className={styles.historyThumbWrap}>
                 {a.cover ? <img src={a.cover} alt="" loading="lazy" /> : null}
               </div>
@@ -129,18 +208,20 @@ export function DownloadsTab() {
                   )}
                 </div>
               </div>
-              <button
-                type="button"
-                className={styles.historyDeleteBtn}
-                aria-label="저장본 삭제"
-                title="저장본 삭제"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeAnime(a);
-                }}
-              >
-                ×
-              </button>
+              {!selectMode && (
+                <button
+                  type="button"
+                  className={styles.historyDeleteBtn}
+                  aria-label="저장본 삭제"
+                  title="저장본 삭제"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeAnime(a);
+                  }}
+                >
+                  ×
+                </button>
+              )}
             </div>
             {expanded === a.animeId && (
               <div className={styles.historyList} style={{ marginTop: 'var(--space-2)' }}>

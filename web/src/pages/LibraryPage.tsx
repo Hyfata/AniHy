@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { get } from '../api/client';
 import type { Bookmark } from '../api/types';
 import { BookmarkTab } from '../components/library/BookmarkTab';
 import { DownloadsTab } from '../components/library/DownloadsTab';
 import { HistoryTab } from '../components/library/HistoryTab';
+import { MoreMenu } from '../components/library/MoreMenu';
 import libStyles from '../components/library/library.module.css';
 import styles from './pages.module.css';
 
@@ -26,6 +28,13 @@ export function LibraryPage() {
     queryFn: async () => (await get<{ bookmarks: Bookmark[] }>('/bookmarks')).bookmarks,
   });
 
+  const [selectMode, setSelectMode] = useState(false);
+  const [clearSignal, setClearSignal] = useState(0);
+  const onClearHandled = useCallback(() => setClearSignal(0), []);
+  useEffect(() => {
+    setSelectMode(false);
+  }, [sub]);
+
   const select = (id: LibrarySub) => {
     setParams({ sub: id }, { replace: true });
   };
@@ -34,6 +43,7 @@ export function LibraryPage() {
     <div className="container">
       <div className={styles.header}>
         <h1 className={styles.title}>보관함</h1>
+        <MoreMenu onSelectDelete={() => setSelectMode(true)} onClearAll={() => setClearSignal((s) => s + 1)} />
       </div>
       <nav className={libStyles.subtabs}>
         {SUB_TABS.map((t) => (
@@ -52,9 +62,30 @@ export function LibraryPage() {
           </button>
         ))}
       </nav>
-      {sub === 'bookmark' && <BookmarkTab />}
-      {sub === 'history' && <HistoryTab />}
-      {sub === 'downloads' && <DownloadsTab />}
+      {sub === 'bookmark' && (
+        <BookmarkTab
+          selectMode={selectMode}
+          onSelectModeChange={setSelectMode}
+          clearSignal={clearSignal}
+          onClearHandled={onClearHandled}
+        />
+      )}
+      {sub === 'history' && (
+        <HistoryTab
+          selectMode={selectMode}
+          onSelectModeChange={setSelectMode}
+          clearSignal={clearSignal}
+          onClearHandled={onClearHandled}
+        />
+      )}
+      {sub === 'downloads' && (
+        <DownloadsTab
+          selectMode={selectMode}
+          onSelectModeChange={setSelectMode}
+          clearSignal={clearSignal}
+          onClearHandled={onClearHandled}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { del, get, ApiError } from '../../api/client';
 import type { Bookmark } from '../../api/types';
@@ -12,10 +12,27 @@ import styles from './library.module.css';
 
 /** 보관함 > 북마크 — AnimeCard 그리드 + 호버/터치 해제 버튼.
    ['bookmarks'] 쿼리 캐시는 애니 상세 placeholder(포스터/제목 즉시 표시)에도 재사용된다. */
-export function BookmarkTab() {
+export function BookmarkTab({
+  selectMode,
+  onSelectModeChange,
+  clearSignal,
+  onClearHandled,
+}: {
+  selectMode: boolean;
+  onSelectModeChange: (value: boolean) => void;
+  clearSignal: number;
+  onClearHandled: () => void;
+}) {
   const identity = useAuthStore((s) => s.identity);
   const queryClient = useQueryClient();
   const [removingId, setRemovingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (clearSignal === 0) return;
+    void clearAll();
+    onClearHandled();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearSignal, onClearHandled]);
 
   const { data: items, error, isPending, refetch } = useQuery({
     queryKey: ['bookmarks'],
@@ -38,6 +55,34 @@ export function BookmarkTab() {
     } finally {
       setRemovingId(null);
     }
+  };
+
+  const clearAll = async () => {
+    if (!(await dialog.confirm('북마크를 전체 삭제할까요?', { confirmLabel: '삭제', danger: true }))) return;
+    await del('/bookmarks');
+    queryClient.setQueryData<Bookmark[]>(['bookmarks'], []);
+  };
+
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  const toggle = (id: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    if (!(await dialog.confirm(`${selected.size}개 북마크를 삭제할까요?`, { confirmLabel: '삭제', danger: true }))) return;
+    await Promise.all([...selected].map((id) => del(`/bookmarks/${id}`)));
+    queryClient.setQueryData<Bookmark[]>(['bookmarks'], (prev) =>
+      prev ? prev.filter((b) => !selected.has(b.id)) : prev,
+    );
+    setSelected(new Set());
+    onSelectModeChange(false);
   };
 
   if (loginRequired) {
@@ -82,28 +127,68 @@ export function BookmarkTab() {
   }
 
   return (
-    <div className={styles.grid}>
-      {items.map((b, i) => (
-        <div key={b.id} className={styles.bookmarkItem}>
+    <>
+      {selectMode && (
+        <div className={styles.selectBar}>
+          <span className={styles.selectCount}>{selected.size}개 선택</span>
+          <button type="button" className={styles.selectActionBtn} onClick={() => void deleteSelected()}>
+            선택 삭제
+          </button>
+          <button
+            type="button"
+            className={styles.selectCancelBtn}
+            onClick={() => {
+              setSelected(new Set());
+              onSelectModeChange(false);
+            }}
+          >
+            취소
+          </button>
+        </div>
+      )}
+      <div className={styles.grid}>
+        {items.map((b, i) => (
+        <div
+          key={b.id}
+          className={styles.bookmarkItem}
+          onClickCapture={(e) => {
+            if (!selectMode) return;
+            e.preventDefault();
+            e.stopPropagation();
+            toggle(b.id);
+          }}
+        >
           <AnimeCard
             anime={{ id: b.id, title: b.title, cover: b.cover, latest_episode_at: b.latest_episode_at }}
             index={i}
           />
-          <button
-            type="button"
-            className={`${styles.unbookmarkBtn}${removingId === b.id ? ` ${styles.removing}` : ''}`}
-            aria-label={`${b.title} 북마크 해제`}
-            title="북마크 해제"
-            disabled={removingId === b.id}
-            onClick={(e) => {
-              e.preventDefault();
-              void unbookmark(b.id, b.title);
-            }}
-          >
-            ×
-          </button>
+          {selectMode ? (
+            <input
+              type="checkbox"
+              className={styles.bookmarkSelectCheck}
+              checked={selected.has(b.id)}
+              onChange={() => toggle(b.id)}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`${b.title} 선택`}
+            />
+          ) : (
+            <button
+              type="button"
+              className={`${styles.unbookmarkBtn}${removingId === b.id ? ` ${styles.removing}` : ''}`}
+              aria-label={`${b.title} 북마크 해제`}
+              title="북마크 해제"
+              disabled={removingId === b.id}
+              onClick={(e) => {
+                e.preventDefault();
+                void unbookmark(b.id, b.title);
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
       ))}
-    </div>
+      </div>
+    </>
   );
 }

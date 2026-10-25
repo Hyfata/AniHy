@@ -190,7 +190,7 @@
 .historyThumbWrap {
   position: relative;
   flex-shrink: 0;
-  width: 64px;
+  width: 104px;
   aspect-ratio: 2 / 3;
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -225,11 +225,138 @@
 
 .historyTitle {
   margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.historyTime {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.infoIcon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 50%;
+  font-size: 10px;
+  cursor: help;
+}
+
+.timeTooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  min-width: 0;
+  width: max-content;
+  max-width: 220px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-light);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.infoIcon:hover .timeTooltip {
+  opacity: 1;
+}
+}
+
+.infoIcon:focus .timeTooltip {
+  opacity: 1;
+}
+
+.historyLatestCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-light);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.historyLatestRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.historyLatestEp {
+  flex: 1;
+  min-width: 0;
   font-size: var(--text-md);
   font-weight: var(--font-weight-semibold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.historyPosition {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.episodesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+
+.episodesHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.epCountBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-light);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.historyEpTime {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }
 
 .historyEp {
@@ -251,9 +378,8 @@
 }
 
 .historyProgress {
-  flex: 1;
-  max-width: 220px;
-  height: 3px;
+  width: 100%;
+  height: 4px;
   border-radius: var(--radius-pill);
   background: var(--border-strong);
   overflow: hidden;
@@ -262,7 +388,7 @@
 .historyProgressFill {
   height: 100%;
   border-radius: inherit;
-  background: var(--color-progress);
+  background: var(--color-primary);
   transition: width var(--duration-normal);
 }
 
@@ -308,9 +434,8 @@
 .historyGroupMain {
   position: relative;
   display: flex;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  cursor: pointer;
+  gap: var(--space-4);
+  padding: var(--space-4);
   transition: background var(--duration-fast);
 }
 
@@ -398,7 +523,7 @@
 
 .historyEpProgress {
   display: block;
-  height: 3px;
+  height: 4px;
   border-radius: var(--radius-pill);
   background: var(--border-strong);
   overflow: hidden;
@@ -418,9 +543,10 @@
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
+  flex: none;
   gap: 6px;
-  margin-top: var(--space-2);
-  padding: 6px 12px;
+  padding: 5px 12px;
+  white-space: nowrap;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
   color: #fff;
@@ -443,6 +569,9 @@
 }
 
 .clearAllBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--border-default);
   background: transparent;
   color: var(--color-danger);
@@ -599,4 +728,123 @@
 .dangerBtn:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+/* --- 더보기 메뉴 / 선택 삭제 --- */
+.moreWrap {
+  position: relative;
+  margin-left: auto;
+}
+
+.moreBtn {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 22px;
+  line-height: 1;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+
+.moreBtn:hover {
+  background: var(--color-surface-light);
+  color: var(--color-text);
+}
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 128px;
+  padding: var(--space-1);
+  background: var(--color-surface-light);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.moreMenuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+
+.moreMenuItem:hover {
+  background: var(--border-strong);
+}
+}
+
+.moreMenuItemDanger {
+  color: var(--color-danger);
+}
+
+.selectBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.selectCount {
+  margin-right: auto;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.selectActionBtn {
+  border: none;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.selectCancelBtn {
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.selectCheck {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.bookmarkSelectCheck {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 3;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
 }
