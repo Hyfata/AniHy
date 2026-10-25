@@ -68,15 +68,15 @@
 
 ## PHP/native 삭제 기준 (컷오버 후)
 
-아래가 **전부** 충족되기 전에는 루트 *.php, api/, inc/, worker/, downloader 일부, native/를
-지우지 않는다:
+구 PHP 스택(루트 *.php, admin/, api/, inc/, worker/)은 **삭제 완료(2026-10)** —
+사용자 지시로 체크리스트 완료 전에 삭제됨(구 브랜치에 분리 보존). 아래 체크리스트는
+프로덕션 컷오버 확정용으로 계속 유효:
 
 - [ ] server/README.md의 프로덕션 E2E 11개 항목 통과
 - [ ] 최소 1주간 실사용에서 인코딩 잡/다운로드/인증 장애 없음
 - [ ] Keycloak 로그인 + admin 판정 실계정 확인
 - [ ] 모바일 앱(app/) 실기기 체크리스트(app/README.md) 통과 — 앱이 서버 신규 API에 의존
-- [ ] 롤백 없이 운영 확정 → 그 때 PHP 파일/native/ 삭제 + sql/은 DB 덤프 후 보관
+- [ ] 롤백 없이 운영 확정 → 그 때 native/ 삭제 + sql/은 DB 덤프 후 보관
 
-삭제 시 `deploy/apache/anihy.conf`의 레거시 디렉터리 차단 블록(downloader/inc/logs/worker/sql)도
-함께 정리할 것 — 단 `downloader/`(aniDL, config, videos), `logs/`, `smi2ass/`는 신규
-스택도 쓰므로 지우면 안 된다.
+`deploy/apache/anihy.conf`의 디렉터리 차단 블록에서 삭제된 inc/, worker/는 정리됨 —
+단 `downloader/`(aniDL, config, videos), `logs/`, `smi2ass/`는 신규 스택도 쓰므로 지우면 안 된다.

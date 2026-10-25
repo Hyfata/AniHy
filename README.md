@@ -1,6 +1,6 @@
 # AniHy
 
-Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 합성하여 웹에서 스트리밍할 수 있는 PHP 기반 개인용 애니 스트리밍 사이트입니다.
+Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 합성하여 웹에서 스트리밍할 수 있는 개인용 애니 스트리밍 사이트입니다.
 
 ## 개요
 
@@ -8,200 +8,77 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 - **진입점**: `/anime/` (Apache 서브 디렉터리로 동작)
 - 관리자 로그인 후 애니메이션과 에피소드를 등록·수정·삭제할 수 있습니다.
 - 에피소드 등록 시 Crunchyroll/Hidive 시즌 ID를 입력하면 백그라운드에서 다운로드 → 복호화 → 자막 처리 → MP4 변환이 진행됩니다.
-- 로컬 파일 업로드나 서버에 이미 있는 파일(예: Transmission 다운로드 폴터)을 선택해 변환할 수도 있고, **일괄 추가**로 여러 회차를 한 번에 등록할 수도 있습니다.
+- 로컬 파일 업로드나 서버에 이미 있는 파일(예: Transmission 다운로드 폴더)을 선택해 변환할 수도 있고, **일괄 추가**로 여러 회차를 한 번에 등록할 수도 있습니다.
 - 제목 검색(한글 로마자 근사 매칭 포함), 인기 검색어, 방영 분기별 필터를 제공합니다.
 
 ## 기술 스택
 
 | 구성 요소 | 사용 기술 |
 |-----------|-----------|
-| 백엔드 | PHP 8.4 |
+| 백엔드 | FastAPI (Python 3.12, SQLAlchemy, Alembic) — `server/` |
+| 프론트엔드 | React SPA (TanStack Query, zustand, Vite) — `web/` |
+| 모바일 앱 | Tauri 2 (Android/iOS) — `app/` |
 | 데이터베이스 | MariaDB / MySQL |
-| 웹 서버 | Apache |
-| 프론트엔드 | Vanilla JS, CSS3, [Hyfata-Media-Player-JS](https://github.com/Hyfata/Hyfata-Media-Player-JS) (`assets/player` 서브모듈) |
+| 웹 서버 | Apache (정적 서빙 + `/anime/api` 리버스 프록시) |
+| 플레이어 | [Hyfata-Media-Player-JS](https://github.com/Hyfata/Hyfata-Media-Player-JS) (`assets/player` 서브모듈) |
 | 미디어 처리 | ffmpeg 6.x, Bento4(mp4decrypt), 인코딩 백엔드 선택 가능(CPU libx264 / Intel VA-API / AMD VA-API / NVIDIA NVENC) |
-| 다운로더 | [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 5.7.4 (Crunchyroll/Hidive 지원) |
+| 다운로더 | [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) (Crunchyroll/Hidive 지원) — `downloader/` |
 | 자막 변환 | [smi2ass](https://github.com/najoan125/smi2ass) (SMI → ASS) |
 
 ## 디렉터리 구조
 
 ```
-/var/www/html/anime/
-├── .apache/            # Apache 접근 제어 설정 (anihy.conf)
-├── admin/              # 관리자 로그인/로그아웃
+anime/
+├── server/             # FastAPI 백엔드 (API + 인코딩 잡 파이프라인)
+├── web/                # React SPA (vite build → web/dist)
+├── app/                # Tauri 2 모바일 앱
+├── deploy/             # 배포 런북(migrate.sh) + Apache/systemd 설정
 ├── animes/             # 최종 변환된 에피소드 MP4 저장소
-├── api/                # AJAX API 엔드포인트
-├── assets/             # CSS, JS, 폰트, Hyfata-Media-Player-JS(서브모듈)
+├── assets/             # 폰트, Hyfata-Media-Player-JS(서브모듈)
 ├── covers/             # 애니 커버 이미지
-├── downloader/         # aniDL 바이너리 및 설정
-├── inc/                # 공통 PHP 모듈
-├── logs/               # worker 작업 로그
+├── downloader/         # aniDL 바이너리 및 설정, 다운로드 임시본(videos/)
+├── logs/               # 서버/잡 로그
 ├── smi2ass/            # SMI → ASS 변환 바이너리
 ├── sql/                # DB 초기화(init.sql) + migrations/
-├── subtitles/          # 변환된 ASS 자막 저장소 ({anime_id}/{회차}.ass)
-├── worker/             # 백그라운드 변환 워커
-├── anime.php           # 애니 상세 + 에피소드 목록
-├── auth_gate.php       # 접근 인증번호 입력 페이지
-├── index.php           # 홈 (검색/분기 필터 포함)
-├── quarter.php         # 분기별 애니 목록
-└── watch.php           # 에피소드 시청 페이지
+└── subtitles/          # 변환된 ASS 자막 저장소 ({anime_id}/{회차}.ass)
 ```
+
+구 PHP 스택(루트 *.php, admin/, api/, inc/, worker/)은 2026-10에 삭제되었습니다. Git 히스토리/구 브랜치에서 확인할 수 있습니다.
 
 ## 설치 및 실행
 
-### 사전 요구 사항
+각 컴포넌트의 README를 따릅니다.
 
-- PHP 8.4+ (CLI 포함)
-- MariaDB / MySQL
-- Apache
-- ffmpeg 6.x
-- Node.js 22+ / pnpm 10+ (aniDL 소스 빌드 시)
-- `nohup`, `shell_exec` 사용 가능한 PHP 실행 환경
-
-### 초기 설정
-
-1. 데이터베이스 생성 및 마이그레이션 적용:
-
-   ```bash
-   mysql -u root -p < sql/init.sql
-   for f in sql/migrations/*.sql; do mysql -u root -p < "$f"; done
-   ```
-
-2. `inc/db.php`의 DB 접속 정보를 실제 환경에 맞게 수정합니다.
-
-3. `logs/`, `animes/`, `covers/`, `subtitles/`, `downloader/videos/` 디렉터리에 웹 서버 쓰기 권한이 있는지 확인합니다.
-
-4. Apache에서 `/var/www/html/anime`을 `/anime/` 경로로 연결합니다:
-
-   ```apache
-   Alias /anime /var/www/html/anime
-   <Directory /var/www/html/anime>
-       Options -Indexes +FollowSymLinks
-       AllowOverride All
-       Require all granted
-   </Directory>
-   ```
-
-기본 관리자 계정은 `inc/auth.php`에 하드코딩되어 있습니다.
-
-### 접근 제어 설정
-
-AniHy는 `/anime/` 하위 모든 콘텐츠에 대해 인증번호 기반 접근 제어를 제공합니다.
-
-1. `.apache/anihy.conf`를 시스템 Apache 설정으로 복사하고 활성화합니다.
-
-   ```bash
-   sudo cp /var/www/html/anime/.apache/anihy.conf /etc/apache2/conf-available/anihy.conf
-   sudo a2enconf anihy
-   sudo systemctl reload apache2
-   ```
-
-2. `sql/init.sql`에 포함된 `settings` 테이블이 생성되었는지 확인합니다.
-
-3. 기본 접근 인증번호는 `0000`입니다. 관리자 로그인 후 상단 메뉴의 **인증번호**에서 변경하세요.
-
-4. 인증번호와 쿠키 서명용 비밀키는 DB의 `settings` 테이블에 저장됩니다. 저장소에 민감값이 노출되지 않도록 이 파일들은 커밋하지 마세요.
+- 백엔드: [server/README.md](server/README.md) (venv, .env, Alembic, uvicorn)
+- 프론트엔드: [web/README.md](web/README.md) (pnpm, vite)
+- 모바일 앱: [app/README.md](app/README.md) (Tauri 빌드 머신)
+- 배포/컷오버: [deploy/README.md](deploy/README.md) (`deploy/migrate.sh` 런북)
 
 ## 개발
 
 ### downloader 설정
 
-`downloader/` 폴더에는 [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 저장소의 파일들을 주입해야 합니다. 해당 프로젝트를 클론 또는 빌드한 뒤, 바이너리 및 `config/` 파일들을 `downloader/` 아래에 배치하세요.
-
-예시:
-
-```bash
-cd /var/www/html/anime/downloader
-# multi-downloader-nx 클론 및 빌드 후 파일 복사
-git clone https://github.com/anidl/multi-downloader-nx.git /tmp/multi-downloader-nx
-cp -r /tmp/multi-downloader-nx/* /var/www/html/anime/downloader/
-```
-
-### inc 모듈 설정
-
-`inc/` 폴더 안의 `.inc` 파일들은 뒤의 `.inc` 확장자를 제거하고, 실제 환경에 맞게 내용을 수정한 뒤 사용하세요.
-
-예시:
-
-```bash
-cd /var/www/html/anime/inc
-cp db.php.inc db.php
-cp auth.php.inc auth.php
-cp configuration.php.inc configuration.php
-```
-
-이후 `db.php`의 데이터베이스 접속 정보와 `auth.php`의 관리자 계정 정보를 실제 값으로 변경합니다. `configuration.php`의 인코딩 설정은 아래 "인코딩 설정"을 참고하세요.
+`downloader/` 폴더에는 [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) 저장소의 파일들을 주입해야 합니다. 해당 프로젝트를 클론 또는 빌드한 뒤, 바이너리 및 `config/` 파일들을 `downloader/` 아래에 배치하세요. 스트리밍 다운로드/영어 자막 다운로드는 서버가 `downloader/crdn.sh`(Crunchyroll) 또는 `downloader/hidn.sh`(Hidive)를 실행해 처리합니다.
 
 ### 인코딩 설정
 
-`inc/configuration.php`에서 인코딩 하드웨어와 동시 인코딩 수를 설정합니다 (파일이 없으면 Intel VA-API / 1개 기본값으로 동작).
+`server/.env`에서 인코딩 하드웨어와 동시 인코딩 수를 설정합니다.
 
 | 항목 | 값 | 설명 |
 |------|-----|------|
-| `encoder` | `software` \| `intel` \| `radeon` \| `nvidia` | CPU libx264 / Intel VA-API / AMD VA-API / NVIDIA NVENC |
-| `max_workers` | 1 이상 | 동시에 돌릴 인코딩 수. VA-API 1, NVENC 2~4 권장 |
-| `vaapi_device` | 경로 | VA-API 렌더 노드 (intel/radeon만 사용, 기본 `/dev/dri/renderD128`) |
-| `quality` | 0~51 | 낮을수록 고화질 (intel/radeon `-qp`, software `-crf`, nvidia `-cq`) |
+| `ENCODER` | `software` \| `intel` \| `radeon` \| `nvidia` | CPU libx264 / Intel VA-API / AMD VA-API / NVIDIA NVENC |
+| `MAX_WORKERS` | 1 이상 | 동시에 돌릴 인코딩 수. VA-API 1, NVENC 2~4 권장 |
+| `VAAPI_DEVICE` | 경로 | VA-API 렌더 노드 (intel/radeon만 사용, 기본 `/dev/dri/renderD128`) |
+| `QUALITY` | 0~51 | 낮을수록 고화질 (intel/radeon `-qp`, software `-crf`, nvidia `-cq`) |
 
-값 변경은 다음 job부터 반영됩니다 (실행 중인 큐 매니저도 매 루프마다 설정을 다시 읽음).
-
-## 주요 기능
-
-### 애니 추가
-
-1. 홈에서 "애니 추가" 모달을 열고 제목/설명/커버 이미지/시즌 ID 입력
-2. `api/add_anime.php`에서 이미지 검증 후 `covers/`에 저장
-3. `animes` 테이블에 INSERT
-
-### 에피소드 추가
-
-에피소드 원본은 세 가지 방식 중 하나로 지정할 수 있습니다. 모든 방식에서 자막 파일(ass/smi) 업로드, 앞부분 자르기(초), 자막 싱크 오프셋(초)을 함께 지정할 수 있고, 자막을 업로드하지 않으면 기존 변환본(`subtitles/{aid}/{회차}.ass`)을 재사용하거나 원본 영상의 내장 텍스트 자막을 추출해 burn-in 합니다.
-
-#### 1. 스트리밍 다운로드 (Crunchyroll / Hidive)
-
-1. 애니 상세 페이지에서 에피소드 번호 입력
-2. `api/add_episode.php`에서 `animes.season_id`와 `is_hidive`를 조회
-3. `jobs` 테이블에 `pending` 상태로 INSERT
-4. `worker/queue.php` 매니저가 백그라운드(nohup)로 기동되어 job마다 `worker/convert.php {job_id}` 워커 실행 (동시 실행 수는 `inc/configuration.php`의 `max_workers`)
-5. 다운로드 → 복호화 → 자막 처리 → MP4 변환 → `animes/{anime_id}/{ep}.mp4` 저장
-6. `episodes` 테이블 UPSERT
-
-#### 2. 직접 업로드
-
-에피소드 추가 모달에서 "원본 영상 파일"을 선택하면, 업로드된 파일을 기반으로 변환합니다.
-
-#### 3. 서버 파일 선택 (Transmission)
-
-에피소드 추가 모달에서 **"서버 파일 선택"** 버튼을 누륾면, `/var/lib/transmission-daemon/downloads` 아래의 비디오 파일(MKV/MP4/MOV/AVI/WebM) 목록이 표시됩니다. 변환할 파일을 클릭하면 시즌 ID 없이도 백그라운드에서 MP4로 변환됩니다.
-
-> 경로는 `api/list_server_files.php`의 `$root` 상수로 고정되어 있으며, 필요 시 해당 파일에서 변경할 수 있습니다.
-
-#### 일괄 추가
-
-**"일괄 추가"** 버튼으로 여러 회차를 한 번에 등록할 수 있습니다. 소스 탭(스트리밍 회차 범위 / 서버 파일 다중 선택 / 로컬 파일 다중 업로드)을 선택하면, 영상·자막을 이름순으로 정렬해 같은 순서끼리 자동 매핑합니다. 앞부분 자르기와 자막 싱크는 전체에 일괄 적용되고, 매핑 확인 단계에서 회차 번호 수정·에피소드 제목 개별 입력·행 삭제가 가능합니다. 서버 파일 다중 선택은 터치 2번으로 구간을 고르는 "범위 선택" 모드(모바일)와 Shift+클릭(데스크톱)을 지원합니다.
-
-### 대기열
-
-- 상단 **"대기열"**에서 진행 중/완료 작업, 회차별 진행률, 작업 로그를 실시간으로 확인할 수 있습니다.
-- 로그 화면에는 해당 작업에 적용된 인코더, 원본 영상, 자막 오프셋, 앞부분 자르기 정보가 함께 표시됩니다.
-- 실패한 작업은 완료 탭에서 **"재시도"**할 수 있으며, 업로드했던 자막이나 이전에 변환된 자막을 그대로 다시 사용합니다.
-- 업로드 자막 임시파일과 변환 실패로 보존 중인 원본은 24시간이 지나면 자동으로 정리됩니다.
-
-### 시청
-
-- `watch.php?aid={aid}&ep={ep}`에서 Hyfata-Media-Player-JS로 MP4 재생
-- 자막은 변환 단계에서 영상에 burn-in 되므로 별도 플레이어 자막 처리는 필요 없음 (영어 자막이 있는 회차는 별도 ASS 파일 다운로드 제공)
-- 오프닝/엔딩 스킵은 플레이어 내장(스킵 버튼 + 자동 스킵 설정)으로, 챕터 정보는 WebVTT sidecar로 제공
-- 시청 위치는 브라우저별로 저장되어 이어보기가 되고, **자동 다음화** 토글로 다음 회차 자동 재생을 켜고 끌 수 있음
+큐 매니저가 매 루프 `.env`를 다시 읽으므로 값 변경은 다음 job부터 반영됩니다.
 
 ## 보안 주의사항
 
-- `inc/auth.php`와 `inc/db.php`에는 민감 정보가 하드코딩되어 있습니다. 운영 환경에서는 환경 변수나 별도 비밀 관리 도구로 분리하세요.
-- 접근 인증번호와 쿠키 서명용 비밀키는 DB의 `settings` 테이블에 저장됩니다. 이 프로젝트가 오픈소스이므로 이러한 값을 소스 코드에 하드코딩하지 않도록 주의하세요.
-- `downloader/`, `inc/`, `logs/`, `worker/`, `sql/` 디렉터리는 `.apache/anihy.conf`를 통해 웹에서 직접 접근할 수 없습니다.
-- Apache의 Rewrite 규칙은 쿠키 존재 여부만 검사하며, 실제 서명 검증은 PHP에서 수행합니다. 강력한 보호가 필요하다면 추가적으로 `mod_session`이나 외부 인증 서비스를 고려하세요.
+- 접근 인증번호와 쿠키 서명용 비밀키는 DB의 `settings` 테이블에, Keycloak/DB 접속 정보 등은 `server/.env`에 저장됩니다. 이 프로젝트가 오픈소스이므로 이러한 값을 소스 코드에 하드코딩하지 않도록 주의하세요.
+- `downloader/`, `logs/`, `sql/`, `server/` 등 내부 디렉터리는 `deploy/apache/anihy.conf`를 통해 웹에서 직접 접근할 수 없습니다.
+- 미디어 파일은 정적 노출 없이 FastAPI `/api/files/*` 경유로만 서빙되며, 서버가 접근 쿠키를 검사합니다.
 - 접근 인증 쿠키는 `HttpOnly`, `Secure`(HTTPS 환경), `SameSite=Lax`, 10년 만료로 설정됩니다. 외부 사이트에서의 직접 링크 클릭 시에도 쿠키가 전달되도록 `Lax`를 사용합니다.
-- `api/search.php`와 `worker/convert.php`에서 `shell_exec()`를 사용합니다. 입력값은 `escapeshellarg()`로 처리하고 있지만, 추가적인 화이트리스트 검증을 권장합니다.
 - 파일 업로드는 확장자만 검증합니다. 필요 시 MIME/type 검사를 추가하세요.
 - 다운로더를 사용할 때는 Crunchyroll/Hidive 이용약관 및 관련 법규를 준수하세요.
 
