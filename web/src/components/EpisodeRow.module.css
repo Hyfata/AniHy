@@ -117,7 +117,7 @@
 .progressFill {
   height: 100%;
   width: 0%;
-  background: var(--color-progress);
+  background: var(--color-primary);
   transition: width 0.3s;
 }
 
