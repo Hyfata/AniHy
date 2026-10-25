@@ -6,6 +6,7 @@ import type { Location } from 'react-router-dom';
 import { springPop } from '../../lib/motion';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { VT_BACKDROP, VT_PANEL, closeAnimeModalVt, vtEnabled } from '../../lib/viewTransition';
+import { useUiStore } from '../../stores/ui';
 import { AnimeDetailView } from './AnimeDetailView';
 import styles from './AnimeDetailModal.module.css';
 
@@ -33,8 +34,14 @@ export function AnimeDetailModal({
   // 스크롤 잠금 — overflow:hidden은 WebKit이 scrollY를 0으로 리셋하므로 fixed-body 락 사용
   useLayoutEffect(() => {
     lockScroll();
-    return () => unlockScroll();
-  }, []);
+    return () => {
+      unlockScroll();
+      // Restore the origin card poster when the modal unmounts via other navigation
+      if (useUiStore.getState().animeModalOriginId === animeId) {
+        useUiStore.getState().setAnimeModalOrigin(null);
+      }
+    };
+  }, [animeId]);
 
   const close = useCallback(() => {
     if (closingRef.current) return;
