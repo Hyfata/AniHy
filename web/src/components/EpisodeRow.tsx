@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { Episode } from '../api/types';
+import { hasRecentEpisode } from '../lib/recency';
 import styles from './EpisodeRow.module.css';
 
 interface EpisodeRowProps {
@@ -22,6 +23,7 @@ export function EpisodeRow({ animeId, episode, active = false, actions, onClick 
       <div className={styles.meta}>
         <div className={styles.thumb}>
           {episode.thumb_url ? <img src={episode.thumb_url} alt="" loading="lazy" /> : null}
+          {hasRecentEpisode(episode.created_at) && <span className={styles.newBadge}>New</span>}
           <span className={styles.thumbBadge}>{episode.episode_number}</span>
         </div>
         <div className={styles.text}>

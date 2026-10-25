@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { Anime } from '../api/types';
+import { hasRecentEpisode } from '../lib/recency';
 import { openAnimeModalVt, vtEnabled } from '../lib/viewTransition';
 import { useUiStore } from '../stores/ui';
 import styles from './AnimeCard.module.css';
@@ -9,14 +10,6 @@ interface AnimeCardProps {
   anime: Anime;
   broadcastDay?: string;
   index?: number;
-}
-
-const NEW_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
-
-function hasRecentEpisode(value?: string | null): boolean {
-  if (!value) return false;
-  const t = new Date(value).getTime();
-  return Number.isFinite(t) && Date.now() - t < NEW_WINDOW_MS;
 }
 
 export function AnimeCard({ anime, broadcastDay, index = 0 }: AnimeCardProps) {

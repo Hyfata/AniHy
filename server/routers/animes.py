@@ -157,6 +157,7 @@ def anime_detail(
             "episode_number": ep.episode_number,
             "title": ep.title,
             "duration_ms": ep.duration_ms,
+            "created_at": ep.created_at.isoformat() if ep.created_at else None,
             "duration_text": urls.format_playtime(ep.duration_ms),
             "has_subtitle": bool(ep.has_subtitle),
             "en_subtitle_url": urls.subtitle_url(ep.en_subtitle_file) if ep.en_subtitle_file else None,

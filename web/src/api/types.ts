@@ -43,6 +43,8 @@ export interface Episode {
   video_url: string;
   thumb_url: string | null;
   chapters_url: string | null;
+  /** 회차 등록 시각(ISO) — New 배지 계산용 */
+  created_at?: string | null;
   /** 로그인 사용자에게만 포함 */
   watch_progress?: WatchProgress;
 }

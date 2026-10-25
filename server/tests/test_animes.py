@@ -46,6 +46,7 @@ def test_anime_detail_episode_order_and_urls(user_client, db_session, seed_detai
     assert ep1["has_subtitle"] is True
     # 썸네일 파일이 없으면 커버 폭백 (AGENTS.md 규약)
     assert ep1["thumb_url"] == "/api/files/covers/a.jpg"
+    assert isinstance(ep1["created_at"], str)
 
 
 def test_anime_detail_watch_progress(user_client, db_session, seed_detail):
