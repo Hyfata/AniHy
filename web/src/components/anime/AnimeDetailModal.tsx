@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import type { Location } from 'react-router-dom';
@@ -28,6 +28,10 @@ export function AnimeDetailModal({
 }) {
   const navigate = useNavigate();
   const vt = vtEnabled();
+  const [hasOrigin] = useState(
+    () => typeof document !== 'undefined' && !!document.querySelector(`[data-anime-id="${animeId}"]`),
+  );
+  const useVt = vt && hasOrigin;
   const panelRef = useRef<HTMLDivElement>(null);
   const closingRef = useRef(false);
 
@@ -49,8 +53,12 @@ export function AnimeDetailModal({
     const target = background
       ? `${background.pathname}${background.search ?? ''}${background.hash ?? ''}`
       : '/';
-    closeAnimeModalVt(animeId, target, navigate);
-  }, [animeId, background, navigate]);
+    if (useVt) {
+      closeAnimeModalVt(animeId, target, navigate);
+    } else {
+      navigate(target);
+    }
+  }, [animeId, background, navigate, useVt]);
 
   // Esc — 중첩 모달(관리자 수정/추가 등)이 위에 열려 있으면 최상단만 닫힘
   useEffect(() => {
@@ -67,17 +75,18 @@ export function AnimeDetailModal({
 
   return createPortal(
     <>
-      <div
+      <motion.div
         className={styles.backdrop}
         data-vt-backdrop
-        style={vt ? { viewTransitionName: VT_BACKDROP } : undefined}
+        style={useVt ? { viewTransitionName: VT_BACKDROP } : undefined}
+        initial={useVt ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={useVt ? undefined : { opacity: 0 }}
+        transition={{ duration: 0.2 }}
       />
-      <motion.div
+      <div
         className={styles.overlay}
         data-vt-overlay
-        initial={vt ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
         onClick={(e) => {
           if (e.target === e.currentTarget) close();
         }}
@@ -88,9 +97,10 @@ export function AnimeDetailModal({
           data-vt-panel
           role="dialog"
           aria-modal="true"
-          style={vt ? { viewTransitionName: VT_PANEL } : undefined}
-          initial={vt ? false : { opacity: 0, y: 18, scale: 0.97 }}
-          animate={vt ? {} : { opacity: 1, y: 0, scale: 1 }}
+          style={useVt ? { viewTransitionName: VT_PANEL } : undefined}
+          initial={useVt ? false : { opacity: 0, y: 18, scale: 0.97 }}
+          animate={useVt ? {} : { opacity: 1, y: 0, scale: 1 }}
+          exit={useVt ? undefined : { opacity: 0, y: 12, scale: 0.96 }}
           transition={springPop}
         >
           <button
@@ -104,10 +114,10 @@ export function AnimeDetailModal({
           <div className={styles.scroll}>
             {/* VT 전환 중엔 라이브 문서가 스냅샷 아래 숨으므로 히어로 자체 애니메이션은 항상 끈다.
                 콘텐츠는 모핑 직후 살짝 지연 fade */}
-            <AnimeDetailView animeId={animeId} contentDelay={vt ? 0.15 : 0} heroStatic />
+            <AnimeDetailView animeId={animeId} contentDelay={useVt ? 0.15 : 0} heroStatic />
           </div>
         </motion.div>
-      </motion.div>
+      </div>
     </>,
     document.body,
   );

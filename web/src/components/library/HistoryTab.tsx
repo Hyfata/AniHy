@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { del, get, ApiError } from '../../api/client';
 import type { HistoryItem } from '../../api/types';
@@ -58,6 +58,7 @@ export function HistoryTab({
   onClearHandled: () => void;
 }) {
   const identity = useAuthStore((s) => s.identity);
+  const location = useLocation();
   const reducedMotion = useReducedMotion();
   const [items, setItems] = useState<HistoryItem[] | null>(null);
   const [loginRequired, setLoginRequired] = useState(false);
@@ -203,9 +204,16 @@ export function HistoryTab({
                     aria-label={`${g.title} 선택`}
                   />
                 )}
-                <div className={styles.historyThumbWrap}>
+                <Link
+                  to={`/anime/${g.anime_id}`}
+                  state={{ background: location }}
+                  className={styles.historyThumbWrap}
+                  onClick={(e) => {
+                    if (selectMode) e.preventDefault();
+                  }}
+                >
                   {g.cover ? <img src={g.cover} alt="" loading="lazy" /> : null}
-                </div>
+                </Link>
                 <div className={styles.historyBody}>
                   <h3 className={styles.historyTitle}>{g.title}</h3>
                   <div className={styles.historyTime}>
