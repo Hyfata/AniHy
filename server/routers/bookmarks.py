@@ -7,6 +7,7 @@ from ..core.db import get_db
 from ..core.security import Identity, require_access
 from ..models import Anime, Bookmark
 from ..services import urls
+from .animes import _latest_episode_map
 from .history import require_login
 
 router = APIRouter(prefix="/bookmarks", tags=["bookmarks"], dependencies=[Depends(require_access)])
@@ -55,6 +56,7 @@ def list_bookmarks(
         .where(Bookmark.user_id == identity.user_id)
         .order_by(Bookmark.created_at.desc())
     ).all()
+    latest_map = _latest_episode_map(db, [a.id for a, _ in rows])
     return {
         "bookmarks": [
             {
@@ -62,6 +64,7 @@ def list_bookmarks(
                 "title": a.title,
                 "cover": urls.cover_url(a.cover_image),
                 "bookmarked_at": ts.isoformat() if ts else None,
+                "latest_episode_at": latest_map[a.id].isoformat() if latest_map.get(a.id) else None,
             }
             for a, ts in rows
         ]

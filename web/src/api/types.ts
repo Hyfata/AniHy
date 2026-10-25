@@ -6,6 +6,8 @@ export interface Anime {
   id: number;
   title: string;
   cover: string | null;
+  /** 마지막 회차 등록 시각(ISO) — New 배지 계산용 */
+  latest_episode_at?: string | null;
   /** 관리자 전용 추가 필드 (GET /api/animes에서만) */
   description?: string;
   season_id?: string;
@@ -110,6 +112,7 @@ export interface Bookmark {
   title: string;
   cover: string | null;
   bookmarked_at: string | null;
+  latest_episode_at?: string | null;
 }
 
 /** GET /api/jobs — 대기열 모달의 활성 잡 (애니별 그룹의 episodes 아이템) */

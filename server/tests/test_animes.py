@@ -80,6 +80,32 @@ def test_quarters(user_client, seed_detail):
     assert q == [{"year": 2025, "quarter": 4, "count": 1, "covers": ["/api/files/covers/a.jpg"]}]
 
 
+def test_latest_episode_at(user_client, db_session):
+    from datetime import datetime, timedelta
+
+    now = datetime.now()
+    latest = now - timedelta(days=1)
+    db_session.add_all([
+        Anime(id=1, title="A", cover_image="a.jpg"),
+        Anime(id=2, title="B", cover_image="b.jpg"),
+        AnimeBroadcast(id=1, anime_id=1, broadcast_year=2025, broadcast_quarter=4),
+        Episode(id=1, anime_id=1, episode_number="1", file_path="animes/1/1.mp4",
+                created_at=now - timedelta(days=5)),
+        Episode(id=2, anime_id=1, episode_number="2", file_path="animes/1/2.mp4",
+                created_at=latest),
+    ])
+    db_session.commit()
+
+    r = user_client.get("/api/animes").json()
+    a1 = next(a for a in r["animes"] if a["id"] == 1)
+    a2 = next(a for a in r["animes"] if a["id"] == 2)
+    assert a1["latest_episode_at"] == latest.isoformat()
+    assert a2["latest_episode_at"] is None
+
+    q = user_client.get("/api/quarters/2025/4").json()
+    assert q["animes"][0]["latest_episode_at"] == latest.isoformat()
+
+
 def test_quarter_detail_and_day_filter(user_client, seed_detail):
     db = user_client.get("/api/quarters/2025/4").json()
     assert [a["title"] for a in db["animes"]] == ["A애니"]

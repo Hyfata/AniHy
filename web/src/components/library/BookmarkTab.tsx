@@ -85,7 +85,10 @@ export function BookmarkTab() {
     <div className={styles.grid}>
       {items.map((b, i) => (
         <div key={b.id} className={styles.bookmarkItem}>
-          <AnimeCard anime={{ id: b.id, title: b.title, cover: b.cover }} index={i} />
+          <AnimeCard
+            anime={{ id: b.id, title: b.title, cover: b.cover, latest_episode_at: b.latest_episode_at }}
+            index={i}
+          />
           <button
             type="button"
             className={`${styles.unbookmarkBtn}${removingId === b.id ? ` ${styles.removing}` : ''}`}

@@ -9,6 +9,7 @@ from ..core.db import get_db
 from ..core.security import require_access
 from ..models import Anime, SearchHit
 from ..services import romanize, urls
+from .animes import _latest_episode_map, _with_latest_episode
 
 router = APIRouter(prefix="/search", tags=["search"], dependencies=[Depends(require_access)])
 
@@ -81,7 +82,8 @@ def search_titles(q: str = Query(""), db: Session = Depends(get_db)):
     if rows:
         _record_search_hit(db, rows[0].id)
 
-    items = [_card(a) for a in rows]
+    latest_map = _latest_episode_map(db, [a.id for a in rows])
+    items = [_with_latest_episode(_card(a), latest_map.get(a.id)) for a in rows]
     return {"animes": items, "has_more": has_more, "total": len(items)}
 
 

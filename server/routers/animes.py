@@ -51,8 +51,25 @@ def _broadcast_map(db: Session, anime_ids: list[int]) -> dict[int, list[list[int
     return out
 
 
+def _latest_episode_map(db: Session, anime_ids: list[int]) -> dict[int, object]:
+    """anime_id => 마지막 회차 등록 시각(created_at 최대). New 배지 계산용."""
+    if not anime_ids:
+        return {}
+    rows = db.execute(
+        select(Episode.anime_id, func.max(Episode.created_at))
+        .where(Episode.anime_id.in_(anime_ids))
+        .group_by(Episode.anime_id)
+    ).all()
+    return {aid: latest for aid, latest in rows}
+
+
 def _anime_card(a: Anime) -> dict:
     return {"id": a.id, "title": a.title, "cover": urls.cover_url(a.cover_image)}
+
+
+def _with_latest_episode(item: dict, latest) -> dict:
+    item["latest_episode_at"] = latest.isoformat() if latest else None
+    return item
 
 
 @router.get("/animes")
@@ -71,10 +88,11 @@ def list_animes(
     rows = rows[:limit]
 
     broadcast_map = _broadcast_map(db, [a.id for a in rows]) if identity.is_admin else {}
+    latest_map = _latest_episode_map(db, [a.id for a in rows])
 
     items = []
     for a in rows:
-        item = _anime_card(a)
+        item = _with_latest_episode(_anime_card(a), latest_map.get(a.id))
         if identity.is_admin:
             # 카드 수정 버튼 data-* 복원 필드 (PHP와 동일)
             item.update(
@@ -232,9 +250,10 @@ def quarter_detail(
         animes = [a for a in animes if (a.broadcast_day if a.broadcast_day in _QUARTER_DAYS else "기타") == day]
 
     bmap = _broadcast_map(db, [a.id for a in animes])
+    latest_map = _latest_episode_map(db, [a.id for a in animes])
     items = []
     for a in animes:
-        item = _anime_card(a)
+        item = _with_latest_episode(_anime_card(a), latest_map.get(a.id))
         item["broadcast_day"] = a.broadcast_day if a.broadcast_day in _QUARTER_DAYS else "기타"
         item["broadcasts"] = bmap.get(a.id, [])
         items.append(item)

@@ -1,5 +1,7 @@
 """북마크 토글/목록 + 로그인 필수 검증."""
-from server.models import Bookmark
+from datetime import datetime, timedelta
+
+from server.models import Bookmark, Episode
 
 
 def test_bookmarks_require_login(anon_client):
@@ -21,6 +23,15 @@ def test_bookmark_add_list_remove(user_client, db_session, seed_animes):
     resp = user_client.delete("/api/bookmarks/1")
     assert resp.json() == {"ok": True, "bookmarked": False}
     assert user_client.get("/api/bookmarks").json()["bookmarks"] == []
+
+
+def test_bookmarks_latest_episode_at(user_client, db_session, seed_animes):
+    latest = datetime.now() - timedelta(days=2)
+    db_session.add(Episode(id=1, anime_id=1, episode_number="1", file_path="animes/1/1.mp4", created_at=latest))
+    db_session.commit()
+    user_client.post("/api/bookmarks/1")
+    items = user_client.get("/api/bookmarks").json()["bookmarks"]
+    assert items[0]["latest_episode_at"] == latest.isoformat()
 
 
 def test_bookmark_add_idempotent(user_client, db_session, seed_animes):

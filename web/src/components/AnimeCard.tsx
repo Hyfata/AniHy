@@ -7,41 +7,50 @@ import styles from './AnimeCard.module.css';
 
 interface AnimeCardProps {
   anime: Anime;
-  /** 방영 요일 뱃지 (분기 상세에서만) */
   broadcastDay?: string;
-  /** 목록 stagger 등장 인덱스 (0이면 즉시) */
   index?: number;
+}
+
+const NEW_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+function hasRecentEpisode(value?: string | null): boolean {
+  if (!value) return false;
+  const t = new Date(value).getTime();
+  return Number.isFinite(t) && Date.now() - t < NEW_WINDOW_MS;
 }
 
 export function AnimeCard({ anime, broadcastDay, index = 0 }: AnimeCardProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  // 모달이 이 카드에서 열려 있는 동안 원본 포스터만 숨긴다 (VT 모핑의 출발점은 스냅샷이라
-  // 라이브 카드가 보이면 이중 렌더가 됨) — 제목은 그대로 둔다.
   const isModalOrigin = useUiStore((s) => s.animeModalOriginId === anime.id);
   const hidden = isModalOrigin ? { opacity: 0 } : undefined;
+  const isNew = hasRecentEpisode(anime.latest_episode_at);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut', delay: Math.min(index, 6) * 0.04 }}
     >
-      {/* background location을 실어 상세를 라우트 모달로 연다 (App.tsx 참조)
-          마크업 계약(VT 태그가 의존): 첫째 자식=포스터 div, h3=제목 */}
       <Link
         to={`/anime/${anime.id}`}
         state={{ background: location }}
         className={styles.card}
         data-anime-id={anime.id}
         onClick={(e) => {
-          if (!vtEnabled()) return; // 폴백: 일반 링크 이동 (모달이 자체 팝으로 열림)
+          if (!vtEnabled()) return;
           e.preventDefault();
           openAnimeModalVt(anime.id, location, navigate);
         }}
       >
         <div className={styles.poster} style={hidden}>
           {anime.cover ? <img src={anime.cover} alt={anime.title} loading="lazy" /> : null}
-          {broadcastDay && <span className={styles.dayBadge}>{broadcastDay}</span>}
+          {(isNew || broadcastDay) && (
+            <div className={styles.badges}>
+              {isNew && <span className={styles.newBadge}>New</span>}
+              {broadcastDay && <span className={styles.dayBadge}>{broadcastDay}</span>}
+            </div>
+          )}
         </div>
         <div className={styles.body}>
           <h3 className={styles.title}>{anime.title}</h3>
