@@ -11,12 +11,11 @@
   display: flex;
   gap: var(--space-1);
   padding: 5px;
-  background: rgba(21, 23, 28, 0.7);
+  background: var(--color-tabbar-bg);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
   border: 1px solid var(--border-default);
   border-radius: 28px;
-  box-shadow: var(--shadow-tabbar);
   z-index: var(--z-tabbar);
 }
 
@@ -50,7 +49,7 @@
 .tabIndicator {
   position: absolute;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.09);
+  background: var(--color-tab-indicator);
   pointer-events: none;
   transition:
     left 0.38s cubic-bezier(0.25, 0.9, 0.28, 1),

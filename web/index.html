@@ -7,6 +7,17 @@
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0b0c0f" />
     <title>AniHy</title>
+    <script>
+      // Pre-paint theme application — reads the persisted prefs store value
+      // (zustand persist JSON) so the first paint already uses the right palette
+      try {
+        var prefs = JSON.parse(localStorage.getItem('anihy_prefs') || '{}');
+        var theme = (prefs.state && prefs.state.theme) || 'system';
+        var dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#0b0c0f' : '#f4f5f7');
+      } catch (e) { /* default dark */ }
+    </script>
     <!-- Pretendard 웹폰트 (CDN) -->
     <link
       rel="stylesheet"

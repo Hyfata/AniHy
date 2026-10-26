@@ -8,10 +8,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 다크 테마 스크롤바 */
+/* theme-aware scrollbars (thumb color follows the palette tokens) */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2e3346 transparent;
+  scrollbar-color: var(--color-scrollbar) transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
@@ -21,14 +21,14 @@
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: #2e3346;
+  background-color: var(--color-scrollbar);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 @media (hover: hover){
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #3d445c;
+  background-color: var(--color-scrollbar-hover);
 }
 }
 *::-webkit-scrollbar-corner {

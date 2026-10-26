@@ -9,8 +9,9 @@ import styles from './admin.module.css';
 
 type Mode = 'single' | 'bulk';
 
-/** 에피소드 추가 단일 진입점 — 하나의 Modal 셸 위에서 단일/일괄 폼만 교체한다.
-   각 폼의 제출 액션은 footerEl 포털로 셸의 고정 footer에 렌더된다. */
+/** Single entry point for adding episodes — swaps between the single-add and
+   bulk-add forms on one Modal shell. Each form's submit action is portaled
+   into the shell's fixed footer (footerEl). */
 export function EpisodeAddModal({
   open,
   onClose,

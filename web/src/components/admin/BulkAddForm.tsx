@@ -32,8 +32,8 @@ interface BulkAddFormProps {
   footerEl?: HTMLDivElement | null;
 }
 
-/** 에피소드 일괄 추가 폼 (anime.php #bulk-add-modal 대응) — 회차별 순차 POST /api/jobs.
-   EpisodeAddModal의 셸 안에서 렌더된다 (열림/리셋은 마운트 기준). */
+/** Bulk episode add form — sequential per-episode POST /api/jobs.
+   Rendered inside EpisodeAddModal's shell (open/reset semantics follow mount). */
 export function BulkAddForm({ anime, onClose, onAdded, footerEl }: BulkAddFormProps) {
   const hasSeason = !!anime.season_id?.trim();
   const [tab, setTab] = useState<BulkTab>(hasSeason ? 'stream' : 'server');

@@ -1,7 +1,7 @@
 .navbar {
   /* 탭바와 같은 VT 규약 — 캡처에서 빠진 블러 보정용 그룹 생성 */
   view-transition-name: anihy-topnav;
-  background: rgba(15, 17, 23, 0.95);
+  background: var(--color-navbar-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
@@ -63,6 +63,8 @@
 
 .links a,
 .links button {
+  display: flex;
+  align-items: center;
   font-size: var(--text-md);
   color: var(--color-text-muted);
   transition: color var(--duration-fast);
@@ -77,15 +79,17 @@
 }
 
 .addBtn {
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-pill);
   background: var(--color-primary);
   color: #fff !important;
   font-weight: var(--font-weight-semibold);
 }
 
-.authIcon {
-  width: 20px;
-  height: 20px;
-  display: block;
+.iconBtn {
+  padding: var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
 }

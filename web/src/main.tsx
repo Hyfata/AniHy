@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { ApiError } from './api/client';
+import './lib/theme';
 import './styles/global.css';
 
 // SPA 스크롤은 우리가 제어 — 기본값(auto)이면 브라우저가 pushState 시 맨 위로,

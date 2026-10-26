@@ -82,8 +82,9 @@ function groupByAnime(items: HistoryItem[]): AnimeGroup[] {
   return groups;
 }
 
-/** 보관함 > 시청기록 — 애니별 그룹 카드. 카드 탭하면 회차 목록이 부드럽게 펼쳐지고,
-   이어보기는 가장 최근 회차로 — 완주했으면 다음 회차로, 다음이 없으면 다시보기. */
+/** Library > watch history — per-anime group cards; tapping expands the episode
+   list. The resume link (ResumeLink) jumps to the next episode when the latest
+   one is completed, or becomes 다시보기 when there is none. */
 export function HistoryTab({
   selectMode,
   onSelectModeChange,

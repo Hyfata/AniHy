@@ -5,7 +5,6 @@ import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from 'rea
 import { AppDialog } from './components/AppDialog';
 import { BottomTabbar } from './components/BottomTabbar';
 import { AnimeDetailModal } from './components/anime/AnimeDetailModal';
-import { QueueLauncher } from './components/admin/QueueLauncher';
 import { DownloadsTab } from './components/library/DownloadsTab';
 import { TopNavbar } from './components/TopNavbar';
 import { useScrollRestoration } from './lib/scrollRestoration';
@@ -151,7 +150,6 @@ export default function App() {
           <AnimeDetailModal key={modalAnimeId} animeId={modalAnimeId} background={effectiveBackground} />
         )}
       </AnimatePresence>
-      <QueueLauncher />
       <AppDialog />
       <BottomTabbar />
     </>

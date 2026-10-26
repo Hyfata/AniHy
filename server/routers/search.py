@@ -47,16 +47,17 @@ def _record_search_hit(db: Session, anime_id: int) -> None:
 
 
 def _find_candidates(db: Session, query: str) -> tuple[list[Anime], int]:
-    """제목 LIKE(관련도 정렬) + 한글 로마자 근사 매칭을 뒤에 붙인 최종 후보 목록.
+    """Title LIKE (relevance-ranked) with hangul romanized approximation appended.
 
-    반환: (rows, like_total) — like_total은 LIKE 후보 전체 수 (has_more 판별용).
+    Returns (rows, like_total) — like_total is the full LIKE candidate count
+    (used for has_more).
     """
     candidates = db.execute(
         select(Anime).where(Anime.title.like(f"%{query}%"))
     ).scalars().all()
     candidates.sort(key=lambda a: _rank_key(query, a.title))
     rows = candidates[:_LIMIT]
-    # 한글 검색어는 로마자 발음 근사 매칭을 LIKE 결과 뒤에 추가
+    # hangul queries get romanized pronunciation matches appended after LIKE results
     if romanize.has_hangul(query):
         variants = romanize.search_query_variants(query)
         if variants:
@@ -68,7 +69,7 @@ def _find_candidates(db: Session, query: str) -> tuple[list[Anime], int]:
                 score = romanize.phonetic_match_score(variants, romanize.normalize_search_text(a.title))
                 if score > 0.0:
                     scored.append((score, a))
-                    # 충분히 모으면 중단 — 점수 정밀 정렬보다 응답 시간이 중요 (긴 검색어 보호)
+                    # stop early once enough — response time beats precise ranking here
                     if len(scored) >= _LIMIT:
                         break
             scored.sort(key=lambda x: x[0], reverse=True)
@@ -100,7 +101,7 @@ _SUGGEST_LIMIT = 10
 
 @router.get("/suggest")
 def search_suggest(q: str = Query(""), db: Session = Depends(get_db)):
-    """연관 검색어 — 타이핑 중 제안용 경량 버전. 히트(search_hits) 기록 없음."""
+    """Suggestions while typing — lightweight variant; never records search_hits."""
     query = q.strip()[:100]
     if not query:
         return {"suggestions": []}

@@ -27,8 +27,8 @@ interface AddEpisodeFormProps {
 
 const VIDEO_EXTS = ['mkv', 'mp4', 'mov', 'avi', 'webm'];
 
-/** 에피소드 단일 추가 폼 (anime.php #add-episode-modal 대응) — POST /api/jobs.
-   EpisodeAddModal의 셸 안에서 렌더된다 (열림/리셋은 마운트 기준). */
+/** Single-episode add form — POST /api/jobs. Rendered inside EpisodeAddModal's
+   shell (open/reset semantics follow mount). */
 export function AddEpisodeForm({ anime, onClose, onAdded, footerEl }: AddEpisodeFormProps) {
   const hasSeason = !!anime.season_id?.trim();
   const [tab, setTab] = useState<SourceTab>(hasSeason ? 'stream' : 'server');

@@ -15,7 +15,7 @@
 
 ## 디자인 토큰 규약 (`web/src/styles/tokens.css`)
 
-- **색**: `--color-*` (bg/surface/surface-light/primary/accent/text/text-muted/danger 등), 테두리는 `--border-subtle|default|strong`.
+- **색**: `--color-*` (bg/surface/surface-light/primary/accent/text/text-muted/danger 등), 테두리는 `--border-subtle|default|strong`. **테마(다크/라이트)가 있으므로 색상은 반드시 토큰 경유** — 컴포넌트 CSS에 하드코딩된 hex/rgba 금지 (라이트 팔레트는 tokens.css의 `[data-theme='light']` 블록이 재매핑). 테마별로 다른 값이 필요하면 토큰을 추가할 것.
 - **타입 스케일 고정**: `--text-xs`(12) ~ `--text-3xl`(28) 토큰만 사용. 임의의 px/rem font-size 직접 지정 금지. line-height는 `--leading-tight|normal|relaxed`, weight는 `--font-weight-*`.
 - **간격**: 4px 그리드 `--space-1`(4) ~ `--space-10`(40)만 사용.
 - **radii**: `--radius-sm`(8), `--radius`(14), `--radius-pill`(999).

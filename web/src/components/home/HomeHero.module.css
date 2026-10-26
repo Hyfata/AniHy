@@ -63,6 +63,21 @@
   );
 }
 
+/* light theme: bright banner + light scrim (body text token already flips dark) */
+[data-theme='light'] .hero {
+  background: linear-gradient(120deg, #e9eaf2 0%, #e2e5ee 60%);
+  border-color: var(--border-default);
+}
+
+[data-theme='light'] .backdrop::after {
+  background: linear-gradient(
+    90deg,
+    rgba(244, 245, 247, 0.92) 0%,
+    rgba(244, 245, 247, 0.55) 55%,
+    rgba(244, 245, 247, 0.3) 100%
+  );
+}
+
 .content {
   position: relative;
   z-index: 1;

@@ -2,7 +2,13 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth';
+import { dialog } from '../stores/dialog';
 import { EditAnimeModal } from './admin/EditAnimeModal';
+import { QueueModal } from './admin/QueueModal';
+import { ProfileModal } from './ProfileModal';
+import { SettingsModal } from './SettingsModal';
+import { UserMenu } from './UserMenu';
+import { ListIcon } from './icons';
 import styles from './TopNavbar.module.css';
 
 export function TopNavbar() {
@@ -11,6 +17,9 @@ export function TopNavbar() {
   const login = useAuthStore((s) => s.login);
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <header className={styles.navbar}>
@@ -20,27 +29,40 @@ export function TopNavbar() {
         </Link>
         <nav className={styles.links}>
           {identity?.is_admin && (
-            <button type="button" className={styles.addBtn} onClick={() => setAddOpen(true)}>
-              애니 추가
-            </button>
+            <>
+              <button type="button" className={styles.addBtn} onClick={() => setAddOpen(true)}>
+                애니 추가
+              </button>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={() => setQueueOpen(true)}
+                title="대기열"
+                aria-label="대기열"
+              >
+                <ListIcon size={20} />
+              </button>
+            </>
           )}
-          {identity?.logged_in ? (
-            <button type="button" onClick={() => void logout()} title="로그아웃" aria-label="로그아웃">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.authIcon}>
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </button>
-          ) : (
-            <button type="button" onClick={login} title="로그인" aria-label="로그인">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.authIcon}>
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <polyline points="10 17 15 12 10 7" />
-                <line x1="15" y1="12" x2="3" y2="12" />
-              </svg>
-            </button>
-          )}
+          <UserMenu
+            loggedIn={identity?.logged_in ?? false}
+            onProfile={() => setProfileOpen(true)}
+            onSettings={() => setSettingsOpen(true)}
+            onLogin={login}
+            onLogout={() => {
+              void (async () => {
+                if (!(await dialog.confirm('정말 로그아웃 하시겠습니까?', { confirmLabel: '로그아웃' }))) return;
+                await logout();
+                // Reset only the logged-in user's query caches without a reload
+                // (resetQueries also clears mounted observers like the library
+                // bookmark-count badge; removeQueries never notified them)
+                queryClient.resetQueries({ queryKey: ['bookmarks'] });
+                queryClient.resetQueries({ queryKey: ['users'] });
+                queryClient.resetQueries({ queryKey: ['anime'] });
+                await dialog.alert('로그아웃되었습니다.');
+              })();
+            }}
+          />
         </nav>
       </div>
       {identity?.is_admin && (
@@ -54,6 +76,9 @@ export function TopNavbar() {
           }}
         />
       )}
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {identity?.is_admin && <QueueModal open={queueOpen} onClose={() => setQueueOpen(false)} />}
     </header>
   );
 }

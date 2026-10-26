@@ -10,19 +10,13 @@ from sqlalchemy.orm import Session
 
 from ..core.config import Settings, get_settings
 from ..core.db import get_db
-from ..core.security import Identity, get_current_identity, require_access
+from ..core.security import Identity, require_access, require_login
 from ..models import Anime, Episode, WatchHistory
 from ..services import urls
 
 router = APIRouter(prefix="/history", tags=["history"], dependencies=[Depends(require_access)])
 
 COMPLETED_RATIO = 0.95
-
-
-def require_login(identity: Identity = Depends(get_current_identity)) -> Identity:
-    if not identity.logged_in:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인이 필요합니다")
-    return identity
 
 
 class HistoryPut(BaseModel):

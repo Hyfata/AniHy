@@ -68,7 +68,7 @@ interface SearchSuggestionsProps {
   onSelect: (title: string) => void;
 }
 
-/** 연관 검색어 패널 — 타이핑 중 제안 (탭하면 그 제목으로 검색 확정) */
+/** Suggestions panel shown while typing (tapping one commits the search). */
 export function SearchSuggestions({ items, onSelect }: SearchSuggestionsProps) {
   if (items.length === 0) return null;
   return (

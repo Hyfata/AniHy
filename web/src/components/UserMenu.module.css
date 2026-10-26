@@ -1,0 +1,76 @@
+.wrap {
+  position: relative;
+}
+
+.userBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+
+/* Logged-in: filled circle like the profile avatar — the account state is visible
+   at a glance. (.userBtn.userBtnActive raises specificity above TopNavbar's
+   .links button rule, which would otherwise override the color) */
+.userBtn.userBtnActive {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-text);
+  border-radius: 50%;
+  padding: var(--space-2);
+}
+
+@media (hover: hover) {
+
+.userBtn:hover {
+  color: var(--color-text);
+}
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: var(--space-1);
+  background: var(--color-surface-light);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  padding: var(--space-2) var(--space-3);
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+  text-align: left;
+}
+
+@media (hover: hover) {
+
+.item:hover {
+  background: var(--border-strong);
+}
+}
+
+.itemDanger {
+  color: var(--color-danger);
+}

@@ -4,11 +4,10 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from ..core.db import get_db
-from ..core.security import Identity, require_access
+from ..core.security import Identity, require_access, require_login
 from ..models import Anime, Bookmark
 from ..services import urls
 from .animes import _latest_episode_map
-from .history import require_login
 
 router = APIRouter(prefix="/bookmarks", tags=["bookmarks"], dependencies=[Depends(require_access)])
 

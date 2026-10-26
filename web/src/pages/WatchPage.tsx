@@ -32,14 +32,10 @@ import { useUiStore } from '../stores/ui';
 import { openAnimeModalVt } from '../lib/viewTransition';
 import { useConnectivityStore } from '../stores/connectivity';
 import { dlKey, useDownloadsStore } from '../stores/downloads';
+import { usePrefsStore } from '../stores/prefs';
 import styles from './WatchPage.module.css';
 
-const AUTO_NEXT_KEY = 'anihy_auto_next';
 const COMPLETED_RATIO = 0.95;
-
-function readAutoNext(): boolean {
-  return localStorage.getItem(AUTO_NEXT_KEY) !== '0';
-}
 
 /** Loading placeholder with the same silhouette as the watch layout (no spinner). */
 function WatchSkeleton() {
@@ -111,7 +107,8 @@ export function WatchPage() {
   const [detail, setDetail] = useState<AnimeDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
-  const [autoNext, setAutoNext] = useState(readAutoNext);
+  const autoNext = usePrefsStore((s) => s.autoNext);
+  const setAutoNext = usePrefsStore((s) => s.setAutoNext);
 
   const playerRef = useRef<VideoPlayerInstance | null>(null);
   const playerAreaRef = useRef<HTMLDivElement>(null);
@@ -322,16 +319,12 @@ export function WatchPage() {
         saveHistoryKeepalive(a, e, video.duration * 1000, video.duration * 1000);
       }
     }
-    if (readAutoNext() && nextEpisode) {
+    if (usePrefsStore.getState().autoNext && nextEpisode) {
       navigate(`/watch/${aid}/${encodeURIComponent(nextEpisode.episode_number)}`);
     }
   }, [aid, nextEpisode, navigate]);
 
-  const toggleAutoNext = () => {
-    const next = !autoNext;
-    setAutoNext(next);
-    localStorage.setItem(AUTO_NEXT_KEY, next ? '1' : '0');
-  };
+  const toggleAutoNext = () => setAutoNext(!autoNext);
 
   const openListModal = () => {
     playerRef.current?.pause();

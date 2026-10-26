@@ -177,6 +177,12 @@ def require_admin(identity: Identity = Depends(get_current_identity)) -> Identit
     return identity
 
 
+def require_login(identity: Identity = Depends(get_current_identity)) -> Identity:
+    if not identity.logged_in:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인이 필요합니다")
+    return identity
+
+
 # ---------- OIDC (Keycloak, authlib) ----------
 
 

@@ -24,12 +24,13 @@ api = APIRouter(prefix="/api")
 api.include_router(auth.router)
 
 # 읽기/라이브러리 라우터 (animes/search/history/bookmarks) — downloads 라우터는 별도 에이전트가 등록
-from .routers import animes, bookmarks, downloads, history, search  # noqa: E402
+from .routers import animes, bookmarks, downloads, history, search, users  # noqa: E402
 
 api.include_router(animes.router)
 api.include_router(search.router)
 api.include_router(history.router)
 api.include_router(bookmarks.router)
+api.include_router(users.router)
 api.include_router(downloads.router)
 
 # 잡 파이프라인/관리자 라우터 (jobs/admin)

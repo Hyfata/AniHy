@@ -26,13 +26,14 @@ function pushRecent(term: string): string[] {
   try {
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
   } catch {
-    // 저장 실패는 무시 (사파리 프라이빗 모드 등)
+    // ignore write failures (Safari private mode etc.)
   }
   return next;
 }
 
-/** 검색 (/search) — 타이핑 중엔 연관 검색어만 제안하고, 검색 확정(Enter/모바일 키보드 검색
-   버튼/제안 탭) 시에만 결과 표시 + 최근 검색어 기록 (중간 타이핑이 기록을 오염시키지 않도록) */
+/** Search (/search) — while typing only suggestions are shown; committing
+   (Enter / mobile search key / suggestion tap) runs the search and records it
+   in recent searches, so intermediate keystrokes never pollute the records. */
 export function SearchPage() {
   const [input, setInput] = useState('');
   const [committed, setCommitted] = useState('');
@@ -49,13 +50,14 @@ export function SearchPage() {
     inputRef.current?.focus();
   }, []);
 
-  // 연관 검색어 디바운스
+  // debounce the suggestions query
   useEffect(() => {
     const timer = setTimeout(() => setSuggestQuery(input.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [input]);
 
-  // 확정 검색이 결과를 내면 최근 검색어에 기록 (서버는 상위 1건을 search_hits에 기록)
+  // a committed search with results is recorded in recent searches
+  // (the server UPSERTs the top hit into search_hits)
   const resultCount = data?.animes.length ?? 0;
   useEffect(() => {
     if (committedTrim && resultCount > 0) {
@@ -71,7 +73,7 @@ export function SearchPage() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     commit(input);
-    inputRef.current?.blur(); // 모바일 키보드를 내려 결과가 보이게
+    inputRef.current?.blur(); // drop the mobile keyboard so results are visible
   };
 
   const clear = () => {
@@ -84,7 +86,7 @@ export function SearchPage() {
     try {
       localStorage.removeItem(RECENT_KEY);
     } catch {
-      // 무시
+      // ignore
     }
     setRecent([]);
   };

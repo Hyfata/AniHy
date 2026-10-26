@@ -48,6 +48,25 @@ export function formatSpeed(bytesPerSec: number): string {
   return `${formatBytes(bytesPerSec)}/s`;
 }
 
+/** ms → "312시간 34분" 형식의 긴 기간 표기 (프로필 총 시청시간 등). */
+export function formatDurationLong(ms: number | null | undefined): string {
+  if (ms == null || ms <= 0) return '0분';
+  const totalMin = Math.max(1, Math.floor(ms / 60000));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}분`;
+  return m > 0 ? `${h}시간 ${m}분` : `${h}시간`;
+}
+
+/** ISO 타임스탐프 → "2026.10.24" 형식의 날짜. */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())}`;
+}
+
 /** ms → "24:10" / "1:24:10" (영상 시간 표기). */
 export function formatPlaytime(ms: number | null | undefined): string {
   if (ms == null || ms <= 0) return '';

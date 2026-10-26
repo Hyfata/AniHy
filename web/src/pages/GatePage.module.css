@@ -99,7 +99,7 @@
   background: var(--color-danger-soft);
   border: 1px solid rgba(255, 77, 109, 0.3);
   border-radius: var(--radius-sm);
-  color: #fca5a5;
+  color: var(--color-danger);
   font-size: var(--text-sm);
   text-align: center;
 }
