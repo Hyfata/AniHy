@@ -315,9 +315,13 @@
 .historyLatestCard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  /* 2px: pulls the time/progress rows up toward the label row (tighter than
+     the 4px token minimum by request) */
+  gap: 2px;
   margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  /* Bottom padding one step larger than top — the thin 4px progress bar reads
+     cramped against the card edge at an equal 8px */
+  padding: var(--space-2) var(--space-3) var(--space-3);
   background: var(--color-surface-light);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -403,6 +407,8 @@
 .historyProgress {
   width: 100%;
   height: 4px;
+  /* a touch more air below the time text (card gap is 2px) */
+  margin-top: 2px;
   border-radius: var(--radius-pill);
   background: var(--border-strong);
   overflow: hidden;
