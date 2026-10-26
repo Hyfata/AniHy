@@ -332,17 +332,17 @@ export function HistoryTab({
                             </span>
                             <span className={styles.historyEpBody}>
                               <span className={styles.historyEpLabel}>{epLabelOf(h)}</span>
+                              {h.duration_ms > 0 && (
+                                <span className={styles.historyEpMeta}>
+                                  {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}
+                                </span>
+                              )}
                               <span className={styles.historyEpProgress}>
                                 <span
                                   className={styles.historyProgressFill}
                                   style={{ width: `${r * 100}%` }}
                                 />
                               </span>
-                              {h.duration_ms > 0 && (
-                                <span className={styles.historyEpMeta}>
-                                  {formatPlaytime(h.position_ms)} / {formatPlaytime(h.duration_ms)}
-                                </span>
-                              )}
                             </span>
                             {h.updated_at && (
                               <span className={styles.historyEpTime}>{relativeTime(h.updated_at)}</span>
