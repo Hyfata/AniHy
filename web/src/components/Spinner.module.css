@@ -24,6 +24,13 @@
   overflow: hidden;
   background: var(--color-surface-light);
   border-radius: var(--radius-sm);
+  animation: skeletonIn var(--duration-slow) var(--ease-out);
+}
+
+@keyframes skeletonIn {
+  from {
+    opacity: 0;
+  }
 }
 
 .skeleton::after {

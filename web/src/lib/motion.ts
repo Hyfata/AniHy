@@ -6,6 +6,7 @@ export const springPop: Transition = { type: 'spring', stiffness: 380, damping: 
 export const springGentle: Transition = { type: 'spring', stiffness: 300, damping: 34 };
 export const tweenFast: Transition = { type: 'tween', duration: 0.15, ease: 'easeOut' };
 export const tweenNormal: Transition = { type: 'tween', duration: 0.25, ease: [0.2, 0.7, 0.3, 1] };
+export const tweenSlow: Transition = { type: 'tween', duration: 0.4, ease: 'easeOut' };
 
 /** 페이지 전환 variants (미묘한 fade + slide) */
 export const pageVariants = {

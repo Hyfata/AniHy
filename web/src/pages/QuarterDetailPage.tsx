@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuarterDetail } from '../api/hooks';
 import { AnimeGrid, AnimeGridSkeleton } from '../components/home/AnimeGrid';
+import { FadeSwap } from '../components/FadeSwap';
 import detailStyles from '../components/quarter/quarter-detail.module.css';
 import { tweenFast } from '../lib/motion';
 import styles from './pages.module.css';
@@ -85,14 +86,13 @@ export function QuarterDetailPage() {
         </button>
       )}
 
-      {isLoading ? (
-        <AnimeGridSkeleton count={16} compact />
-      ) : isError ? (
-        <div className={styles.placeholder}>목록을 불러오지 못했습니다.</div>
-      ) : animes.length === 0 ? (
-        <div className={styles.placeholder}>해당하는 애니가 없습니다.</div>
-      ) : (
-        <AnimatePresence mode="wait">
+      <FadeSwap loading={isLoading} skeleton={<AnimeGridSkeleton count={16} compact />}>
+        {isError ? (
+          <div className={styles.placeholder}>목록을 불러오지 못했습니다.</div>
+        ) : animes.length === 0 ? (
+          <div className={styles.placeholder}>해당하는 애니가 없습니다.</div>
+        ) : (
+          <AnimatePresence mode="wait">
           <motion.div
             key={`${day}|${groupByDay}`}
             initial={{ opacity: 0 }}
@@ -113,8 +113,9 @@ export function QuarterDetailPage() {
               <AnimeGrid animes={animes} compact />
             )}
           </motion.div>
-        </AnimatePresence>
-      )}
+          </AnimatePresence>
+        )}
+      </FadeSwap>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuarterDetail, useQuarters } from '../../api/hooks';
 import { tweenFast } from '../../lib/motion';
 import { Skeleton } from '../Spinner';
+import { FadeSwap } from '../FadeSwap';
 import { pickCurrentQuarter } from './currentQuarter';
 import { PosterRow, PosterRowSkeleton } from './PosterRow';
 import { SectionHeader } from './SectionHeader';
@@ -40,15 +41,19 @@ export function WeeklySection() {
         title={title}
         moreTo={current ? `/quarter/${year}/${quarter}` : undefined}
       />
-      {quartersLoading || !current || isLoading ? (
-        <>
-          <Skeleton height={34} style={{ width: 320, maxWidth: '100%', marginBottom: 'var(--space-4)' }} />
-          <PosterRowSkeleton />
-        </>
-      ) : isError ? (
-        <p className={styles.empty}>목록을 불러오지 못했습니다.</p>
-      ) : (
-        <>
+      <FadeSwap
+        loading={quartersLoading || !current || isLoading}
+        skeleton={
+          <>
+            <Skeleton height={34} style={{ width: 320, maxWidth: '100%', marginBottom: 'var(--space-4)' }} />
+            <PosterRowSkeleton />
+          </>
+        }
+      >
+        {isError ? (
+          <p className={styles.empty}>목록을 불러오지 못했습니다.</p>
+        ) : (
+          <>
           <div className={styles.tabs} role="tablist">
             {tabs.map((d) => (
               <button
@@ -80,7 +85,8 @@ export function WeeklySection() {
             </motion.div>
           </AnimatePresence>
         </>
-      )}
+        )}
+      </FadeSwap>
     </section>
   );
 }

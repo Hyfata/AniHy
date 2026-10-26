@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useSearchSuggestions, useSearchTitles, useTrending } from '../api/hooks';
+import { FadeSwap } from '../components/FadeSwap';
 import { AnimeGrid, AnimeGridSkeleton } from '../components/home/AnimeGrid';
 import { RecentSearches, SearchSuggestions, TrendingSearches } from '../components/search/SearchPanels';
 import searchStyles from '../components/search/search.module.css';
@@ -145,13 +146,13 @@ export function SearchPage() {
                 ? '검색에 실패했습니다.'
                 : `'${committedTrim}' 검색 결과 ${resultCount}건`}
           </p>
-          {isFetching && !data ? (
-            <AnimeGridSkeleton count={9} />
-          ) : resultCount === 0 && !isFetching ? (
-            <div className={styles.placeholder}>검색 결과가 없습니다.</div>
-          ) : (
-            <AnimeGrid animes={data?.animes ?? []} />
-          )}
+          <FadeSwap loading={isFetching && !data} skeleton={<AnimeGridSkeleton count={9} />}>
+            {resultCount === 0 && !isFetching ? (
+              <div className={styles.placeholder}>검색 결과가 없습니다.</div>
+            ) : (
+              <AnimeGrid animes={data?.animes ?? []} />
+            )}
+          </FadeSwap>
         </>
       )}
     </div>

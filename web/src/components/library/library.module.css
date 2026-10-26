@@ -468,6 +468,12 @@
   transition: background var(--duration-fast);
 }
 
+/* Loading placeholder reusing the real card classes — no hover affordance */
+.skeletonCard,
+.skeletonCard * {
+  pointer-events: none;
+}
+
 @media (hover: hover) {
 
 .historyGroupMain:hover {

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useQuarters } from '../api/hooks';
 import type { QuarterGroup } from '../api/types';
 import { QuarterCard, QuarterCardEmpty, QuarterCardSkeleton } from '../components/quarter/QuarterCard';
+import { FadeSwap } from '../components/FadeSwap';
 import { Skeleton } from '../components/Spinner';
 import overviewStyles from '../components/quarter/quarter-overview.module.css';
 import styles from './pages.module.css';
@@ -27,29 +28,33 @@ export function QuarterPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>방영 분기</h1>
       </div>
-      {isLoading ? (
-        // 연도 섹션 2개 분량의 스켈레톤 (스피너 대신 실제 레이아웃 형태로)
-        <>
-          {[0, 1].map((s) => (
-            <section key={s} className={overviewStyles.yearSection} aria-hidden="true">
-              <div className={overviewStyles.yearHead}>
-                <Skeleton height={26} style={{ width: 90 }} />
-                <Skeleton height={14} style={{ width: 64 }} />
-              </div>
-              <div className={overviewStyles.cardGrid}>
-                {[1, 2, 3, 4].map((q) => (
-                  <QuarterCardSkeleton key={q} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </>
-      ) : isError ? (
-        <div className={styles.placeholder}>목록을 불러오지 못했습니다.</div>
-      ) : years.length === 0 ? (
-        <div className={styles.placeholder}>등록된 애니가 없습니다.</div>
-      ) : (
-        years.map((year) => {
+      <FadeSwap
+        loading={isLoading}
+        // Two year-sections worth of skeleton (real layout shape instead of a spinner)
+        skeleton={
+          <>
+            {[0, 1].map((s) => (
+              <section key={s} className={overviewStyles.yearSection} aria-hidden="true">
+                <div className={overviewStyles.yearHead}>
+                  <Skeleton height={26} style={{ width: 90 }} />
+                  <Skeleton height={14} style={{ width: 64 }} />
+                </div>
+                <div className={overviewStyles.cardGrid}>
+                  {[1, 2, 3, 4].map((q) => (
+                    <QuarterCardSkeleton key={q} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </>
+        }
+      >
+        {isError ? (
+          <div className={styles.placeholder}>목록을 불러오지 못했습니다.</div>
+        ) : years.length === 0 ? (
+          <div className={styles.placeholder}>등록된 애니가 없습니다.</div>
+        ) : (
+          years.map((year) => {
           const map = byYear.get(year)!;
           const yearTotal = [...map.values()].reduce((acc, g) => acc + g.count, 0);
           return (
@@ -83,7 +88,8 @@ export function QuarterPage() {
             </motion.section>
           );
         })
-      )}
+        )}
+      </FadeSwap>
     </div>
   );
 }

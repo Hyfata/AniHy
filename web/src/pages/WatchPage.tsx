@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { get } from '../api/client';
 import type { AnimeDetail, Episode } from '../api/types';
 import { EpisodeRow } from '../components/EpisodeRow';
+import { FadeSwap } from '../components/FadeSwap';
 import { Modal } from '../components/Modal';
 import { PlayerWrapper } from '../components/player/PlayerWrapper';
 import { usePlayerSwipe } from '../components/player/usePlayerSwipe';
@@ -38,6 +39,29 @@ const COMPLETED_RATIO = 0.95;
 
 function readAutoNext(): boolean {
   return localStorage.getItem(AUTO_NEXT_KEY) !== '0';
+}
+
+/** Loading placeholder with the same silhouette as the watch layout (no spinner). */
+function WatchSkeleton() {
+  return (
+    <div className="container">
+      <div className={styles.layout} aria-hidden="true">
+        <div>
+          <Skeleton style={{ aspectRatio: '16 / 9', borderRadius: 'var(--radius-sm)' }} />
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <Skeleton height={22} style={{ width: '55%', marginBottom: 10 }} />
+            <Skeleton height={16} style={{ width: '35%' }} />
+          </div>
+        </div>
+        <div className={styles.sidebar}>
+          <Skeleton height={20} style={{ width: '40%', marginBottom: 12 }} />
+          {Array.from({ length: 6 }, (_, i) => (
+            <Skeleton key={i} height={64} style={{ borderRadius: 'var(--radius-sm)', marginBottom: 8 }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /** 컨테이너 안에서 현재 회차(.active)가 상단에 오도록 스크롤 (구 watch.php 규약) */
@@ -336,41 +360,6 @@ export function WatchPage() {
     );
   }
 
-  if (!detail) {
-    return (
-      <div className="container">
-        <div className={styles.layout} aria-hidden="true">
-          <div>
-            <Skeleton style={{ aspectRatio: '16 / 9', borderRadius: 'var(--radius-sm)' }} />
-            <div style={{ marginTop: 'var(--space-4)' }}>
-              <Skeleton height={22} style={{ width: '55%', marginBottom: 10 }} />
-              <Skeleton height={16} style={{ width: '35%' }} />
-            </div>
-          </div>
-          <div className={styles.sidebar}>
-            <Skeleton height={20} style={{ width: '40%', marginBottom: 12 }} />
-            {Array.from({ length: 6 }, (_, i) => (
-              <Skeleton key={i} height={64} style={{ borderRadius: 'var(--radius-sm)', marginBottom: 8 }} />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!episode) {
-    return (
-      <div className="container">
-        <div className={styles.centered}>
-          <p>회차를 찾을 수 없습니다.</p>
-          <button type="button" className={styles.btn} onClick={openAnimeModal}>
-            {detail.title}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const renderList = (ref: typeof sidebarListRef, inModal: boolean) => (
     <div ref={ref} className={inModal ? styles.modalList : styles.episodeList}>
       {episodes.map((e) => (
@@ -394,8 +383,19 @@ export function WatchPage() {
   );
 
   return (
-    <div className="container">
-      <motion.div
+    <FadeSwap loading={!detail} skeleton={<WatchSkeleton />}>
+      {!detail ? null : !episode ? (
+        <div className="container">
+          <div className={styles.centered}>
+            <p>회차를 찾을 수 없습니다.</p>
+            <button type="button" className={styles.btn} onClick={openAnimeModal}>
+              {detail.title}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="container">
+          <motion.div
         className={styles.layout}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -464,6 +464,8 @@ export function WatchPage() {
       <Modal open={listOpen} onClose={() => setListOpen(false)} title="회차 목록">
         {renderList(modalListRef, true)}
       </Modal>
-    </div>
+        </div>
+      )}
+    </FadeSwap>
   );
 }

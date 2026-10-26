@@ -6,6 +6,7 @@ import type { Bookmark } from '../../api/types';
 import { useAuthStore } from '../../stores/auth';
 import { dialog } from '../../stores/dialog';
 import { AnimeCard } from '../AnimeCard';
+import { FadeSwap } from '../FadeSwap';
 import { Skeleton } from '../Spinner';
 import { LoginPrompt } from './LoginPrompt';
 import { SelectBar } from './SelectBar';
@@ -105,31 +106,28 @@ export function BookmarkTab({
     );
   }
 
-  if (isPending || !items) {
-    return (
-      <div className={styles.grid}>
-        {Array.from({ length: 8 }, (_, i) => (
-          <Skeleton key={i} style={{ aspectRatio: '2/3', borderRadius: 'var(--radius)' }} />
-        ))}
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className={styles.empty}>
-        <p className={styles.emptyTitle}>북마크한 애니가 없습니다</p>
-        <p className={styles.emptyDesc}>관심 있는 애니를 북마크하면 여기에 모아볼 수 있습니다.</p>
-        <Link to="/" className={styles.ctaBtn}>
-          애니 둘러보기
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <SelectBar
+    <FadeSwap
+      loading={isPending || !items}
+      skeleton={
+        <div className={styles.grid}>
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} style={{ aspectRatio: '2/3', borderRadius: 'var(--radius)' }} />
+          ))}
+        </div>
+      }
+    >
+      {!items ? null : items.length === 0 ? (
+        <div className={styles.empty}>
+          <p className={styles.emptyTitle}>북마크한 애니가 없습니다</p>
+          <p className={styles.emptyDesc}>관심 있는 애니를 북마크하면 여기에 모아볼 수 있습니다.</p>
+          <Link to="/" className={styles.ctaBtn}>
+            애니 둘러보기
+          </Link>
+        </div>
+      ) : (
+        <>
+          <SelectBar
         open={selectMode}
         count={selected.size}
         onDelete={() => void deleteSelected()}
@@ -181,6 +179,8 @@ export function BookmarkTab({
         </div>
       ))}
       </div>
-    </>
+        </>
+      )}
+    </FadeSwap>
   );
 }

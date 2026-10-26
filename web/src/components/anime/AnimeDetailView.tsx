@@ -15,6 +15,7 @@ import type {
 } from '../../api/types';
 import detailStyles from '../../pages/AnimeDetailPage.module.css';
 import { EpisodeRow } from '../EpisodeRow';
+import { FadeSwap } from '../FadeSwap';
 import { Modal } from '../Modal';
 import { Skeleton } from '../Spinner';
 import { useMotionTransition, useReducedMotion, tweenNormal } from '../../lib/motion';
@@ -344,19 +345,19 @@ export function AnimeDetailView({
     );
   }
 
-  if (!detail) {
-    return <AnimeDetailSkeleton />;
-  }
-
-  const isAdmin = !isPlaceholderData && (detail.is_admin || (identity?.is_admin ?? false));
-  const hasDesc = !isPlaceholderData && (detail.description ?? '').trim() !== '';
-  const badges = [
-    ...detail.broadcasts.map(([y, q]) => `${y}년 ${q}분기`),
-    ...(detail.broadcast_day ? [`${detail.broadcast_day}요일`] : []),
-  ];
-  const episodes = order === 'desc' ? [...detail.episodes].reverse() : detail.episodes;
+  const isAdmin = !isPlaceholderData && ((detail?.is_admin ?? false) || (identity?.is_admin ?? false));
+  const hasDesc = !isPlaceholderData && (detail?.description ?? '').trim() !== '';
+  const badges = detail
+    ? [
+        ...detail.broadcasts.map(([y, q]) => `${y}년 ${q}분기`),
+        ...(detail.broadcast_day ? [`${detail.broadcast_day}요일`] : []),
+      ]
+    : [];
+  const episodes = !detail ? [] : order === 'desc' ? [...detail.episodes].reverse() : detail.episodes;
 
   return (
+    <FadeSwap loading={!detail} skeleton={<AnimeDetailSkeleton />}>
+      {detail ? (
     <>
       <motion.section
         className={styles.hero}
@@ -446,10 +447,8 @@ export function AnimeDetailView({
               </div>
             )}
           </div>
-          {isPlaceholderData ? (
-            <MetaSkeleton />
-          ) : (
-            badges.length > 0 && (
+          <FadeSwap loading={isPlaceholderData} skeleton={<MetaSkeleton />}>
+            {badges.length > 0 && (
               <div className={styles.metaRow}>
                 {badges.map((b) => (
                   <span key={b} className={styles.badge}>
@@ -457,8 +456,8 @@ export function AnimeDetailView({
                   </span>
                 ))}
               </div>
-            )
-          )}
+            )}
+          </FadeSwap>
         </div>
 
         {hasDesc && <CollapsibleDesc text={detail.description ?? ''} />}
@@ -470,9 +469,7 @@ export function AnimeDetailView({
         animate={{ opacity: 1 }}
         transition={contentDelay > 0 ? { delay: contentDelay, duration: 0.2 } : undefined}
       >
-      {isPlaceholderData ? (
-        <EpisodeListSkeleton />
-      ) : (
+      <FadeSwap loading={isPlaceholderData} skeleton={<EpisodeListSkeleton />}>
         <>
           <div className={styles.sectionHeader}>
             <h2>에피소드</h2>
@@ -575,7 +572,7 @@ export function AnimeDetailView({
             </div>
           )}
         </>
-      )}
+      </FadeSwap>
       </motion.div>
 
       {!isPlaceholderData && hasDesc && (
@@ -645,5 +642,7 @@ export function AnimeDetailView({
         </>
       )}
     </>
+      ) : null}
+    </FadeSwap>
   );
 }

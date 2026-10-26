@@ -9,6 +9,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useAuthStore } from '../../stores/auth';
 import { dialog } from '../../stores/dialog';
 import { Modal } from '../Modal';
+import { FadeSwap } from '../FadeSwap';
 import { TrashIcon } from '../icons';
 import { Skeleton } from '../Spinner';
 import { LoginPrompt } from './LoginPrompt';
@@ -175,33 +176,44 @@ export function HistoryTab({
     return <LoginPrompt feature="시청기록" />;
   }
 
-  if (items === null) {
-    return (
-      <div className={styles.historyList}>
-        {Array.from({ length: 3 }, (_, i) => (
-          <Skeleton key={i} height={132} style={{ borderRadius: 'var(--radius)' }} />
-        ))}
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className={styles.empty}>
-        <p className={styles.emptyTitle}>시청 기록이 없습니다</p>
-        <p className={styles.emptyDesc}>애니를 시청하면 이어보기 목록이 여기에 표시됩니다.</p>
-        <Link to="/" className={styles.ctaBtn}>
-          애니 둘러보기
-        </Link>
-      </div>
-    );
-  }
-
-  const groups = groupByAnime(items);
+  const groups = groupByAnime(items ?? []);
 
   return (
-    <>
-      <SelectBar
+    <FadeSwap
+      loading={items === null}
+      skeleton={
+        <div className={styles.historyList}>
+          {Array.from({ length: 3 }, (_, i) => (
+            // Same silhouette as the real group card (thumb + title/time + latest card + header strip)
+            <div key={i} className={`${styles.historyGroup} ${styles.skeletonCard}`}>
+              <div className={styles.historyGroupMain}>
+                <Skeleton style={{ width: 104, aspectRatio: '2 / 3', flexShrink: 0 }} />
+                <div className={styles.historyBody}>
+                  <Skeleton height={22} style={{ width: '65%' }} />
+                  <Skeleton height={16} style={{ width: '38%' }} />
+                  <Skeleton
+                    height={75}
+                    style={{ marginTop: 'var(--space-2)', borderRadius: 'var(--radius-sm)' }}
+                  />
+                </div>
+              </div>
+              <Skeleton height={37} style={{ borderRadius: 0 }} />
+            </div>
+          ))}
+        </div>
+      }
+    >
+      {items && items.length === 0 ? (
+        <div className={styles.empty}>
+          <p className={styles.emptyTitle}>시청 기록이 없습니다</p>
+          <p className={styles.emptyDesc}>애니를 시청하면 이어보기 목록이 여기에 표시됩니다.</p>
+          <Link to="/" className={styles.ctaBtn}>
+            애니 둘러보기
+          </Link>
+        </div>
+      ) : (
+        <>
+          <SelectBar
         open={selectMode}
         count={selected.size}
         onDelete={() => void deleteSelected()}
@@ -385,6 +397,8 @@ export function HistoryTab({
           </button>
         </div>
       </Modal>
-    </>
+        </>
+      )}
+    </FadeSwap>
   );
 }

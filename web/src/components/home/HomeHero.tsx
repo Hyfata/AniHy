@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useQuarters } from '../../api/hooks';
 import { Skeleton } from '../Spinner';
+import { FadeSwap } from '../FadeSwap';
 import { pickCurrentQuarter } from './currentQuarter';
+import type { CurrentQuarter } from './currentQuarter';
 import styles from './HomeHero.module.css';
 
 const QUARTER_MONTHS: Record<number, string> = { 1: '1–3월', 2: '4–6월', 3: '7–9월', 4: '10–12월' };
@@ -11,11 +13,14 @@ export function HomeHero() {
   const { data: quarters, isLoading } = useQuarters();
   const current = pickCurrentQuarter(quarters);
 
-  if (isLoading) {
-    return <Skeleton className={styles.heroSkeleton} />;
-  }
-  if (!current) return null;
+  return (
+    <FadeSwap loading={isLoading} skeleton={<Skeleton className={styles.heroSkeleton} />}>
+      {current ? <HeroContent current={current} /> : null}
+    </FadeSwap>
+  );
+}
 
+function HeroContent({ current }: { current: CurrentQuarter }) {
   const { year, quarter, count, covers } = current.group;
 
   return (

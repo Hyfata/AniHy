@@ -11,6 +11,7 @@ import type { DownloadedAnime } from '../../lib/native';
 import { useConnectivityStore } from '../../stores/connectivity';
 import { useDownloadsStore } from '../../stores/downloads';
 import { Skeleton } from '../Spinner';
+import { FadeSwap } from '../FadeSwap';
 import { SelectBar } from './SelectBar';
 import styles from './library.module.css';
 import { dialog } from '../../stores/dialog';
@@ -119,25 +120,6 @@ export function DownloadsTab({
     );
   }
 
-  if (items === null) {
-    return (
-      <div className={styles.historyList}>
-        {Array.from({ length: 3 }, (_, i) => (
-          <Skeleton key={i} height={96} style={{ borderRadius: 'var(--radius)' }} />
-        ))}
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className={styles.empty}>
-        <p className={styles.emptyTitle}>저장된 회차가 없습니다</p>
-        <p className={styles.emptyDesc}>애니 페이지에서 회차를 다운로드하면 여기에 표시됩니다.</p>
-      </div>
-    );
-  }
-
   const removeAnime = (a: DownloadedAnime) => {
     void (async () => {
       if (!(await dialog.confirm(`'${a.title}' 저장본 ${a.episodes.length}개 회차를 삭제할까요?`, { confirmLabel: '삭제', danger: true }))) return;
@@ -146,17 +128,33 @@ export function DownloadsTab({
   };
 
   return (
-    <div>
-      <SelectBar
-        open={selectMode}
-        count={selected.size}
-        onDelete={deleteSelected}
-        onCancel={() => {
-          setSelected(new Set());
-          onSelectModeChange(false);
-        }}
-      />
-      <div className={styles.historyList}>
+    <FadeSwap
+      loading={items === null}
+      skeleton={
+        <div className={styles.historyList}>
+          {Array.from({ length: 3 }, (_, i) => (
+            <Skeleton key={i} height={96} style={{ borderRadius: 'var(--radius)' }} />
+          ))}
+        </div>
+      }
+    >
+      {!items ? null : items.length === 0 ? (
+        <div className={styles.empty}>
+          <p className={styles.emptyTitle}>저장된 회차가 없습니다</p>
+          <p className={styles.emptyDesc}>애니 페이지에서 회차를 다운로드하면 여기에 표시됩니다.</p>
+        </div>
+      ) : (
+        <div>
+          <SelectBar
+            open={selectMode}
+            count={selected.size}
+            onDelete={deleteSelected}
+            onCancel={() => {
+              setSelected(new Set());
+              onSelectModeChange(false);
+            }}
+          />
+          <div className={styles.historyList}>
         {items.map((a) => (
           <div key={a.animeId}>
             <div
@@ -235,7 +233,9 @@ export function DownloadsTab({
             )}
           </div>
         ))}
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </FadeSwap>
   );
 }

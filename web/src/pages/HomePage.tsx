@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useAnimesInfinite } from '../api/hooks';
+import { FadeSwap } from '../components/FadeSwap';
 import { AnimeGrid, AnimeGridSkeleton } from '../components/home/AnimeGrid';
 import { HomeHero } from '../components/home/HomeHero';
 import { PosterRow, PosterRowSkeleton } from '../components/home/PosterRow';
@@ -48,40 +49,35 @@ export function HomePage() {
       <HomeHero />
       <WeeklySection />
 
-      {isLoading ? (
+      {(isLoading || recent.length > 0) && (
         <section className={sectionStyles.section}>
           <SectionHeader title="최근 업데이트" />
-          <PosterRowSkeleton />
-        </section>
-      ) : (
-        recent.length > 0 && (
-          <section className={sectionStyles.section}>
-            <SectionHeader title="최근 업데이트" />
+          <FadeSwap loading={isLoading} skeleton={<PosterRowSkeleton />}>
             <PosterRow
               animes={recent}
               subLabel={(a) => `${relativeTime(a.latest_episode_at)} 업데이트`}
             />
-          </section>
-        )
+          </FadeSwap>
+        </section>
       )}
 
       <section className={sectionStyles.section}>
         <SectionHeader title="전체 애니" meta={total > 0 ? `${total}개 작품` : undefined} />
-        {isLoading ? (
-          <AnimeGridSkeleton count={15} />
-        ) : isError ? (
-          <div className={styles.placeholder}>목록을 불러오지 못했습니다.</div>
-        ) : animes.length === 0 ? (
-          <div className={styles.placeholder}>등록된 애니가 없습니다.</div>
-        ) : (
-          <>
-            <AnimeGrid animes={animes} />
-            <div ref={sentinelRef} className={styles.sentinel} />
-            {/* append skeleton cards at the grid end while fetching the next page (no spinner) */}
-            {isFetchingNextPage && <AnimeGridSkeleton count={6} />}
-            {!hasNextPage && <div className={styles.end}>모든 작품을 불러왔습니다.</div>}
-          </>
-        )}
+        <FadeSwap loading={isLoading} skeleton={<AnimeGridSkeleton count={15} />}>
+          {isError ? (
+            <div className={styles.placeholder}>목록을 불러오지 못했습니다.</div>
+          ) : animes.length === 0 ? (
+            <div className={styles.placeholder}>등록된 애니가 없습니다.</div>
+          ) : (
+            <>
+              <AnimeGrid animes={animes} />
+              <div ref={sentinelRef} className={styles.sentinel} />
+              {/* append skeleton cards at the grid end while fetching the next page (no spinner) */}
+              {isFetchingNextPage && <AnimeGridSkeleton count={6} />}
+              {!hasNextPage && <div className={styles.end}>모든 작품을 불러왔습니다.</div>}
+            </>
+          )}
+        </FadeSwap>
       </section>
     </div>
   );
