@@ -74,6 +74,75 @@
 }
 }
 
+/* Admin more-menu (AnimeAdminMenu) — sits left of the close button */
+.moreWrap {
+  position: absolute;
+  top: calc(12px + var(--sat));
+  /* close button (right 14px + 44px wide) + 8px gap */
+  right: 66px;
+  z-index: 5;
+}
+
+.more {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.more:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 168px;
+  padding: var(--space-1);
+  background: var(--color-surface-light);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.moreMenuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) {
+
+.moreMenuItem:hover {
+  background: var(--border-strong);
+}
+}
+
+.moreMenuItemDanger {
+  color: var(--color-danger);
+}
+
 @media (max-width: 640px) {
   .overlay {
     padding: 0;

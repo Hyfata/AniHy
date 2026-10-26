@@ -58,7 +58,7 @@
   background: transparent;
   color: var(--color-text-muted);
   font-size: var(--text-xs);
-  /* <button>(UA line-height normal)과 <a>(body 1.5 상속)가 섞여 있어 명시해야 높이가 같아짐 */
+  /* Explicit line-height so <button> (UA "normal") and <a> (inherits body 1.5) match */
   line-height: 1.2;
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
@@ -95,7 +95,7 @@
 }
 
 .titleRow h1 {
-  /* 분기 뱃지와의 간격은 .metaRow의 margin-top만 사용 (이중 마진 방지) */
+  /* Gap to the badges comes from .metaRow's margin-top only (no double margin) */
   margin: 0;
   font-size: var(--text-xl);
   font-weight: var(--font-weight-bold);
@@ -104,45 +104,6 @@
   min-width: 0;
   word-break: keep-all;
   overflow-wrap: anywhere;
-}
-
-.adminActions {
-  display: flex;
-  gap: var(--space-2);
-  flex: none;
-}
-
-.adminIconBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: var(--text-lg);
-  transition: background var(--duration-fast), color var(--duration-fast);
-}
-
-@media (hover: hover) {
-
-.adminIconBtn:hover {
-  background: var(--color-surface-light);
-  color: var(--color-text);
-}
-}
-
-@media (hover: hover) {
-
-.adminIconDanger:hover {
-  color: var(--color-danger);
-}
-}
-
-.adminIconBtn svg {
-  width: 18px;
-  height: 18px;
 }
 
 .metaRow {

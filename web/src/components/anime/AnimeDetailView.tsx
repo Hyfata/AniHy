@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import { API_BASE, ApiError, del as delReq, get, post, put } from '../../api/client';
 import type {
   AnimeDetail,
@@ -25,7 +24,6 @@ import { useAuthStore } from '../../stores/auth';
 import { dialog } from '../../stores/dialog';
 import { useDownloadsStore } from '../../stores/downloads';
 import { EpisodeAddModal } from '../admin/EpisodeAddModal';
-import { EditAnimeModal } from '../admin/EditAnimeModal';
 import { DownloadAllButton } from './DownloadAllButton';
 import { EpisodeDownloadButton } from './EpisodeDownloadButton';
 
@@ -228,14 +226,12 @@ export function AnimeDetailView({
   contentDelay?: number;
   heroStatic?: boolean;
 }) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const identity = useAuthStore((s) => s.identity);
 
   const [order, setOrder] = useState<SortOrder>(initialOrder);
   const [synopsisOpen, setSynopsisOpen] = useState(false);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const [addEpOpen, setAddEpOpen] = useState(false);
   const [editEp, setEditEp] = useState<Episode | null>(null);
   const [editEpTitle, setEditEpTitle] = useState('');
@@ -415,37 +411,9 @@ export function AnimeDetailView({
 
         <div className={styles.info}>
           <div className={styles.titleRow}>
-            {/* 제목은 클론/지연 fade 없이 히어로의 일부로 처음부터 표시 —
-                북마크 버튼 등 info 영역과 같이 패널 확장 애니메이션에 실려 움직인다 */}
+            {/* Title renders with the hero from the start (no clone / delayed fade) —
+                it rides the panel expansion animation together with the info area */}
             <h1 data-hero-title>{detail.title}</h1>
-            {isAdmin && (
-              <div className={styles.adminActions}>
-                {detail.download_url && (
-                  <a className={styles.adminIconBtn} href={detail.download_url} target="_blank" rel="noopener noreferrer" title="다운로드 주소 열기">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="m6 11 6 6 6-6" /><path d="M4 21h16" /></svg>
-                  </a>
-                )}
-                <button type="button" className={styles.adminIconBtn} title="수정" onClick={() => setEditOpen(true)}>
-                  ✎
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.adminIconBtn} ${styles.adminIconDanger}`}
-                  title="삭제"
-                  onClick={async () => {
-                    if (!(await dialog.confirm('이 애니와 모든 에피소드를 삭제하시겠습니까?', { confirmLabel: '삭제', danger: true }))) return;
-                    try {
-                      await delReq(`/admin/animes/${detail.id}`);
-                      navigate('/');
-                    } catch (err) {
-                      await dialog.alert(err instanceof Error ? err.message : '삭제 실패');
-                    }
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            )}
           </div>
           <FadeSwap loading={isPlaceholderData} skeleton={<MetaSkeleton />}>
             {badges.length > 0 && (
@@ -630,16 +598,7 @@ export function AnimeDetailView({
       )}
 
       {isAdmin && (
-        <>
-          <EditAnimeModal
-            open={editOpen}
-            onClose={() => setEditOpen(false)}
-            anime={detail}
-            onSaved={() => void refetch()}
-            onDeleted={() => navigate('/')}
-          />
-          <EpisodeAddModal open={addEpOpen} onClose={() => setAddEpOpen(false)} anime={detail} />
-        </>
+        <EpisodeAddModal open={addEpOpen} onClose={() => setAddEpOpen(false)} anime={detail} />
       )}
     </>
       ) : null}

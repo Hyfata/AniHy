@@ -7,6 +7,7 @@ import { springPop } from '../../lib/motion';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { VT_BACKDROP, VT_PANEL, closeAnimeModalVt, vtEnabled } from '../../lib/viewTransition';
 import { useUiStore } from '../../stores/ui';
+import { AnimeAdminMenu } from './AnimeAdminMenu';
 import { AnimeDetailView } from './AnimeDetailView';
 import styles from './AnimeDetailModal.module.css';
 
@@ -103,6 +104,7 @@ export function AnimeDetailModal({
           exit={useVt ? undefined : { opacity: 0, y: 12, scale: 0.96 }}
           transition={springPop}
         >
+          <AnimeAdminMenu animeId={animeId} />
           <button
             type="button"
             className={styles.close}
