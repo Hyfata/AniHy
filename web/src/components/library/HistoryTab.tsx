@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { del, get, ApiError } from '../../api/client';
-import type { HistoryItem } from '../../api/types';
+import type { AnimeDetail, HistoryItem } from '../../api/types';
 import { dateTime, formatPlaytime, relativeTime } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { useAuthStore } from '../../stores/auth';
@@ -29,6 +30,41 @@ const epLabelOf = (h: HistoryItem) =>
 const watchPath = (h: HistoryItem) =>
   `/watch/${h.anime_id}/${encodeURIComponent(h.episode_number)}`;
 
+/** Resume link for a group card. When the latest episode is completed, jumps to
+   the next episode in the detail's episode list (same ordering as WatchPage);
+   labels itself 다시보기 when there is no next episode. The detail query is
+   fetched only for completed groups and shares the ['anime', id] cache. */
+function ResumeLink({ group }: { group: AnimeGroup }) {
+  const { anime_id, latest } = group;
+  const { data: detail } = useQuery({
+    queryKey: ['anime', anime_id],
+    queryFn: () => get<AnimeDetail>(`/animes/${anime_id}`),
+    enabled: latest.completed,
+  });
+
+  let targetEp = latest.episode_number;
+  let label = '이어보기';
+  if (latest.completed && detail) {
+    const idx = detail.episodes.findIndex((e) => e.episode_number === latest.episode_number);
+    const next = idx >= 0 ? detail.episodes[idx + 1] : undefined;
+    if (next) targetEp = next.episode_number;
+    else label = '다시보기';
+  }
+
+  return (
+    <Link
+      to={`/watch/${anime_id}/${encodeURIComponent(targetEp)}`}
+      className={styles.resumeBtn}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M8 5.14v14l11-7-11-7z" />
+      </svg>
+      {label}
+    </Link>
+  );
+}
+
 /** 서버는 updated_at 내림차순 flat 목록 — 애니별로 묶고, 그룹 순서는 최근 시청 순 */
 function groupByAnime(items: HistoryItem[]): AnimeGroup[] {
   const groups: AnimeGroup[] = [];
@@ -46,7 +82,7 @@ function groupByAnime(items: HistoryItem[]): AnimeGroup[] {
 }
 
 /** 보관함 > 시청기록 — 애니별 그룹 카드. 카드 탭하면 회차 목록이 부드럽게 펼쳐지고,
-   프로그레스 바 아래의 '바로 이어보기'는 가장 최근 회차로 직행. */
+   이어보기는 가장 최근 회차로 — 완주했으면 다음 회차로, 다음이 없으면 다시보기. */
 export function HistoryTab({
   selectMode,
   onSelectModeChange,
@@ -222,16 +258,7 @@ export function HistoryTab({
                   <div className={styles.historyLatestCard}>
                     <div className={styles.historyLatestRow}>
                       <span className={styles.historyLatestEp}>{epLabelOf(g.latest)}</span>
-                      <Link
-                        to={watchPath(g.latest)}
-                        className={styles.resumeBtn}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                          <path d="M8 5.14v14l11-7-11-7z" />
-                        </svg>
-                        이어보기
-                      </Link>
+                      <ResumeLink group={g} />
                     </div>
                     {g.latest.duration_ms > 0 && (
                       <div className={styles.historyPosition}>
