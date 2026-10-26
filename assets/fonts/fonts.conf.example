@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<!--
+  Fontconfig config used by the encoder for subtitle burn-in
+  (FONTCONFIG_FILE env, server/worker/convert.py).
+
+  Setup: copy this file to assets/fonts/fonts.conf, set <dir> below to the
+  absolute path of this directory (BASE_DIR/assets/fonts), and place the
+  actual font files (*.ttf/*.otf, e.g. malgun.ttf for Malgun Gothic) next
+  to it. Both the font files and fonts.conf are gitignored.
+-->
+<fontconfig>
+    <dir>/absolute/path/to/BASE_DIR/assets/fonts</dir>
+    <cachedir>/tmp/fontconfig-cache-anime</cachedir>
+
+    <!-- Default sans-serif for subtitle rendering -->
+    <match target="pattern">
+        <test qual="any" name="family">
+            <string>sans-serif</string>
+        </test>
+        <edit name="family" mode="assign" binding="same">
+            <string>Malgun Gothic</string>
+        </edit>
+        <edit name="weight" mode="assign">
+            <const>bold</const>
+        </edit>
+    </match>
+
+    <!-- Fallback when the requested family is missing -->
+    <match target="pattern">
+        <edit name="family" mode="append" binding="weak">
+            <string>Malgun Gothic</string>
+        </edit>
+        <edit name="weight" mode="assign">
+            <const>bold</const>
+        </edit>
+    </match>
+
+    <config></config>
+</fontconfig>

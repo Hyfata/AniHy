@@ -5,7 +5,6 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 ## 개요
 
 - **서비스 언어**: 한국어
-- **진입점**: `/anime/` (Apache 서브 디렉터리로 동작)
 - 관리자 로그인 후 애니메이션과 에피소드를 등록·수정·삭제할 수 있습니다.
 - 에피소드 등록 시 Crunchyroll/Hidive 시즌 ID를 입력하면 백그라운드에서 다운로드 → 복호화 → 자막 처리 → MP4 변환이 진행됩니다.
 - 로컬 파일 업로드나 서버에 이미 있는 파일(예: Transmission 다운로드 폴더)을 선택해 변환할 수도 있고, **일괄 추가**로 여러 회차를 한 번에 등록할 수도 있습니다.
@@ -19,7 +18,7 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 | 프론트엔드 | React SPA (TanStack Query, zustand, Vite) — `web/` |
 | 모바일 앱 | Tauri 2 (Android/iOS) — `app/` |
 | 데이터베이스 | MariaDB / MySQL |
-| 웹 서버 | Apache (정적 서빙 + `/anime/api` 리버스 프록시) |
+| 웹 서버 | Apache (정적 서빙 + API 리버스 프록시) |
 | 플레이어 | [Hyfata-Media-Player-JS](https://github.com/Hyfata/Hyfata-Media-Player-JS) (`assets/player` 서브모듈) |
 | 미디어 처리 | ffmpeg 6.x, Bento4(mp4decrypt), 인코딩 백엔드 선택 가능(CPU libx264 / Intel VA-API / AMD VA-API / NVIDIA NVENC) |
 | 다운로더 | [multi-downloader-nx](https://github.com/anidl/multi-downloader-nx) (Crunchyroll/Hidive 지원) — `downloader/` |
@@ -28,13 +27,14 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 ## 디렉터리 구조
 
 ```
-anime/
 ├── server/             # FastAPI 백엔드 (API + 인코딩 잡 파이프라인)
 ├── web/                # React SPA (vite build → web/dist)
 ├── app/                # Tauri 2 모바일 앱
-├── deploy/             # 배포 런북(migrate.sh) + Apache/systemd 설정
+├── deploy/             # 프로덕션 배포 키트 (deploy.sh + Apache/systemd 설정)
 ├── animes/             # 최종 변환된 에피소드 MP4 저장소
-├── assets/             # 폰트, Hyfata-Media-Player-JS(서브모듈)
+├── assets/
+│   ├── fonts/          # 자막 burn-in용 폰트 + fonts.conf (gitignore — 아래 참조)
+│   └── player/         # Hyfata-Media-Player-JS git 서브모듈
 ├── covers/             # 애니 커버 이미지
 ├── downloader/         # aniDL 바이너리 및 설정, 다운로드 임시본(videos/)
 ├── logs/               # 서버/잡 로그
@@ -43,18 +43,50 @@ anime/
 └── subtitles/          # 변환된 ASS 자막 저장소 ({anime_id}/{회차}.ass)
 ```
 
-구 PHP 스택(루트 *.php, admin/, api/, inc/, worker/)은 2026-10에 삭제되었습니다. Git 히스토리/구 브랜치에서 확인할 수 있습니다.
+`assets/`의 두 폴더는 쓰이는 시점이 다릅니다:
+
+- `assets/player`는 **빌드 타임**에 `web/`의 `@player` alias로 읽혀 `web/dist` 번들에 포함됩니다. git 서브모듈이라 클론 후 `git submodule update --init`이 필요합니다 (없으면 web 빌드 실패).
+- `assets/fonts`는 **서버 런타임**에 쓰입니다 — 인코딩 시 자막 burn-in을 위해 ffmpeg 자식 프로세스에 `FONTCONFIG_FILE=<BASE_DIR>/assets/fonts/fonts.conf`가 주입됩니다. 폰트 파일(~1GB)과 `fonts.conf`는 gitignore 대상이므로, `assets/fonts/fonts.conf.example`을 복사해 `fonts.conf`를 만들고(안의 `<dir>`을 실제 절대 경로로) 폰트 파일을 직접 배치해야 합니다.
+
+`animes/ covers/ subtitles/ logs/`와 `assets/fonts`는 서버가 `server/.env`의 **`BASE_DIR`** 아래에서 찾습니다. 기본값은 이 저장소 루트이므로 기본 설정에서는 위 트리 그대로 동작합니다.
+
+구 PHP 스택(루트 *.php, admin/, api/, inc/, worker/)과 구 Capacitor 앱(native/)은 2026-10에 삭제되었습니다. Git 히스토리/구 브랜치에서 확인할 수 있습니다.
 
 ## 설치 및 실행
 
-각 컴포넌트의 README를 따릅니다.
+각 컴포넌트의 README를 따릅니다. 클론 직후 `git submodule update --init`을 먼저 실행하세요.
 
 - 백엔드: [server/README.md](server/README.md) (venv, .env, Alembic, uvicorn)
 - 프론트엔드: [web/README.md](web/README.md) (pnpm, vite)
 - 모바일 앱: [app/README.md](app/README.md) (Tauri 빌드 머신)
-- 배포/컷오버: [deploy/README.md](deploy/README.md) (`deploy/migrate.sh` 런북)
+- 배포: [deploy/README.md](deploy/README.md) (`deploy/deploy.sh` 런북)
+
+## 개발 모드와 배포 모드
+
+- **개발**: `pnpm dev`(vite dev 서버 :5173, HMR) + uvicorn(:8000) 수동 실행. Apache 뒤에 붙이는 경우 Apache는 둘을 프록시하기만 합니다.
+- **배포**: `pnpm build` 산출물 `web/dist`를 Apache가 정적 서빙하고, uvicorn은 systemd(`anihy-server`)로 상주합니다. `deploy/deploy.sh`가 이 전환을 자동화합니다.
+
+## URL 프리픽스 설정
+
+루트(`/`)에 서빙하면 추가 설정이 필요 없습니다. 서브경로(예: `/anime`)에 서빙할 때의 요청 흐름:
+
+```
+브라우저 /anime/...      → Apache Alias → web/dist (React SPA)
+브라우저 /anime/api/...  → Apache ProxyPass → http://127.0.0.1:8000/api/...
+```
+
+FastAPI 라우터는 전부 `/api`로 고정이고 Apache가 프리픽스만 제거하므로, **서버 코드는 프리픽스와 무관**합니다. 서브경로로 배포할 때 조정할 곳:
+
+1. **Apache conf** — Alias/ProxyPass/ProxyPassReverse/RewriteBase/LocationMatch의 프리픽스 (`deploy/apache/anihy.conf`가 `/anime` 예시)
+2. **`server/.env`** — `PUBLIC_FILES_PREFIX=<prefix>/api/files` (서버가 생성하는 미디어 URL의 외부 프리픽스)
+3. **웹 클라이언트** — `/anime`, `/anime-test`, `/spa`(앱 오프라인 번들), `/`(루트)는 자동 감지(`web/src/api/client.ts`, `web/src/main.tsx`). 다른 프리픽스를 쓰려면 두 파일의 판별 분기에 추가하고, 개발 서버용으로 `web/vite.config.ts`의 프록시 규칙도 추가
+4. **앱** — 빌드 시점의 `ANIHY_SERVER_URL`에 경로 포함 전체 URL 지정
+
+vite 빌드는 `base: './'`(상대 경로)라 프리픽스별로 다시 빌드할 필요는 없습니다.
 
 ## 개발
+
+개발 규약(디자인 토큰, 애니메이션, CSS)은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참조하세요.
 
 ### downloader 설정
 
@@ -71,7 +103,7 @@ anime/
 | `VAAPI_DEVICE` | 경로 | VA-API 렌더 노드 (intel/radeon만 사용, 기본 `/dev/dri/renderD128`) |
 | `QUALITY` | 0~51 | 낮을수록 고화질 (intel/radeon `-qp`, software `-crf`, nvidia `-cq`) |
 
-큐 매니저가 매 루프 `.env`를 다시 읽으므로 값 변경은 다음 job부터 반영됩니다.
+큐 매니저가 매 루프 `.env`를 다시 읽으므로 `MAX_WORKERS` 변경은 실행 중에도 다음 job부터 반영됩니다. 전체 `.env` 변수는 [server/README.md](server/README.md)를 참조하세요.
 
 ## 보안 주의사항
 

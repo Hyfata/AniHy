@@ -1,82 +1,74 @@
-# AniHy deploy — 신규 스택(server/ + web/) 배포 & 컷오버
+# AniHy deploy — 프로덕션 배포 키트
 
-구 PHP SSR 스택(루트 *.php, api/, inc/, worker/)을 FastAPI(`server/`) + React SPA(`web/`)
-스택으로 교체하는 절차. **구 PHP 파일과 native/는 프로덕션 E2E 검증이 끝날 때까지
-삭제하지 않는다** — 롤백 경로이므로 컷오버 후에도 검증 완료까지 그대로 둔다.
+신 스택(`server/` + `web/`)의 **프로덕션 배포**용 파일 모음.
 
-## 아키텍처 / 경로 매핑 (핵심 결정)
+> ⚠️ 아직 실제 배포에 사용된 적 없는 미검증 키트다 — 첫 배포는 절차 검증을 겸한다.
+> 개발 환경(vite dev 서버 + 수동 실행 uvicorn) 구축에는 사용하지 않는다.
 
-```
-브라우저
-  ├─ /anime/...        → Apache Alias → web/dist (React SPA 정적, BrowserRouter basename /anime)
-  └─ /anime/api/...    → Apache ProxyPass → http://127.0.0.1:8000/api/... (FastAPI, uvicorn)
-```
+## 구성
 
-- FastAPI 라우터는 전부 `/api` 프리픽스(server/main.py). Apache가 `/anime` 접두사만 떼고 넘긴다
-  (`deploy/apache/anihy.conf`의 `ProxyPass /anime/api http://127.0.0.1:8000/api`).
-- 미디어(영상/커버/썸네일/챕터/자막)는 정적 노출 없이 전부 FastAPI `/api/files/*` 경유
-  (서버가 접근 쿠키를 검사). 외부 URL 프리픽스는 `server/.env`의
-  `PUBLIC_FILES_PREFIX=/anime/api/files`로 맞춘다 (services/urls.py).
-- 웹의 API 호출 베이스는 `web/src/api/client.ts: API_BASE`가 `/anime` 접두사를 감지해
-  자동으로 `/anime/api`를 쓴다.
-- uvicorn은 **workers=1 고정** — 잡 큐 매니저가 인프로세스 asyncio 큐라 워커를 늘리면
-  큐가 중복 기동된다 (deploy/systemd/anihy-server.service 주석 참조). 병렬 인코딩 수는
-  `.env`의 `MAX_WORKERS`로 조절(매 루프 hot-reload).
+| 파일 | 역할 |
+|------|------|
+| `deploy.sh` | 배포/업데이트 런북 (멱등 — 몇 번 실행해도 같은 상태로 수렴) |
+| `apache/anihy.conf` | Apache conf — SPA 정적 서빙 + API 리버스 프록시 (예시 프리픽스 `/anime`) |
+| `systemd/anihy-server.service` | uvicorn 상주 유닛 (**workers=1 필수**, 사유는 파일 주석 참조) |
+
+개발 모드와 배포 모드의 차이, URL 프리픽스 지정 방법은 루트 [README](../README.md) 참조.
+
+## deploy.sh가 하는 일
+
+1. `git pull --ff-only`
+2. `web/` 빌드 (`pnpm install --frozen-lockfile && pnpm build` → `web/dist`)
+3. `server/.venv` 생성 + Python 의존성 설치
+4. `server/.env` 없으면 템플릿에서 생성 (시크릿 대화형 입력)
+5. `alembic upgrade head` (신규 3개 테이블만 — 레거시 테이블은 `sql/`이 담당)
+6. systemd 유닛 설치/갱신 + `anihy-server` 재시작
+7. Apache conf를 `conf-available/anihy.conf`로 설치 (**활성화는 하지 않음**)
+8. 스모크 체크 (`curl 127.0.0.1:8000/api/health`)
+
+실패하면 중간에서 멈추고, 다시 실행하면 이어서 진행된다.
 
 ## 사전 준비 (수동)
 
-1. `server/.env` 작성 (`cp server/.env.example server/.env`):
-   - `DB_URL` — 기존 MariaDB `anime_site` 그대로.
-   - `COOKIE_SECRET` — 랜덤 값 (migrate.sh가 자동 생성).
-   - **Keycloak 값**: `KEYCLOAK_ISSUER/CLIENT_ID/CLIENT_SECRET` +
-     `KEYCLOAK_REDIRECT_URI=https://<도메인>/anime/api/auth/callback`.
-     Keycloak 클라이언트에도 동일 redirect URI 등록, realm role `admin` 생성.
-     비워 두면 `/api/auth/login`이 501 — 로그인 없이는 북마크/시청기록/관리자 기능 불가.
-   - `PUBLIC_FILES_PREFIX=/anime/api/files`
-   - `ENCODER/MAX_WORKERS/QUALITY/VAAPI_DEVICE` — 기존 inc/configuration.php 값 이관.
-2. DB 스키마: 기존 운영 DB는 레거시 마이그레이션까지 적용돼 있음. 신규 DB면
-   `sql/init.sql` + `sql/migrations/*.sql` 순서 적용 후 `alembic upgrade head`
-   (Alembic은 신규 3개 테이블 users/watch_history/bookmarks만 관리).
-3. 쓰기 권한: `animes/ covers/ subtitles/ logs/ downloader/videos/` — www-data.
-4. 외부 바이너리: `downloader/aniDL`, `smi2ass/smi2ass`, ffmpeg (+ 하드웨어 인코더 드라이버).
-5. DNS/URL: 사이트는 기존과 같은 `https://<도메인>/anime` 경로 유지 — 북마크/공유 링크 무효화 없음.
+1. `server/.env` 값 — `server/README.md`의 설정 표 참조. 서브경로 배포면
+   `PUBLIC_FILES_PREFIX`를 `<prefix>/api/files`로 (예: `/anime/api/files`)
+2. DB 스키마: 신규 DB면 `mysql anime_site < sql/init.sql` 후 `sql/migrations/*.sql`을 파일명 순으로 적용
+3. 쓰기 권한: `animes/ covers/ subtitles/ logs/ downloader/videos/` — www-data
+4. 외부 바이너리: `downloader/aniDL`, `smi2ass/smi2ass`, ffmpeg (+ 하드웨어 인코더 드라이버)
+5. 폰트: `assets/fonts/`에 `fonts.conf`(example 참조)와 폰트 파일 배치
 
-## 배포 절차
+## 사용법
 
-1. `sudo bash deploy/migrate.sh` — pull, web 빌드, venv/의존성, alembic, systemd 설치+기동,
-   Apache conf 복사(비활성) + 스모크(`curl http://127.0.0.1:8000/api/health`). 멱등.
-2. 스테이징 검증 (권장): 컷오버 전에 Apache에 임시 경로로 먼저 띄운다.
-   `deploy/apache/anihy.conf`를 복사해 `/anime` → `/anime-new`로 바꾼 버전을 만들고
-   (Alias/ProxyPass/RewriteBase/LocationMatch 전부), 이 경우 웹이 `/anime-new`를 감지하지
-   못하므로(API_BASE 판별이 `/anime` 고정) 스테이징에서는 `:8000` 직접 접속 + vite dev보다는
-   **별도 vhost/포트에서 루트(/) 서빙**을 권장한다 — basename `/` + `/api` 직결은
-   코드 수정 없이 동작한다.
-3. **프로덕션 E2E 체크리스트 전부 통과** — `server/README.md` "프로덕션 수동 E2E
-   체크리스트" 11개 항목(스트리밍/업로드+SMI/smi2ass 실패/서버 파일/동시성 hot-reload/
-   is_test/중지·재시도/싱크·트림/챕터·썸네일/aniDL SSE/idle 종료). 모바일은
-   `app/README.md`의 빌드 머신 검증 사항도 함께.
-4. 컷오버:
-   ```bash
-   sudo a2disconf anihy              # 구 PHP conf (쿠키 게이트 + 디렉터리 차단)
-   # 구 사이트의 "Alias /anime /var/www/html/anime" 지시자도 제거/주석 (vhost 쪽)
-   sudo a2enconf anihy-new           # deploy/migrate.sh가 복사해 둔 신 conf
-   sudo systemctl reload apache2
-   curl -fsS https://<도메인>/anime/api/health
-   ```
-5. 롤백: `a2disconf anihy-new && a2enconf anihy && systemctl reload apache2` +
-   `systemctl stop anihy-server`. 구 파일이 그대로라 즉시 복귀 가능.
+```bash
+sudo bash deploy/deploy.sh                 # 전체
+sudo bash deploy/deploy.sh --skip-web      # 서버만 갱신 (웹 빌드 생략)
+sudo ANIHY_REPO_DIR=/path/to/checkout bash deploy/deploy.sh   # 체크아웃 경로 지정
+```
 
-## PHP/native 삭제 기준 (컷오버 후)
+`ANIHY_REPO_DIR`(기본 `/var/www/html/anime`)은 배포할 git 체크아웃 경로.
+systemd 유닛과 Apache conf 안의 기본 경로도 설치 시점에 이 값으로 치환된다.
 
-구 PHP 스택(루트 *.php, admin/, api/, inc/, worker/)은 **삭제 완료(2026-10)** —
-사용자 지시로 체크리스트 완료 전에 삭제됨(구 브랜치에 분리 보존). 아래 체크리스트는
-프로덕션 컷오버 확정용으로 계속 유효:
+Apache conf 활성화는 수동이다 — 활성화하는 순간 해당 프리픽스의 라이브 서빙이
+신 스택으로 바뀐다:
 
-- [ ] server/README.md의 프로덕션 E2E 11개 항목 통과
-- [ ] 최소 1주간 실사용에서 인코딩 잡/다운로드/인증 장애 없음
-- [ ] Keycloak 로그인 + admin 판정 실계정 확인
-- [ ] 모바일 앱(app/) 실기기 체크리스트(app/README.md) 통과 — 앱이 서버 신규 API에 의존
-- [ ] 롤백 없이 운영 확정 → 그 때 native/ 삭제 + sql/은 DB 덤프 후 보관
+```bash
+sudo a2enconf anihy && sudo systemctl reload apache2
+curl -fsS https://<도메인>/anime/api/health
+```
 
-`deploy/apache/anihy.conf`의 디렉터리 차단 블록에서 삭제된 inc/, worker/는 정리됨 —
-단 `downloader/`(aniDL, config, videos), `logs/`, `smi2ass/`는 신규 스택도 쓰므로 지우면 안 된다.
+첫 활성화 전에 같은 프리픽스를 서빙하는 기존 Alias/conf가 있으면 먼저 제거할 것.
+
+## Apache 운영 주의점
+
+conf 주석에 상세가 있지만 요약하면:
+
+- **에러 응답(4xx/5xx)과 접두사 리다이렉트에 `Cache-Control: no-store`** — iOS Safari가
+  헤더 없는 에러 응답을 휴리스틱 캐시하는 사고 방지
+- SSE 엔드포인트는 `flushpackets=on` + no-gzip 필수 (회차 조회 스트림, 잡 로그)
+- ZIP 전체 다운로드 등 장기 요청 때문에 `ProxyTimeout 1800`
+- uvicorn은 **workers=1 고정** — 병렬 인코딩 수는 `.env`의 `MAX_WORKERS`로만 조절
+
+## 배포 후 검증
+
+`server/README.md`의 "프로덕션 수동 E2E 체크리스트" 전부 통과할 것.
+모바일 앱은 `app/README.md`의 빌드 머신 검증 사항도 함께.

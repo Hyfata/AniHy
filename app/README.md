@@ -1,6 +1,6 @@
 # AniHy App (Tauri 2 Mobile)
 
-Tauri 2 기반 iOS/Android 앱. 기존 `native/`(Capacitor)를 대체한다.
+Tauri 2 기반 iOS/Android 앱. (구 Capacitor 앱 `native/`는 삭제됨 — Git 히스토리 참조)
 웹 콘텐츠는 **원격 AniHy 서버**를 webview로 로드하고(기존 Capacitor `server.url`과 동일한 개념),
 하단 탭바만 네이티브(직접 구현한 `tauri-plugin-anihy-tabs`)로 처리한다.
 
@@ -82,7 +82,7 @@ pnpm tauri dev
 (다크 배경 + accent 원). 실제 아이콘으로 교체:
 
 ```bash
-pnpm tauri icon path/to/app-icon-1024.png   # 기존 native/app-icon-1024.png 재사용 가능
+pnpm tauri icon app-icon-1024.png   # app/ 루트의 원본 아이콘 사용
 ```
 
 ### 의존성 핀
