@@ -23,6 +23,30 @@ server/.venv/bin/pip install fastapi 'uvicorn[standard]' 'sqlalchemy>=2' alembic
 cd server && .venv/bin/alembic upgrade head
 ```
 
+## DB 스키마
+
+레거시 6개 테이블은 `sql/init.sql`, 신규 3개 테이블(users, watch_history, bookmarks)은
+Alembic(`server/alembic/versions/0001_new_user_tables.py`)이 관리한다.
+
+| 테이블 | 용도 | 주요 컬럼 / 제약 |
+|--------|------|------------------|
+| `animes` | 애니 메타 | `title`, `cover_image`, `season_id`(스트리밍 시즌 ID), `is_hidive`, `broadcast_year/quarter/day`, `description` 등 |
+| `anime_broadcasts` | 방영 분기 (복수) | UNIQUE(`anime_id`, `broadcast_year`, `broadcast_quarter`), FK → animes (CASCADE) |
+| `episodes` | 회차 | `episode_number VARCHAR(50)`, `file_path`, `duration_ms`(UNSIGNED), 자막 파일들, UNIQUE(`anime_id`, `episode_number`), FK → animes (CASCADE) |
+| `jobs` | 인코딩 잡 | `status` ENUM(pending/downloading/downloading_subs/preparing/encoding/remuxing/subtitling/completed/failed), `source_type` ENUM(download/upload/server), `is_test`, `trim_seconds`, `subtitle_offset`, `encoder`, `source_name`, `worker_pid` |
+| `settings` | 키-값 설정 | `access_code`, `cookie_secret` 등 (`key` PK) |
+| `search_hits` | 인기 검색어 집계 | `anime_id` PK, `hit_count`, `last_hit_at`, FK → animes (CASCADE) |
+| `users` | 로그인 사용자 (Alembic) | `external_sub`(Keycloak sub, UNIQUE), `display_name`, `is_admin` |
+| `watch_history` | 시청 기록 (Alembic) | `position_ms`/`duration_ms`, `completed`, UNIQUE(`user_id`, `anime_id`, `episode_number`), FK → users/animes (CASCADE) |
+| `bookmarks` | 북마크 (Alembic) | UNIQUE(`user_id`, `anime_id`), FK → users/animes (CASCADE) |
+
+주요 규약:
+
+- `episode_number`는 `VARCHAR(50)` — `'0.5'`, `'OVA'` 같은 비정수 회차를 허용한다.
+- 방영 분기는 `anime_broadcasts`(복수)가 정본이고, `animes.broadcast_year/quarter`는 첫 분기 미러다 — 미러 컬럼을 직접 UPDATE하지 말고 서버의 저장 로직을 거친다.
+- `jobs`는 같은 `anime_id + episode_number`에 진행 중(completed/failed 아님) 잡이 있으면 추가를 거부한다.
+- `watch_history.completed`는 `position_ms / duration_ms`가 일정 비율(COMPLETED_RATIO) 이상일 때. bulk 동기화는 `updated_at` 최신 우선.
+
 ## Run
 
 ```bash
