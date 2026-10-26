@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { API_BASE, api, get } from '../../api/client';
 import type {
   AddJobResponse,
@@ -7,7 +8,6 @@ import type {
   ServerFileItem,
   SubtitleStream,
 } from '../../api/types';
-import { Modal } from '../Modal';
 import { ServerFileList } from './ServerFileList';
 import { fetchBlob, saveBlobAs } from './utils';
 import { dialog } from '../../stores/dialog';
@@ -15,18 +15,21 @@ import styles from './admin.module.css';
 
 type SourceTab = 'stream' | 'upload' | 'server';
 
-interface AddEpisodeModalProps {
-  open: boolean;
-  onClose: () => void;
+interface AddEpisodeFormProps {
   anime: AnimeDetail;
+  onClose: () => void;
   /** 대기열 추가 성공 후 */
   onAdded?: () => void;
+  /** Shell modal footer container — the submit action is portaled into it so
+     the fixed footer stays while this form's state remains local. */
+  footerEl?: HTMLDivElement | null;
 }
 
 const VIDEO_EXTS = ['mkv', 'mp4', 'mov', 'avi', 'webm'];
 
-/** 에피소드 추가 모달 (anime.php #add-episode-modal 대응) — POST /api/jobs */
-export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeModalProps) {
+/** 에피소드 단일 추가 폼 (anime.php #add-episode-modal 대응) — POST /api/jobs.
+   EpisodeAddModal의 셸 안에서 렌더된다 (열림/리셋은 마운트 기준). */
+export function AddEpisodeForm({ anime, onClose, onAdded, footerEl }: AddEpisodeFormProps) {
   const hasSeason = !!anime.season_id?.trim();
   const [tab, setTab] = useState<SourceTab>(hasSeason ? 'stream' : 'server');
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -75,18 +78,6 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
     lookupRef.current = null;
     setLookupRunning(false);
   };
-
-  useEffect(() => {
-    if (!open) {
-      stopLookup();
-      return;
-    }
-    setTab(anime.season_id?.trim() ? 'stream' : 'server');
-    setErrors({});
-    setLookupLines('');
-    setLookupEps([]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, anime.id]);
 
   useEffect(() => stopLookup, []);
 
@@ -319,6 +310,15 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
+    const hasSubtitle = effTab === 'server' ? !!(attachedSub ?? subFile) : !!subFile;
+    if (!hasSubtitle) {
+      const ok = await dialog.confirm(
+        '자막 파일을 선택하지 않았습니다.\n기존 자막 재사용/내장 자막 추출이 시도되고, 둘 다 없으면 자막 없이 진행됩니다. 계속할까요?',
+        { title: '자막 없음', confirmLabel: '계속' },
+      );
+      if (!ok) return;
+    }
+
     setSubmitting(true);
     try {
       const fd = new FormData();
@@ -367,24 +367,22 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
   );
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="에피소드 추가"
-      footer={
-        <>
-          {errors.form && <div className={styles.error} style={{ marginBottom: 8 }}>{errors.form}</div>}
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
-            disabled={submitting}
-            onClick={() => void submit()}
-          >
-            {submitting ? '추가 중...' : submitLabel}
-          </button>
-        </>
-      }
-    >
+    <>
+      {footerEl &&
+        createPortal(
+          <>
+            {errors.form && <div className={styles.error} style={{ marginBottom: 8 }}>{errors.form}</div>}
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
+              disabled={submitting}
+              onClick={() => void submit()}
+            >
+              {submitting ? '추가 중...' : submitLabel}
+            </button>
+          </>,
+          footerEl,
+        )}
       <div className={styles.field}>
         <label className={styles.label} htmlFor="add-ep-number">에피소드 번호</label>
         <input
@@ -688,6 +686,6 @@ export function AddEpisodeModal({ open, onClose, anime, onAdded }: AddEpisodeMod
           </>
         )}
       </div>
-    </Modal>
+    </>
   );
 }

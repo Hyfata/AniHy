@@ -23,8 +23,7 @@ import { isNative } from '../../lib/native';
 import { useAuthStore } from '../../stores/auth';
 import { dialog } from '../../stores/dialog';
 import { useDownloadsStore } from '../../stores/downloads';
-import { AddEpisodeModal } from '../admin/AddEpisodeModal';
-import { BulkAddModal } from '../admin/BulkAddModal';
+import { EpisodeAddModal } from '../admin/EpisodeAddModal';
 import { EditAnimeModal } from '../admin/EditAnimeModal';
 import { DownloadAllButton } from './DownloadAllButton';
 import { EpisodeDownloadButton } from './EpisodeDownloadButton';
@@ -237,7 +236,6 @@ export function AnimeDetailView({
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [addEpOpen, setAddEpOpen] = useState(false);
-  const [bulkOpen, setBulkOpen] = useState(false);
   const [editEp, setEditEp] = useState<Episode | null>(null);
   const [editEpTitle, setEditEpTitle] = useState('');
   const [epBusy, setEpBusy] = useState(false);
@@ -485,22 +483,13 @@ export function AnimeDetailView({
                 </button>
               )}
               {isAdmin && (
-                <>
-                  <button
-                    type="button"
-                    className={`${styles.btnSm} ${styles.btnSmPrimary}`}
-                    onClick={() => setAddEpOpen(true)}
-                  >
-                    에피소드 추가
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.btnSm} ${styles.btnSmPrimary}`}
-                    onClick={() => setBulkOpen(true)}
-                  >
-                    일괄 추가
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className={`${styles.btnSm} ${styles.btnSmPrimary}`}
+                  onClick={() => setAddEpOpen(true)}
+                >
+                  에피소드 추가
+                </button>
               )}
             </div>
           </div>
@@ -652,8 +641,7 @@ export function AnimeDetailView({
             onSaved={() => void refetch()}
             onDeleted={() => navigate('/')}
           />
-          <AddEpisodeModal open={addEpOpen} onClose={() => setAddEpOpen(false)} anime={detail} />
-          <BulkAddModal open={bulkOpen} onClose={() => setBulkOpen(false)} anime={detail} />
+          <EpisodeAddModal open={addEpOpen} onClose={() => setAddEpOpen(false)} anime={detail} />
         </>
       )}
     </>

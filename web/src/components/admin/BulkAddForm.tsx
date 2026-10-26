@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api, get } from '../../api/client';
 import type { AddJobResponse, AnimeDetail, ServerFileItem } from '../../api/types';
-import { Modal } from '../Modal';
 import { ServerFileList } from './ServerFileList';
 import { nameSort } from './utils';
 import { dialog } from '../../stores/dialog';
@@ -23,15 +23,18 @@ interface BulkRow {
   payload: BulkPayload;
 }
 
-interface BulkAddModalProps {
-  open: boolean;
-  onClose: () => void;
+interface BulkAddFormProps {
   anime: AnimeDetail;
+  onClose: () => void;
   onAdded?: () => void;
+  /** Shell modal footer container — the submit action is portaled into it so
+     the fixed footer stays while this form's state remains local. */
+  footerEl?: HTMLDivElement | null;
 }
 
-/** 에피소드 일괄 추가 모달 (anime.php #bulk-add-modal 대응) — 회차별 순차 POST /api/jobs */
-export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProps) {
+/** 에피소드 일괄 추가 폼 (anime.php #bulk-add-modal 대응) — 회차별 순차 POST /api/jobs.
+   EpisodeAddModal의 셸 안에서 렌더된다 (열림/리셋은 마운트 기준). */
+export function BulkAddForm({ anime, onClose, onAdded, footerEl }: BulkAddFormProps) {
   const hasSeason = !!anime.season_id?.trim();
   const [tab, setTab] = useState<BulkTab>(hasSeason ? 'stream' : 'server');
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -64,15 +67,6 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState('');
-
-  useEffect(() => {
-    if (!open) return;
-    setTab(anime.season_id?.trim() ? 'stream' : 'server');
-    setRows(null);
-    setError('');
-    setProgress('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, anime.id]);
 
   const loadServerFiles = async () => {
     if (serverListOpen) {
@@ -208,6 +202,13 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
 
   const submit = async () => {
     if (!rows || rows.length === 0 || submitting) return;
+    if (subs.length === 0) {
+      const ok = await dialog.confirm(
+        '자막 파일을 선택하지 않았습니다.\n모든 회차가 기존 자막 재사용/내장 자막 추출이 시도되고, 둘 다 없으면 자막 없이 진행됩니다. 계속할까요?',
+        { title: '자막 없음', confirmLabel: '계속' },
+      );
+      if (!ok) return;
+    }
     setSubmitting(true);
     const failures: string[] = [];
     let succeeded = 0;
@@ -265,38 +266,36 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
         : subWarning(rangeCount, subs.length);
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="에피소드 일괄 추가"
-      footer={
-        <>
-          {error && <div className={styles.error} style={{ marginBottom: 8 }}>{error}</div>}
-          {rows === null ? (
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
-              onClick={buildPreview}
-              disabled={submitting}
-            >
-              매핑 확인
-            </button>
-          ) : (
-            <>
+    <>
+      {footerEl &&
+        createPortal(
+          <>
+            {error && <div className={styles.error} style={{ marginBottom: 8 }}>{error}</div>}
+            {rows === null ? (
               <button
                 type="button"
                 className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
-                disabled={submitting || rows.length === 0}
-                onClick={() => void submit()}
+                onClick={buildPreview}
+                disabled={submitting}
               >
-                {submitting ? '추가 중...' : `${rows.length}개 에피소드 추가`}
+                매핑 확인
               </button>
-              {progress && <div className={styles.progressText}>{progress}</div>}
-            </>
-          )}
-        </>
-      }
-    >
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`}
+                  disabled={submitting || rows.length === 0}
+                  onClick={() => void submit()}
+                >
+                  {submitting ? '추가 중...' : `${rows.length}개 에피소드 추가`}
+                </button>
+                {progress && <div className={styles.progressText}>{progress}</div>}
+              </>
+            )}
+          </>,
+          footerEl,
+        )}
       <div className={styles.sourceBox}>
         <div className={styles.tabs}>
           {(
@@ -532,6 +531,6 @@ export function BulkAddModal({ open, onClose, anime, onAdded }: BulkAddModalProp
           ))}
         </div>
       )}
-    </Modal>
+    </>
   );
 }

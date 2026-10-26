@@ -333,9 +333,11 @@
 }
 
 .chip span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Long file names wrap instead of truncating */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  text-align: left;
 }
 
 .chip button {
