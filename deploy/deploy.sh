@@ -103,10 +103,8 @@ if [ ! -f "$SERVER_DIR/.env" ]; then
 fi
 
 # ── 5. DB schema ──────────────────────────────────────────────────
-# The legacy tables (animes/episodes/jobs/...) come from sql/init.sql +
-# sql/migrations/*.sql and are assumed to exist. For a fresh database run:
-#   mysql anime_site < sql/init.sql
-#   for f in sql/migrations/*.sql; do mysql anime_site < "$f"; done
+# The legacy tables (animes/episodes/jobs/...) come from sql/init.sql and are
+# assumed to exist. For a fresh database run:  mysql < sql/init.sql
 # Alembic manages only the 3 new tables (users, watch_history, bookmarks).
 log "alembic upgrade head"
 (cd "$SERVER_DIR" && "$VENV/bin/alembic" upgrade head)

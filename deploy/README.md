@@ -32,7 +32,7 @@
 
 1. `server/.env` 값 — `server/README.md`의 설정 표 참조. 서브경로 배포면
    `PUBLIC_FILES_PREFIX`를 `<prefix>/api/files`로 (예: `/anime/api/files`)
-2. DB 스키마: 신규 DB면 `mysql anime_site < sql/init.sql` 후 `sql/migrations/*.sql`을 파일명 순으로 적용
+2. DB 스키마: 신규 DB면 `mysql < sql/init.sql` (레거시 전체 테이블 포함)
 3. 쓰기 권한: `animes/ covers/ subtitles/ logs/ downloader/videos/` — www-data
 4. 외부 바이너리: `downloader/aniDL`, `smi2ass/smi2ass`, ffmpeg (+ 하드웨어 인코더 드라이버)
 5. 폰트: `assets/fonts/`에 `fonts.conf`(example 참조)와 폰트 파일 배치

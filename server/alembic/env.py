@@ -1,8 +1,8 @@
 """Alembic env — DB URL은 server/.env(Settings)에서 읽는다.
 
 주의: 기존 6개 테이블(animes, anime_broadcasts, episodes, jobs, settings, search_hits)은
-레거시 sql/(init.sql + migrations)이 관리하므로 Alembic 마이그레이션 대상이 아니다.
-신규 DB에 적용할 때는 레거시 sql/를 먼저 적용한 뒤 `alembic stamp head`가 아니라
+sql/init.sql이 관리하므로 Alembic 마이그레이션 대상이 아니다.
+신규 DB에 적용할 때는 sql/init.sql를 먼저 적용한 뒤 `alembic stamp head`가 아니라
 정상적으로 `alembic upgrade head`를 실행해 신규 3개 테이블(users, watch_history, bookmarks)을 생성하면 된다.
 (레거시 테이블을 이미 갖고 있는 DB에도 upgrade head만 실행하면 된다.)
 """

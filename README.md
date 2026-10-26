@@ -39,7 +39,7 @@ Crunchyroll이나 Hidive에서 애니메이션을 다운로드하고 자막과 �
 ├── downloader/         # aniDL 바이너리 및 설정, 다운로드 임시본(videos/)
 ├── logs/               # 서버/잡 로그
 ├── smi2ass/            # SMI → ASS 변환 바이너리
-├── sql/                # DB 초기화(init.sql) + migrations/
+├── sql/                # DB 스키마 (init.sql — 레거시 전체 테이블)
 └── subtitles/          # 변환된 ASS 자막 저장소 ({anime_id}/{회차}.ass)
 ```
 

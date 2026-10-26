@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS episodes (
     episode_number VARCHAR(50) NOT NULL,
     title VARCHAR(255),
     file_path VARCHAR(500) NOT NULL,
+    duration_ms INT UNSIGNED NULL,
     has_subtitle BOOLEAN DEFAULT FALSE,
     en_subtitle_file VARCHAR(500),
     subtitle_file VARCHAR(500),
@@ -50,7 +51,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     subtitle_file VARCHAR(500),
     trim_seconds DECIMAL(10,3) DEFAULT 0,
     subtitle_offset DECIMAL(10,3) DEFAULT 0,
-    source_type ENUM('download','upload') NOT NULL DEFAULT 'download',
+    is_test TINYINT(1) NOT NULL DEFAULT 0,
+    source_type ENUM('download','upload','server') NOT NULL DEFAULT 'download',
     source_file VARCHAR(500) DEFAULT NULL,
     status ENUM('pending','downloading','downloading_subs','preparing','encoding','remuxing','subtitling','completed','failed')
         DEFAULT 'pending',
@@ -58,8 +60,17 @@ CREATE TABLE IF NOT EXISTS jobs (
     progress INT DEFAULT 0,
     duration_ms INT DEFAULT NULL,
     worker_pid INT DEFAULT NULL,
+    encoder VARCHAR(20) NULL,
+    source_name VARCHAR(500) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS search_hits (
+    anime_id INT PRIMARY KEY,
+    hit_count INT NOT NULL DEFAULT 1,
+    last_hit_at DATETIME NOT NULL,
+    FOREIGN KEY (anime_id) REFERENCES animes(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS settings (

@@ -1,1 +1,0 @@
-ALTER TABLE jobs ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0 AFTER subtitle_offset;

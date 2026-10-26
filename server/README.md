@@ -16,7 +16,7 @@ server/.venv/bin/pip install fastapi 'uvicorn[standard]' 'sqlalchemy>=2' alembic
 ```
 
 1. `cp server/.env.example server/.env` 후 실제 값 입력 (아래 설정 표 참조).
-2. DB 스키마: 기존 6개 테이블은 레거시 `sql/init.sql` + `sql/migrations/*.sql`로 먼저 적용(기존 DB면 이미 적용됨). **Alembic은 신규 3개 테이블(users, watch_history, bookmarks)만 관리**한다 — 기존 테이블을 마이그레이션으로 재생성하지 않음.
+2. DB 스키마: 신규 DB면 `mysql < sql/init.sql` (레거시 전체 테이블 포함, 기존 DB면 이미 적용됨). **Alembic은 신규 3개 테이블(users, watch_history, bookmarks)만 관리**한다 — 기존 테이블을 마이그레이션으로 재생성하지 않음.
 3. 신규 테이블 적용:
 
 ```bash

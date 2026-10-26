@@ -1,6 +1,6 @@
-"""기존 6개 테이블(sql/init.sql + migrations/*)을 정확히 미러링한 모델 + 신규 users/watch_history/bookmarks.
+"""기존 6개 테이블(sql/init.sql)을 정확히 미러링한 모델 + 신규 users/watch_history/bookmarks.
 
-기존 테이블은 레거시 sql/이 관리하므로 Alembic 마이그레이션 대상이 아님(메타 미러링만).
+기존 테이블은 sql/init.sql이 관리하므로 Alembic 마이그레이션 대상이 아님(메타 미러링만).
 신규 3개 테이블만 alembic이 생성한다.
 """
 from datetime import datetime
@@ -67,7 +67,7 @@ class Episode(Base):
     episode_number: Mapped[str] = mapped_column(String(50))  # '0.5', 'OVA' 허용
     title: Mapped[str | None] = mapped_column(String(255))
     file_path: Mapped[str] = mapped_column(String(500))
-    duration_ms: Mapped[int | None] = mapped_column(MYSQL_INTEGER(unsigned=True))  # 마이그레이션 009
+    duration_ms: Mapped[int | None] = mapped_column(MYSQL_INTEGER(unsigned=True))
     has_subtitle: Mapped[bool] = mapped_column(Boolean, default=False)
     en_subtitle_file: Mapped[str | None] = mapped_column(String(500))
     subtitle_file: Mapped[str | None] = mapped_column(String(500))
@@ -78,7 +78,7 @@ JOB_STATUSES = (
     "pending", "downloading", "downloading_subs", "preparing",
     "encoding", "remuxing", "subtitling", "completed", "failed",
 )
-JOB_SOURCE_TYPES = ("download", "upload", "server")  # add_server_source_type.sql 반영
+JOB_SOURCE_TYPES = ("download", "upload", "server")
 
 
 class Job(Base):
@@ -92,7 +92,7 @@ class Job(Base):
     subtitle_file: Mapped[str | None] = mapped_column(String(500))
     trim_seconds: Mapped[Decimal] = mapped_column(Numeric(10, 3), default=0)
     subtitle_offset: Mapped[Decimal] = mapped_column(Numeric(10, 3), default=0)
-    is_test: Mapped[bool] = mapped_column(TINYINT(1), default=0)  # 마이그레이션 008
+    is_test: Mapped[bool] = mapped_column(TINYINT(1), default=0)
     source_type: Mapped[str] = mapped_column(
         Enum(*JOB_SOURCE_TYPES, name="source_type"), default="download"
     )
@@ -102,8 +102,8 @@ class Job(Base):
     progress: Mapped[int] = mapped_column(Integer, default=0)
     duration_ms: Mapped[int | None] = mapped_column(Integer)
     worker_pid: Mapped[int | None] = mapped_column(Integer)
-    encoder: Mapped[str | None] = mapped_column(String(20))  # 마이그레이션 007
-    source_name: Mapped[str | None] = mapped_column(String(500))  # 마이그레이션 007
+    encoder: Mapped[str | None] = mapped_column(String(20))
+    source_name: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP, server_default=func.now(), onupdate=func.now()
