@@ -58,6 +58,8 @@
   background: transparent;
   color: var(--color-text-muted);
   font-size: var(--text-xs);
+  /* <button>(UA line-height normal)과 <a>(body 1.5 상속)가 섞여 있어 명시해야 높이가 같아짐 */
+  line-height: 1.2;
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
   transition: color var(--duration-fast), background var(--duration-fast);
@@ -93,7 +95,8 @@
 }
 
 .titleRow h1 {
-  margin: 0 0 var(--space-2);
+  /* 분기 뱃지와의 간격은 .metaRow의 margin-top만 사용 (이중 마진 방지) */
+  margin: 0;
   font-size: var(--text-xl);
   font-weight: var(--font-weight-bold);
   line-height: 1.4;

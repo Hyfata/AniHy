@@ -387,7 +387,7 @@ export function AnimeDetailView({
               </button>
               {hasDesc && (
                 <button type="button" className={`${styles.posterAction} ${styles.posterActionSynopsis}`} onClick={() => setSynopsisOpen(true)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h16M4 10h16M4 15h16M4 20h10" /></svg>
                   <span>줄거리</span>
                 </button>
               )}
