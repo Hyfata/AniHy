@@ -1,7 +1,7 @@
 import { useReducedMotion } from 'framer-motion';
 import type { Transition } from 'framer-motion';
 
-/** 모션 토큰 — spring vs tween 가이드는 web/README.md 참조 */
+/** 모션 토큰 — spring vs tween 가이드는 CONTRIBUTING.md 참조 */
 export const springPop: Transition = { type: 'spring', stiffness: 380, damping: 30 };
 export const springGentle: Transition = { type: 'spring', stiffness: 300, damping: 34 };
 export const tweenFast: Transition = { type: 'tween', duration: 0.15, ease: 'easeOut' };

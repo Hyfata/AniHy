@@ -11,6 +11,7 @@ import type { DownloadedAnime } from '../../lib/native';
 import { useConnectivityStore } from '../../stores/connectivity';
 import { useDownloadsStore } from '../../stores/downloads';
 import { Skeleton } from '../Spinner';
+import { SelectBar } from './SelectBar';
 import styles from './library.module.css';
 import { dialog } from '../../stores/dialog';
 
@@ -146,24 +147,15 @@ export function DownloadsTab({
 
   return (
     <div>
-      {selectMode && (
-        <div className={styles.selectBar}>
-          <span className={styles.selectCount}>{selected.size}개 선택</span>
-          <button type="button" className={styles.selectActionBtn} onClick={deleteSelected}>
-            선택 삭제
-          </button>
-          <button
-            type="button"
-            className={styles.selectCancelBtn}
-            onClick={() => {
-              setSelected(new Set());
-              onSelectModeChange(false);
-            }}
-          >
-            취소
-          </button>
-        </div>
-      )}
+      <SelectBar
+        open={selectMode}
+        count={selected.size}
+        onDelete={deleteSelected}
+        onCancel={() => {
+          setSelected(new Set());
+          onSelectModeChange(false);
+        }}
+      />
       <div className={styles.historyList}>
         {items.map((a) => (
           <div key={a.animeId}>

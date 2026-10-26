@@ -11,6 +11,7 @@ import { Modal } from '../Modal';
 import { TrashIcon } from '../icons';
 import { Skeleton } from '../Spinner';
 import { LoginPrompt } from './LoginPrompt';
+import { SelectBar } from './SelectBar';
 import styles from './library.module.css';
 
 interface AnimeGroup {
@@ -164,24 +165,15 @@ export function HistoryTab({
 
   return (
     <>
-      {selectMode && (
-        <div className={styles.selectBar}>
-          <span className={styles.selectCount}>{selected.size}개 선택</span>
-          <button type="button" className={styles.selectActionBtn} onClick={() => void deleteSelected()}>
-            선택 삭제
-          </button>
-          <button
-            type="button"
-            className={styles.selectCancelBtn}
-            onClick={() => {
-              setSelected(new Set());
-              onSelectModeChange(false);
-            }}
-          >
-            취소
-          </button>
-        </div>
-      )}
+      <SelectBar
+        open={selectMode}
+        count={selected.size}
+        onDelete={() => void deleteSelected()}
+        onCancel={() => {
+          setSelected(new Set());
+          onSelectModeChange(false);
+        }}
+      />
       <div className={styles.historyList}>
         {groups.map((g) => {
           const ratio = Math.min(1, Math.max(0, g.latest.ratio));

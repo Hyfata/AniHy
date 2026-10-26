@@ -849,3 +849,16 @@
   accent-color: var(--color-primary);
   cursor: pointer;
 }
+
+/* Select-mode checkbox pop-in */
+@keyframes selectCheckPop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.selectCheck,
+.bookmarkSelectCheck {
+  animation: selectCheckPop var(--duration-fast) var(--ease-out);
+}

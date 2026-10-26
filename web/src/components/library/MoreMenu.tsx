@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { TrashIcon } from '../icons';
+import { AnimatePresence, motion } from 'framer-motion';
+import { tweenFast, useMotionTransition } from '../../lib/motion';
+import { EditIcon, TrashIcon } from '../icons';
 import styles from './library.module.css';
 
-/** Small "more" dropdown for the library tabs: 선택 삭제 / 전체 삭제. */
+/** Small "more" dropdown for the library tabs: 선택 / 전체 삭제. */
 export function MoreMenu({
   onSelectDelete,
   onClearAll,
@@ -12,6 +14,7 @@ export function MoreMenu({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const transition = useMotionTransition(tweenFast);
 
   useEffect(() => {
     if (!open) return;
@@ -33,34 +36,44 @@ export function MoreMenu({
       >
         ⋯
       </button>
-      {open && (
-        <div className={styles.moreMenu} role="menu">
-          <button
-            type="button"
-            role="menuitem"
-            className={styles.moreMenuItem}
-            onClick={() => {
-              setOpen(false);
-              onSelectDelete();
-            }}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className={styles.moreMenu}
+            role="menu"
+            initial={{ opacity: 0, scale: 0.96, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -4 }}
+            transition={transition}
+            style={{ transformOrigin: 'top right' }}
           >
-            <TrashIcon />
-            선택 삭제
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className={`${styles.moreMenuItem} ${styles.moreMenuItemDanger}`}
-            onClick={() => {
-              setOpen(false);
-              onClearAll();
-            }}
-          >
-            <TrashIcon />
-            전체 삭제
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              role="menuitem"
+              className={styles.moreMenuItem}
+              onClick={() => {
+                setOpen(false);
+                onSelectDelete();
+              }}
+            >
+              <EditIcon />
+              선택
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className={`${styles.moreMenuItem} ${styles.moreMenuItemDanger}`}
+              onClick={() => {
+                setOpen(false);
+                onClearAll();
+              }}
+            >
+              <TrashIcon />
+              전체 삭제
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
