@@ -108,6 +108,12 @@ export interface HistoryItem {
   episode_duration_ms: number | null;
 }
 
+/** GET /api/search/suggest 아이템 */
+export interface Suggestion {
+  id: number;
+  title: string;
+}
+
 /** GET /api/bookmarks 아이템 */
 export interface Bookmark {
   id: number;

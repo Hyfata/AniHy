@@ -46,21 +46,16 @@ def _record_search_hit(db: Session, anime_id: int) -> None:
         db.rollback()
 
 
-@router.get("")
-def search_titles(q: str = Query(""), db: Session = Depends(get_db)):
-    query = q.strip()
-    if len(query) > 100:  # PHP의 100자 캡 (mbstring 부재 우회와 달리 문자 단위로 처리 가능)
-        query = query[:100]
-    if not query:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="검색어를 입력하세요.")
+def _find_candidates(db: Session, query: str) -> tuple[list[Anime], int]:
+    """제목 LIKE(관련도 정렬) + 한글 로마자 근사 매칭을 뒤에 붙인 최종 후보 목록.
 
+    반환: (rows, like_total) — like_total은 LIKE 후보 전체 수 (has_more 판별용).
+    """
     candidates = db.execute(
         select(Anime).where(Anime.title.like(f"%{query}%"))
     ).scalars().all()
     candidates.sort(key=lambda a: _rank_key(query, a.title))
-    has_more = len(candidates) > _LIMIT
     rows = candidates[:_LIMIT]
-
     # 한글 검색어는 로마자 발음 근사 매칭을 LIKE 결과 뒤에 추가
     if romanize.has_hangul(query):
         variants = romanize.search_query_variants(query)
@@ -77,7 +72,20 @@ def search_titles(q: str = Query(""), db: Session = Depends(get_db)):
                     if len(scored) >= _LIMIT:
                         break
             scored.sort(key=lambda x: x[0], reverse=True)
-            rows.extend(a for _, a in scored[:_LIMIT])
+            rows = rows + [a for _, a in scored[:_LIMIT]]
+    return rows, len(candidates)
+
+
+@router.get("")
+def search_titles(q: str = Query(""), db: Session = Depends(get_db)):
+    query = q.strip()
+    if len(query) > 100:  # PHP의 100자 캡 (mbstring 부재 우회와 달리 문자 단위로 처리 가능)
+        query = query[:100]
+    if not query:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="검색어를 입력하세요.")
+
+    rows, like_total = _find_candidates(db, query)
+    has_more = like_total > _LIMIT
 
     if rows:
         _record_search_hit(db, rows[0].id)
@@ -85,6 +93,19 @@ def search_titles(q: str = Query(""), db: Session = Depends(get_db)):
     latest_map = _latest_episode_map(db, [a.id for a in rows])
     items = [_with_latest_episode(_card(a), latest_map.get(a.id)) for a in rows]
     return {"animes": items, "has_more": has_more, "total": len(items)}
+
+
+_SUGGEST_LIMIT = 10
+
+
+@router.get("/suggest")
+def search_suggest(q: str = Query(""), db: Session = Depends(get_db)):
+    """연관 검색어 — 타이핑 중 제안용 경량 버전. 히트(search_hits) 기록 없음."""
+    query = q.strip()[:100]
+    if not query:
+        return {"suggestions": []}
+    rows, _ = _find_candidates(db, query)
+    return {"suggestions": [{"id": a.id, "title": a.title} for a in rows[:_SUGGEST_LIMIT]]}
 
 
 @router.get("/trending")

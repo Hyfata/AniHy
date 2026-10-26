@@ -47,6 +47,22 @@ def test_search_no_results_no_hit(user_client, db_session, seed_animes):
     assert db_session.query(SearchHit).count() == 0
 
 
+def test_suggest_returns_titles_without_recording_hits(user_client, db_session, seed_animes):
+    resp = user_client.get("/api/search/suggest", params={"q": "스파이"})
+    assert resp.status_code == 200
+    suggestions = resp.json()["suggestions"]
+    assert suggestions[0]["title"] == "스파이 패밀리"
+    assert {"id", "title"} >= set(suggestions[0])  # 경량 shape (커버/히트 없음)
+    assert db_session.query(SearchHit).count() == 0  # 제안은 히트 기록 안 함
+
+
+def test_suggest_empty_query(user_client, db_session, seed_animes):
+    resp = user_client.get("/api/search/suggest", params={"q": "  "})
+    assert resp.status_code == 200
+    assert resp.json() == {"suggestions": []}
+    assert db_session.query(SearchHit).count() == 0
+
+
 def test_search_romanized_fuzzy_match(user_client, seed_animes):
     resp = user_client.get("/api/search", params={"q": "제로"})
     titles = [a["title"] for a in resp.json()["animes"]]

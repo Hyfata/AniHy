@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import type { TrendingItem } from '../../api/types';
+import type { Suggestion, TrendingItem } from '../../api/types';
 import styles from './search.module.css';
 
 interface TrendingSearchesProps {
@@ -41,8 +41,7 @@ interface RecentSearchesProps {
 }
 
 /** 최근 검색어 (localStorage, 클라이언트 전용) */
-export function RecentSearches({ items, onSelect, onClear }: RecentSearchesProps) {
-  if (items.length === 0) return null;
+export function RecentSearches({ items, onSelect, onClear }: RecentSearchesProps) {  if (items.length === 0) return null;
   return (
     <section className={styles.panel}>
       <div className={styles.panelHeader}>
@@ -56,6 +55,42 @@ export function RecentSearches({ items, onSelect, onClear }: RecentSearchesProps
           <li key={term}>
             <button type="button" className={styles.chip} onClick={() => onSelect(term)}>
               <span className={styles.chipTitle}>{term}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+interface SearchSuggestionsProps {
+  items: Suggestion[];
+  onSelect: (title: string) => void;
+}
+
+/** 연관 검색어 패널 — 타이핑 중 제안 (탭하면 그 제목으로 검색 확정) */
+export function SearchSuggestions({ items, onSelect }: SearchSuggestionsProps) {
+  if (items.length === 0) return null;
+  return (
+    <section className={styles.panel}>
+      <ul className={styles.list}>
+        {items.map((s) => (
+          <li key={s.id}>
+            <button type="button" className={styles.chip} onClick={() => onSelect(s.title)}>
+              <svg
+                className={styles.suggestIcon}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <span className={styles.chipTitle}>{s.title}</span>
             </button>
           </li>
         ))}

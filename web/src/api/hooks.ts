@@ -5,6 +5,7 @@ import type {
   AnimeListResponse,
   QuarterDetailResponse,
   QuarterGroup,
+  Suggestion,
   TrendingItem,
 } from './types';
 
@@ -51,6 +52,17 @@ export function useSearchTitles(query: string) {
       get<AnimeListResponse>(`/search?q=${encodeURIComponent(query)}`),
     enabled: query.trim().length > 0,
     placeholderData: (prev) => prev, // 입력 중 이전 결과 유지 (깜빡임 방지)
+  });
+}
+
+/** 연관 검색어 — GET /api/search/suggest?q= (타이핑 중 제안, search_hits 기록 없음) */
+export function useSearchSuggestions(query: string) {
+  return useQuery({
+    queryKey: ['search', 'suggest', query],
+    queryFn: () =>
+      get<{ suggestions: Suggestion[] }>(`/search/suggest?q=${encodeURIComponent(query)}`),
+    enabled: query.trim().length > 0,
+    placeholderData: (prev) => prev,
   });
 }
 

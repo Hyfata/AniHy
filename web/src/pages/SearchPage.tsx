@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchTitles, useTrending } from '../api/hooks';
+import type { FormEvent } from 'react';
+import { useSearchSuggestions, useSearchTitles, useTrending } from '../api/hooks';
 import { AnimeGrid, AnimeGridSkeleton } from '../components/home/AnimeGrid';
-import { RecentSearches, TrendingSearches } from '../components/search/SearchPanels';
+import { RecentSearches, SearchSuggestions, TrendingSearches } from '../components/search/SearchPanels';
 import searchStyles from '../components/search/search.module.css';
 import styles from './pages.module.css';
 
@@ -29,44 +30,52 @@ function pushRecent(term: string): string[] {
   return next;
 }
 
-/** 검색 (/search) — index.php search 탭 대응: 디바운스 검색 + 트렌딩/최근 검색어 */
+/** 검색 (/search) — 타이핑 중엔 연관 검색어만 제안하고, 검색 확정(Enter/모바일 키보드 검색
+   버튼/제안 탭) 시에만 결과 표시 + 최근 검색어 기록 (중간 타이핑이 기록을 오염시키지 않도록) */
 export function SearchPage() {
   const [input, setInput] = useState('');
-  const [query, setQuery] = useState('');
+  const [committed, setCommitted] = useState('');
+  const [suggestQuery, setSuggestQuery] = useState('');
   const [recent, setRecent] = useState<string[]>(() => loadRecent());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: trending } = useTrending();
-  const trimmed = query.trim();
-  const { data, isFetching, isError } = useSearchTitles(trimmed);
+  const committedTrim = committed.trim();
+  const { data, isFetching, isError } = useSearchTitles(committedTrim);
+  const { data: suggestData, isFetching: suggestFetching } = useSearchSuggestions(suggestQuery);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // 디바운스
+  // 연관 검색어 디바운스
   useEffect(() => {
-    const timer = setTimeout(() => setQuery(input), DEBOUNCE_MS);
+    const timer = setTimeout(() => setSuggestQuery(input.trim()), DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [input]);
 
-  // 결과가 나오면 최근 검색어에 기록 (서버는 상위 1건을 search_hits에 기록)
+  // 확정 검색이 결과를 내면 최근 검색어에 기록 (서버는 상위 1건을 search_hits에 기록)
   const resultCount = data?.animes.length ?? 0;
   useEffect(() => {
-    if (trimmed && resultCount > 0) {
-      setRecent(pushRecent(trimmed));
+    if (committedTrim && resultCount > 0) {
+      setRecent(pushRecent(committedTrim));
     }
-  }, [trimmed, resultCount]);
+  }, [committedTrim, resultCount]);
 
-  const select = (term: string) => {
+  const commit = (term: string) => {
     setInput(term);
-    setQuery(term);
-    inputRef.current?.focus();
+    setCommitted(term.trim());
+  };
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    commit(input);
+    inputRef.current?.blur(); // 모바일 키보드를 내려 결과가 보이게
   };
 
   const clear = () => {
     setInput('');
-    setQuery('');
+    setCommitted('');
     inputRef.current?.focus();
   };
 
@@ -79,7 +88,10 @@ export function SearchPage() {
     setRecent([]);
   };
 
-  const searching = trimmed.length > 0;
+  const inputTrim = input.trim();
+  const viewingResults = committedTrim.length > 0 && inputTrim === committedTrim;
+  const typing = inputTrim.length > 0 && !viewingResults;
+  const suggestions = suggestData?.suggestions ?? [];
 
   return (
     <div className="container">
@@ -87,7 +99,7 @@ export function SearchPage() {
         <h1 className={styles.title}>검색</h1>
       </div>
 
-      <div className={searchStyles.searchBox}>
+      <form className={searchStyles.searchBox} role="search" onSubmit={onSubmit}>
         <div className={searchStyles.inputWrap}>
           <input
             ref={inputRef}
@@ -111,12 +123,18 @@ export function SearchPage() {
             </button>
           )}
         </div>
-      </div>
+      </form>
 
-      {!searching ? (
+      {typing ? (
+        suggestions.length > 0 ? (
+          <SearchSuggestions items={suggestions} onSelect={commit} />
+        ) : !suggestFetching && suggestQuery ? (
+          <p className={searchStyles.status}>일치하는 제목이 없습니다. Enter로 직접 검색할 수 있습니다.</p>
+        ) : null
+      ) : !viewingResults ? (
         <>
-          <RecentSearches items={recent} onSelect={select} onClear={clearRecent} />
-          <TrendingSearches items={trending ?? []} onSelect={select} />
+          <RecentSearches items={recent} onSelect={commit} onClear={clearRecent} />
+          <TrendingSearches items={trending ?? []} onSelect={commit} />
         </>
       ) : (
         <>
@@ -125,7 +143,7 @@ export function SearchPage() {
               ? '검색 중…'
               : isError
                 ? '검색에 실패했습니다.'
-                : `'${trimmed}' 검색 결과 ${resultCount}건`}
+                : `'${committedTrim}' 검색 결과 ${resultCount}건`}
           </p>
           {isFetching && !data ? (
             <AnimeGridSkeleton count={9} />
