@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { get } from '../api/client';
 import type { Bookmark } from '../api/types';
@@ -39,17 +39,48 @@ export function LibraryPage() {
     setParams({ sub: id }, { replace: true });
   };
 
+  const activeIndex = SUB_TABS.findIndex((t) => t.id === sub);
+  const navRef = useRef<HTMLElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+
+  // Slide the active-tab indicator to the measured button offset — same
+  // measurement-based pattern as BottomTabbar (framer layoutId drifts when a
+  // page scroll reset happens mid-transition).
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const measure = () => {
+      const el = itemRefs.current[activeIndex];
+      setIndicator(el ? { left: el.offsetLeft, width: el.offsetWidth } : null);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [activeIndex, bookmarks?.length]);
+
   return (
     <div className="container">
       <div className={styles.header}>
         <h1 className={styles.title}>보관함</h1>
         <MoreMenu onSelectDelete={() => setSelectMode(true)} onClearAll={() => setClearSignal((s) => s + 1)} />
       </div>
-      <nav className={libStyles.subtabs}>
-        {SUB_TABS.map((t) => (
+      <nav ref={navRef} className={libStyles.subtabs}>
+        {indicator && (
+          <span
+            className={libStyles.subtabIndicator}
+            style={{ left: indicator.left, width: indicator.width }}
+            aria-hidden="true"
+          />
+        )}
+        {SUB_TABS.map((t, i) => (
           <button
             key={t.id}
             type="button"
+            ref={(el) => {
+              itemRefs.current[i] = el;
+            }}
             className={`${libStyles.subtab}${sub === t.id ? ` ${libStyles.subtabActive}` : ''}`}
             onClick={() => select(t.id)}
           >

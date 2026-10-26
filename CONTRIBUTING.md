@@ -28,8 +28,9 @@
 
 ## 애니메이션 가이드 (framer-motion, `web/src/lib/motion.ts`)
 
-- **spring**: 사용자와 상호작용하며 "튀는" 느낌이 필요한 곳 — 모달 진입/퇴장(`springPop`), 탭 인디케이터 슬라이드(`springGentle`), 게이트 카드 진입. 스프링은 duration 대신 stiffness/damping으로 튜닝.
+- **spring**: 사용자와 상호작용하며 "튀는" 느낌이 필요한 곳 — 모달 진입/퇴장(`springPop`), 게이트 카드 진입. 스프링은 duration 대신 stiffness/damping으로 튜닝.
 - **tween**: 상태 색/투명도 변화·페이지 전환 등 결정적 타이밍이 필요한 곳 — 페이지 전환(`tweenNormal` 250ms), 백드롭 fade(`tweenFast` 150ms).
+- **탭 인디케이터처럼 형제 사이를 이동하는 강조 요소**: framer `layoutId`가 아니라 측정 기반 단일 요소의 CSS transition(BottomTabbar 패턴 — offset 측정 후 left/width transition, 0.38s cubic-bezier(0.25,0.9,0.28,1))으로 구현. `layoutId`는 페이지 스크롤 리셋과 결합하면 측정이 어긋나 애니메이션이 지연/누락된다.
 - **duration 스케일**: fast 150ms(호버/색 변화) / normal 250ms(전환 기본) / slow 400ms(목록 stagger·강조). 이 범위를 벗어나는 duration은 이유를 코드에 남길 것.
 - **페이지 전환**: `AnimatePresence mode="wait"` + `pageVariants`(fade + 12px slide) — App.tsx에 이미 적용, 페이지는 그냥 라우트에 추가하면 됨.
 - **prefers-reduced-motion**: 필수 존중. CSS 쪽은 global.css가 묠화, framer-motion 쪽은 `useMotionTransition()` 헬퍼로 transition을 duration 0으로 바꿔서 사용. 새 모션 컴포넌트를 만들 때 반드시 이 헬퍼를 거칠 것.

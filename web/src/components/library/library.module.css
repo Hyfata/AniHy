@@ -12,7 +12,8 @@
   }
 }
 
-/* --- 서브 탭 (layoutId 인디케이터) --- */
+/* --- Sub tabs: single active-tab indicator slides to the measured button
+       (same pattern as BottomTabbar). Mobile: primary pill, desktop: underline. --- */
 .subtabs {
   position: relative;
   display: flex;
@@ -50,20 +51,34 @@
 }
 }
 
-.subtabActive {
-  color: #fff;
+.subtabIndicator {
+  position: absolute;
+  top: var(--space-1);
+  bottom: var(--space-1);
+  border-radius: calc(var(--radius-sm) - 2px);
   background: var(--color-primary);
   box-shadow: var(--shadow-primary);
+  pointer-events: none;
   transition:
-    background-color var(--duration-fast, 0.15s) ease,
-    color var(--duration-fast, 0.15s) ease,
-    box-shadow var(--duration-fast, 0.15s) ease;
+    left 0.38s cubic-bezier(0.25, 0.9, 0.28, 1),
+    width 0.38s cubic-bezier(0.25, 0.9, 0.28, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subtabIndicator {
+    transition: none;
+  }
+}
+
+.subtabActive {
+  color: #fff;
 }
 
 @media (hover: hover) {
 
 .subtabActive:hover {
   color: #fff;
+  background: transparent;
 }
 }
 
@@ -96,7 +111,14 @@
     background: transparent;
     box-shadow: none;
     color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
+  }
+
+  .subtabIndicator {
+    top: auto;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   @media (hover: hover) {
