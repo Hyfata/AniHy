@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { Anime } from '../api/types';
-import { hasRecentEpisode } from '../lib/recency';
+import { hasRecentEpisode, useNewBadgeWindowMs } from '../lib/recency';
 import { openAnimeModalVt, vtEnabled } from '../lib/viewTransition';
 import { useUiStore } from '../stores/ui';
 import styles from './AnimeCard.module.css';
@@ -19,7 +19,8 @@ export function AnimeCard({ anime, broadcastDay, index = 0, subLabel }: AnimeCar
   const navigate = useNavigate();
   const isModalOrigin = useUiStore((s) => s.animeModalOriginId === anime.id);
   const hidden = isModalOrigin ? { opacity: 0 } : undefined;
-  const isNew = hasRecentEpisode(anime.latest_episode_at);
+  const newWindowMs = useNewBadgeWindowMs();
+  const isNew = hasRecentEpisode(anime.latest_episode_at, newWindowMs);
 
   return (
     <motion.div

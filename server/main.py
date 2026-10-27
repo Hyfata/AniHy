@@ -4,7 +4,8 @@
 """
 from fastapi import APIRouter, Depends, FastAPI
 
-from .core.security import require_access
+from .core.db import get_db
+from .core.security import get_new_badge_days, require_access
 from .routers import auth
 
 app = FastAPI(title="AniHy API", docs_url="/api/docs", openapi_url="/api/openapi.json")
@@ -49,6 +50,12 @@ def health():
 @api.get("/gate-check", dependencies=[Depends(require_access)])
 def gate_check():
     return {"ok": True}
+
+
+@api.get("/config", dependencies=[Depends(require_access)])
+def site_config(db=Depends(get_db)):
+    """Public runtime config for the client (gate-passed, no login needed)."""
+    return {"new_badge_days": get_new_badge_days(db)}
 
 
 app.include_router(api)

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { Episode } from '../api/types';
-import { hasRecentEpisode } from '../lib/recency';
+import { hasRecentEpisode, useNewBadgeWindowMs } from '../lib/recency';
 import styles from './EpisodeRow.module.css';
 
 interface EpisodeRowProps {
@@ -18,12 +18,13 @@ interface EpisodeRowProps {
    진행률은 서버 응답의 episode.watch_progress.ratio (0~1)로 채운다. */
 export function EpisodeRow({ animeId, episode, active = false, actions, onClick }: EpisodeRowProps) {
   const ratio = episode.watch_progress?.ratio ?? 0;
+  const newWindowMs = useNewBadgeWindowMs();
   const inner = (
     <>
       <div className={styles.meta}>
         <div className={styles.thumb}>
           {episode.thumb_url ? <img src={episode.thumb_url} alt="" loading="lazy" /> : null}
-          {hasRecentEpisode(episode.created_at) && <span className={styles.newBadge}>New</span>}
+          {hasRecentEpisode(episode.created_at, newWindowMs) && <span className={styles.newBadge}>New</span>}
           <span className={styles.thumbBadge}>{episode.episode_number}</span>
         </div>
         <div className={styles.text}>

@@ -34,7 +34,7 @@ Alembic(`server/alembic/versions/0001_new_user_tables.py`)이 관리한다.
 | `anime_broadcasts` | 방영 분기 (복수) | UNIQUE(`anime_id`, `broadcast_year`, `broadcast_quarter`), FK → animes (CASCADE) |
 | `episodes` | 회차 | `episode_number VARCHAR(50)`, `file_path`, `duration_ms`(UNSIGNED), 자막 파일들, UNIQUE(`anime_id`, `episode_number`), FK → animes (CASCADE) |
 | `jobs` | 인코딩 잡 | `status` ENUM(pending/downloading/downloading_subs/preparing/encoding/remuxing/subtitling/completed/failed), `source_type` ENUM(download/upload/server), `is_test`, `trim_seconds`, `subtitle_offset`, `encoder`, `source_name`, `worker_pid` |
-| `settings` | 키-값 설정 | `access_code`, `cookie_secret` 등 (`key` PK) |
+| `settings` | 키-값 설정 | `access_code`, `cookie_secret`, `new_badge_days`(New 배지 기한, 기본 3일) 등 (`key` PK) |
 | `search_hits` | 인기 검색어 집계 | `anime_id` PK, `hit_count`, `last_hit_at`, FK → animes (CASCADE) |
 | `users` | 로그인 사용자 (Alembic) | `external_sub`(Keycloak sub, UNIQUE), `display_name`, `is_admin` |
 | `watch_history` | 시청 기록 (Alembic) | `position_ms`/`duration_ms`, `completed`, UNIQUE(`user_id`, `anime_id`, `episode_number`), FK → users/animes (CASCADE) |

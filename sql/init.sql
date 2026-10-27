@@ -81,5 +81,6 @@ CREATE TABLE IF NOT EXISTS settings (
 
 INSERT INTO settings (`key`, `value`) VALUES
 ('access_code', '0000'),
-('cookie_secret', 'REPLACE_WITH_A_RANDOM_SECRET')
+('cookie_secret', 'REPLACE_WITH_A_RANDOM_SECRET'),
+('new_badge_days', '3')
 ON DUPLICATE KEY UPDATE `value` = `value`;

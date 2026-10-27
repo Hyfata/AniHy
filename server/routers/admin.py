@@ -238,6 +238,26 @@ def change_access_code(body: AccessCodeBody, db: Session = Depends(get_db)):
     return {"ok": True, "message": "인증번호가 변경되었습니다."}
 
 
+# ---------- New 배지 기한 ----------
+
+
+class NewBadgeDaysBody(BaseModel):
+    days: int
+
+
+@router.post("/admin/new-badge-days")
+def change_new_badge_days(body: NewBadgeDaysBody, db: Session = Depends(get_db)):
+    if not 1 <= body.days <= 365:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "기한은 1~365일 사이로 입력하세요.")
+    row = db.get(Setting, "new_badge_days")
+    if row is None:
+        db.add(Setting(key="new_badge_days", value=str(body.days)))
+    else:
+        row.value = str(body.days)
+    db.commit()
+    return {"ok": True, "days": body.days, "message": "New 배지 기한이 변경되었습니다."}
+
+
 # ---------- aniDL 연동 (api/search.php, api/episode_lookup_stream.php) ----------
 
 

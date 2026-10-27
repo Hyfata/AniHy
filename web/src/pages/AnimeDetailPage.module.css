@@ -307,7 +307,7 @@
   background: var(--color-surface-light);
   border: 1px solid var(--border-subtle);
   color: var(--color-text);
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
 }
 
 .epEditActions {

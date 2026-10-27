@@ -24,7 +24,7 @@
 - **레이아웃**: `--navbar-height`(64), `--container-max`(1200), `--sidebar-w`(200, 데스크톱 사이드바).
 - **safe-area**: `--sat/sar/sab/sal` 토큰 = `var(--anihy-sat, env(safe-area-inset-top, 0px))` 패턴. 네이티브 레이어가 `:root`에 `--anihy-sa*`를 주입하면 자동 우선. **레이아웃에 영향 있는 safe-area 보정은 반드시 정적 CSS에 둘 것 — JS 주입 금지** (첫 페인트 레이스). `viewport-fit=cover`는 index.html에 있음.
 - **모션**: duration은 `--duration-fast|normal|slow` 토큰과 아래 애니메이션 가이드의 스케일을 따른다.
-- 폰트: Pretendard Variable (CDN, index.html) + 시스템 폴팩. iOS 입력 필드 자동 줌 방지로 input은 16px 강제(global.css).
+- 폰트: Pretendard Variable (CDN, index.html) + 시스템 폴팩. iOS 입력 필드 자동 줌 방지로 **텍스트 input/textarea/select의 font-size는 클래스 규칙에서도 16px(`--text-lg`) 이상 필수** — global.css의 기본 크기는 상속일 뿐이라 클래스가 더 작은 값을 지정하면 무력화된다.
 
 ## 애니메이션 가이드 (framer-motion, `web/src/lib/motion.ts`)
 

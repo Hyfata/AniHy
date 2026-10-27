@@ -44,6 +44,18 @@ def get_setting(db: Session, key: str) -> str | None:
     return row[0] if row else None
 
 
+DEFAULT_NEW_BADGE_DAYS = 3
+
+
+def get_new_badge_days(db: Session) -> int:
+    """New badge window in days — settings.new_badge_days with a sane fallback."""
+    try:
+        days = int(get_setting(db, "new_badge_days") or "")
+    except ValueError:
+        return DEFAULT_NEW_BADGE_DAYS
+    return days if days > 0 else DEFAULT_NEW_BADGE_DAYS
+
+
 def _cookie_secret(settings: Settings, db: Session | None) -> str:
     # .env 우선, 플레이스홀더면 settings 테이블 cookie_secret 폴리백
     if settings.cookie_secret and settings.cookie_secret != "REPLACE_WITH_A_RANDOM_SECRET":

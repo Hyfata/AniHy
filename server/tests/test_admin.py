@@ -132,6 +132,29 @@ def test_access_code_change(admin_client, db_session):
     assert db_session.get(Setting, "access_code").value == "1111"
 
 
+def test_new_badge_days_change(admin_client, db_session):
+    client, _ = admin_client
+    for bad in (0, -1, 366):
+        assert client.post("/api/admin/new-badge-days", json={"days": bad}).status_code == 400
+    resp = client.post("/api/admin/new-badge-days", json={"days": 7})
+    assert resp.status_code == 200 and resp.json()["days"] == 7
+    assert db_session.get(Setting, "new_badge_days").value == "7"
+    client.post("/api/admin/new-badge-days", json={"days": 14})
+    assert db_session.get(Setting, "new_badge_days").value == "14"
+
+
+def test_site_config(anon_client, db_session):
+    # 행 없음 → 기본 3일
+    assert anon_client.get("/api/config").json()["new_badge_days"] == 3
+    db_session.add(Setting(key="new_badge_days", value="14"))
+    db_session.commit()
+    assert anon_client.get("/api/config").json()["new_badge_days"] == 14
+    # 파싱 불가 값 → 기본값 폴백
+    db_session.get(Setting, "new_badge_days").value = "abc"
+    db_session.commit()
+    assert anon_client.get("/api/config").json()["new_badge_days"] == 3
+
+
 # ---------- aniDL ----------
 
 
