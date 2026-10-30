@@ -115,3 +115,28 @@ def test_quarter_detail_and_day_filter(user_client, seed_detail):
     assert len(user_client.get("/api/quarters/2025/4", params={"day": "월"}).json()["animes"]) == 1
     assert len(user_client.get("/api/quarters/2025/4", params={"day": "화"}).json()["animes"]) == 0
     assert user_client.get("/api/quarters/2025/9").status_code == 404
+
+
+def test_recent_animes_sorted_across_all(user_client, db_session):
+    """홈 최근 업데이트: 전체 애니 기준 latest_episode_at desc, 회차 없는 애니 제외."""
+    from datetime import datetime, timedelta
+
+    now = datetime.now()
+    db_session.add_all([
+        Anime(id=1, title="오래된 애니", cover_image="a.jpg"),
+        Anime(id=2, title="방금 업데이트", cover_image="b.jpg"),
+        Anime(id=3, title="회차 없음", cover_image="c.jpg"),
+        Episode(id=1, anime_id=1, episode_number="1", file_path="animes/1/1.mp4",
+                created_at=now - timedelta(days=10)),
+        Episode(id=2, anime_id=2, episode_number="1", file_path="animes/2/1.mp4",
+                created_at=now - timedelta(days=2)),
+        Episode(id=3, anime_id=2, episode_number="2", file_path="animes/2/2.mp4",
+                created_at=now),
+    ])
+    db_session.commit()
+
+    r = user_client.get("/api/animes/recent").json()
+    assert [a["id"] for a in r["animes"]] == [2, 1]
+    assert r["animes"][0]["latest_episode_at"] == now.isoformat()
+    # /animes/{id} 라우트보다 먼저 매칭돼야 함 (회귀 방지)
+    assert user_client.get("/api/animes/2").status_code == 200

@@ -109,6 +109,34 @@ def list_animes(
     return {"animes": items, "has_more": has_more, "total": total, "is_admin": identity.is_admin}
 
 
+RECENT_ANIME_LIMIT = 15
+
+
+@router.get("/animes/recent")
+def list_recent_animes(db: Session = Depends(get_db)):
+    """Home 'recent updates' row: top N across ALL animes by latest episode created_at desc.
+
+    Declared before /animes/{anime_id} so 'recent' is not captured as an id.
+    """
+    rows = db.execute(
+        select(Episode.anime_id, func.max(Episode.created_at))
+        .group_by(Episode.anime_id)
+        .order_by(func.max(Episode.created_at).desc())
+        .limit(RECENT_ANIME_LIMIT)
+    ).all()
+    anime_ids = [aid for aid, _ in rows]
+    animes = {
+        a.id: a
+        for a in db.execute(select(Anime).where(Anime.id.in_(anime_ids))).scalars()
+    } if anime_ids else {}
+    items = [
+        _with_latest_episode(_anime_card(animes[aid]), latest)
+        for aid, latest in rows
+        if aid in animes
+    ]
+    return {"animes": items}
+
+
 @router.get("/animes/{anime_id}")
 def anime_detail(
     anime_id: int,

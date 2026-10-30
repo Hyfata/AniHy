@@ -111,10 +111,12 @@ function CollapsibleDesc({ text }: { text: string }) {
 function findCachedPartial(queryClient: QueryClient, id: number): AnimeDetail | undefined {
   let found: { title: string; cover: string | null } | undefined;
 
-  for (const [, data] of queryClient.getQueriesData<InfiniteData<AnimeListResponse>>({
+  for (const [, data] of queryClient.getQueriesData<InfiniteData<AnimeListResponse> | AnimeListResponse>({
     queryKey: ['animes'],
   })) {
-    found ??= data?.pages.flatMap((p) => p.animes).find((a) => a.id === id);
+    // ['animes', 'recent'] caches {animes:[...]} (non-infinite) — same shape guard as the search/quarters loops
+    const list = data && 'pages' in data ? data.pages.flatMap((p) => p.animes) : data?.animes;
+    found ??= list?.find((a) => a.id === id);
   }
   if (!found) {
     for (const [, data] of queryClient.getQueriesData<AnimeListResponse>({ queryKey: ['search'] })) {

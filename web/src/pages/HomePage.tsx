@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useAnimesInfinite } from '../api/hooks';
+import { useAnimesInfinite, useRecentAnimes } from '../api/hooks';
 import { FadeSwap } from '../components/FadeSwap';
 import { AnimeGrid, AnimeGridSkeleton } from '../components/home/AnimeGrid';
 import { HomeHero } from '../components/home/HomeHero';
@@ -10,12 +10,11 @@ import { WeeklySection } from '../components/home/WeeklySection';
 import { relativeTime } from '../lib/format';
 import styles from './pages.module.css';
 
-const RECENT_ROW_SIZE = 15;
-
 /** Home — streaming-site layout: hero (current quarter) + weekly row + recent updates + the full infinite grid. */
 export function HomePage() {
   const { data, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useAnimesInfinite();
+  const { data: recent = [], isLoading: recentLoading } = useRecentAnimes();
   const sentinelRef = useRef<HTMLDivElement>(null);
   // scroll restoration is handled by the global hook (useScrollRestoration, App.tsx)
 
@@ -37,22 +36,15 @@ export function HomePage() {
   const animes = data?.pages.flatMap((p) => p.animes) ?? [];
   const total = data?.pages[0]?.total ?? 0;
 
-  // Recent updates: latest_episode_at desc within the loaded pages. /api/animes is created_at
-  // desc, so the row refreshes automatically as later pages load (derived without a new API).
-  const recent = animes
-    .filter((a) => a.latest_episode_at)
-    .sort((a, b) => Date.parse(b.latest_episode_at!) - Date.parse(a.latest_episode_at!))
-    .slice(0, RECENT_ROW_SIZE);
-
   return (
     <div className="container">
       <HomeHero />
       <WeeklySection />
 
-      {(isLoading || recent.length > 0) && (
+      {(recentLoading || recent.length > 0) && (
         <section className={sectionStyles.section}>
           <SectionHeader title="최근 업데이트" />
-          <FadeSwap loading={isLoading} skeleton={<PosterRowSkeleton />}>
+          <FadeSwap loading={recentLoading} skeleton={<PosterRowSkeleton />}>
             <PosterRow
               animes={recent}
               subLabel={(a) => `${relativeTime(a.latest_episode_at)} 업데이트`}

@@ -2,6 +2,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { get } from './client';
 import type {
+  Anime,
   AnimeListResponse,
   QuarterDetailResponse,
   QuarterGroup,
@@ -22,6 +23,15 @@ export function useAnimesInfinite() {
       if (!lastPage.has_more) return undefined;
       return pages.reduce((acc, p) => acc + p.animes.length, 0);
     },
+  });
+}
+
+/** 홈 최근 업데이트 — GET /api/animes/recent (전체 애니 기준 서버 정렬 상위 15) */
+export function useRecentAnimes() {
+  return useQuery({
+    queryKey: ['animes', 'recent'],
+    queryFn: () => get<{ animes: Anime[] }>('/animes/recent'),
+    select: (data) => data.animes,
   });
 }
 
