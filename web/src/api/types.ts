@@ -207,6 +207,7 @@ export interface SubtitleStream {
 export interface AudioStream {
   index: number;
   codec: string;
+  channels: number;
   language: string;
 }
 

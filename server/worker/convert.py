@@ -9,7 +9,8 @@
 - FONTCONFIG_FILE=assets/fonts/fonts.conf (번들 한글 폰트) — 삭제 금지
 - SMI 전처리(최다 클래스 부여), UTF-16 BOM iconv 라운드트립, ASS-in-.smi 감지,
   -KOR 우선 선택, Traceback/산출물 없음 → 실패 + 원본 SMI subtitles/failed/ 보존
-- 오디오: jpn 우선 선택, AAC면 copy 아니면 AAC 192k 트랜스코드
+- Audio: jpn preferred; stereo AAC copies as-is, anything else transcodes to AAC 192k stereo
+  (multichannel downmix — iOS plays 5.1/PCE AAC silent)
 - is_test: 360p + quality+12 + 최고속 프리셋 + -t 600 + duration 600s 캡
 """
 from __future__ import annotations
@@ -445,19 +446,26 @@ async def _convert_job_inner(job_id, session_factory, settings, enc_cfg, env, lo
         _set_job_fields(sf, job_id, duration_ms=int(duration_ms))
         _log(log_file, f"Duration: {duration_ms / 1000:.2f}s")
 
-    # ---------- 오디오 선택: jpn 우선, AAC copy 아니면 AAC 192k ----------
+    # ---------- Audio: jpn preferred; copy stereo AAC, else transcode to AAC 192k stereo ----------
     audio_streams = await fs.probe_audio_streams(mkv_path)
     audio_index = fs.pick_jpn_audio_index(audio_streams) if audio_streams else 0
     audio_codec = ""
+    audio_channels = 0
     if audio_streams:
         audio_codec = audio_streams[audio_index]["codec"].lower()
+        audio_channels = audio_streams[audio_index]["channels"]
         _log(log_file, f"Audio stream selected: 0:a:{audio_index} "
-                       f"(language: {audio_streams[audio_index]['language'] or 'unknown'}, codec: {audio_codec or 'unknown'})")
+                       f"(language: {audio_streams[audio_index]['language'] or 'unknown'}, codec: {audio_codec or 'unknown'}, "
+                       f"channels: {audio_channels or 'unknown'})")
     else:
         _log(log_file, "WARNING: audio probe failed, falling back to first audio stream (0:a:0)")
-    audio_args = ["-c:a", "copy"] if audio_codec == "aac" else ["-c:a", "aac", "-b:a", "192k"]
-    if audio_codec != "aac":
-        _log(log_file, "Audio codec is not AAC, transcoding to AAC 192k")
+    # Multichannel (>2ch) output must be downmixed: iOS cannot decode 5.1 AAC (PCE), plays silent
+    if audio_codec == "aac" and (audio_channels == 0 or audio_channels <= 2):
+        audio_args = ["-c:a", "copy"]
+    else:
+        audio_args = ["-c:a", "aac", "-b:a", "192k", "-ac", "2"]
+        _log(log_file, f"Transcoding audio to AAC 192k stereo (codec: {audio_codec or 'unknown'}, "
+                       f"channels: {audio_channels or 'unknown'})")
 
     # ---------- 인코드 ----------
     encode_message = "자막을 영상에 입히는 중..." if has_subtitle else "MP4로 변환 중..."

@@ -339,7 +339,7 @@ async def probe_audio_streams(video_path: Path) -> list[dict]:
     data = await _run_json(
         [
             "ffprobe", "-v", "error", "-select_streams", "a",
-            "-show_entries", "stream=index,codec_name:stream_tags=language",
+            "-show_entries", "stream=index,codec_name,channels:stream_tags=language",
             "-of", "json", str(video_path),
         ]
     )
@@ -350,6 +350,7 @@ async def probe_audio_streams(video_path: Path) -> list[dict]:
             {
                 "index": i,
                 "codec": (s.get("codec_name") or "").strip(),
+                "channels": int(s.get("channels") or 0),
                 "language": (tags.get("language") or "").strip().lower(),
             }
         )
