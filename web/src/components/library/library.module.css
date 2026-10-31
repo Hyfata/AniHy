@@ -596,10 +596,19 @@
   height: 12px;
 }
 
+/* 다시보기 — 이미 완료한 회차라 primary 대신 중간 회색으로 구분 (카드 배경보다 밝게) */
+.resumeBtnRewatch {
+  background: var(--color-text-muted);
+}
+
 @media (hover: hover) {
 
 .resumeBtn:hover {
   background: var(--color-primary-hover);
+}
+
+.resumeBtnRewatch:hover {
+  filter: brightness(1.1);
 }
 }
 

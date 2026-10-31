@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { del, get, ApiError } from '../../api/client';
@@ -37,6 +37,7 @@ const watchPath = (h: HistoryItem) =>
    fetched only for completed groups and shares the ['anime', id] cache. */
 function ResumeLink({ group }: { group: AnimeGroup }) {
   const { anime_id, latest } = group;
+  const navigate = useNavigate();
   const { data: detail } = useQuery({
     queryKey: ['anime', anime_id],
     queryFn: () => get<AnimeDetail>(`/animes/${anime_id}`),
@@ -45,18 +46,32 @@ function ResumeLink({ group }: { group: AnimeGroup }) {
 
   let targetEp = latest.episode_number;
   let label = '이어보기';
+  let isRewatch = false;
   if (latest.completed && detail) {
     const idx = detail.episodes.findIndex((e) => e.episode_number === latest.episode_number);
     const next = idx >= 0 ? detail.episodes[idx + 1] : undefined;
     if (next) targetEp = next.episode_number;
-    else label = '다시보기';
+    else {
+      label = '다시보기';
+      isRewatch = true;
+    }
   }
 
+  const to = `/watch/${anime_id}/${encodeURIComponent(targetEp)}`;
   return (
     <Link
-      to={`/watch/${anime_id}/${encodeURIComponent(targetEp)}`}
-      className={styles.resumeBtn}
-      onClick={(e) => e.stopPropagation()}
+      to={to}
+      className={`${styles.resumeBtn}${isRewatch ? ` ${styles.resumeBtnRewatch}` : ''}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!isRewatch) return;
+        e.preventDefault();
+        void dialog
+          .confirm('이미 다 시청한 회차예요. 정말 다시 볼까요?', { confirmLabel: '다시보기' })
+          .then((ok) => {
+            if (ok) navigate(to);
+          });
+      }}
     >
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M8 5.14v14l11-7-11-7z" />
