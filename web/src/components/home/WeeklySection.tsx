@@ -42,6 +42,7 @@ export function WeeklySection() {
         moreTo={current ? `/quarter/${year}/${quarter}` : undefined}
       />
       <FadeSwap
+        animateHeight
         loading={quartersLoading || !current || isLoading}
         skeleton={
           <>
