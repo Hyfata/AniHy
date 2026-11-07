@@ -82,7 +82,7 @@ export function FadeSwap({
       animate={height === undefined ? undefined : { height }}
       transition={normal}
       onAnimationComplete={() => setClipping(false)}
-      style={{ overflow: clipping ? 'hidden' : 'visible' }}
+      style={{ overflowX: 'visible', overflowY: clipping ? 'clip' : 'visible' }}
     >
       {inner}
     </motion.div>
