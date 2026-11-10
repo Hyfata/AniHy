@@ -114,6 +114,33 @@ def test_resolve_under_rejects_traversal(tmp_path):
         fs.resolve_under(root, root / "missing.txt")
 
 
+def test_resolve_episode_file_with_symlinked_media_root(tmp_path, tmp_path_factory):
+    """프로덕션 레이아웃: BASE_DIR/animes가 다른 볼륨(심링크)을 가리켜도 resolve되어야 한다."""
+    media = tmp_path_factory.mktemp("media_volume")
+    (media / "1").mkdir()
+    (media / "1" / "1.mp4").write_bytes(b"x")
+    (tmp_path / "animes").symlink_to(media)
+    resolved = fs.resolve_episode_file(tmp_path, "animes/1/1.mp4")
+    assert resolved == (media / "1" / "1.mp4").resolve()
+
+    plain = tmp_path / "plain"
+    (plain / "animes" / "1").mkdir(parents=True)
+    (plain / "animes" / "1" / "1.mp4").write_bytes(b"y")
+    assert fs.resolve_episode_file(plain, "animes/1/1.mp4").is_file()
+
+
+def test_resolve_episode_file_blocks_traversal_and_escape(tmp_path):
+    (tmp_path / "animes" / "1").mkdir(parents=True)
+    (tmp_path / "animes" / "1" / "1.mp4").write_bytes(b"x")
+    outside = tmp_path / "secret.mp4"
+    outside.write_bytes(b"y")
+    (tmp_path / "animes" / "1" / "evil.mp4").symlink_to(outside)
+    assert fs.resolve_episode_file(tmp_path, "animes/1/1.mp4").is_file()
+    for bad in ("../secret.mp4", "/etc/passwd", "animes/../../secret.mp4", "animes/1/evil.mp4"):
+        with pytest.raises(ValueError):
+            fs.resolve_episode_file(tmp_path, bad)
+
+
 def test_list_server_videos_filters_and_sorts(tmp_path):
     root = tmp_path / "dl"
     (root / "sub").mkdir(parents=True)
@@ -157,6 +184,28 @@ def test_video_download_full_and_range(client, db_session, base_dir, access_cook
 
 def test_video_404_for_missing(client, access_cookie):
     assert client.get("/api/files/video/1/9", cookies=access_cookie).status_code == 404
+
+
+def test_video_download_symlinked_animes_dir(
+    client, db_session, base_dir, access_cookie, tmp_path_factory
+):
+    """프로덕션 레이아웃(심링크 animes) 재현 — 단일 다운로드가 404 없이 전송되어야 한다."""
+    media = tmp_path_factory.mktemp("media_volume")
+    payload = b"\x00" * 1000 + b"FAKEMP4DATA"
+    (media / "1").mkdir()
+    (media / "1" / "1.mp4").write_bytes(payload)
+    shutil.rmtree(base_dir / "animes")
+    (base_dir / "animes").symlink_to(media)
+    db_session.add_all([
+        Anime(id=1, title="테스트 애니", cover_image="c.jpg"),
+        Episode(id=1, anime_id=1, episode_number="1", file_path="animes/1/1.mp4"),
+    ])
+    db_session.commit()
+
+    resp = client.get("/api/files/video/1/1", cookies=access_cookie)
+    assert resp.status_code == 200
+    assert resp.content == payload
+    assert "attachment" in resp.headers["content-disposition"]
 
 
 def test_cover_traversal_rejected(client, base_dir, access_cookie):

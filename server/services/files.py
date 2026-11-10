@@ -18,7 +18,7 @@ import threading
 import time
 import zipfile
 from collections.abc import Iterable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 # inc/functions.php: sanitizeFilename — 허용 문자 외 전부 '_' 치환 (ASCII만 남음)
 _SANITIZE_RE = re.compile(r"[^a-zA-Z0-9._-]")
@@ -52,6 +52,21 @@ def resolve_under(root: Path, candidate: Path | str, *, must_exist: bool = True)
     if must_exist and not real.is_file():
         raise ValueError("파일을 찾을 수 없습니다.")
     return real
+
+
+def resolve_episode_file(base_dir: Path, rel_path: str) -> Path:
+    """Resolve a DB episode file_path (relative to BASE_DIR) for serving.
+
+    Roots the containment check at the path's top-level dir (e.g. BASE_DIR/animes)
+    instead of BASE_DIR itself: BASE_DIR/animes can be a symlink to another volume
+    in production, which makes the fully resolved realpath fall outside BASE_DIR
+    and fail resolve_under's escape check.
+    """
+    rel = PurePosixPath(rel_path)
+    if rel.is_absolute() or ".." in rel.parts or not rel.parts:
+        raise ValueError("허용되지 않는 파일 경로입니다.")
+    root = base_dir / rel.parts[0] if len(rel.parts) > 1 else base_dir
+    return resolve_under(root, base_dir / rel)
 
 
 # ---------- 서버 파일 목록 (api/list_server_files.php) ----------

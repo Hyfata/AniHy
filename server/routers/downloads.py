@@ -36,6 +36,13 @@ def _resolve_or_404(root: Path, candidate: Path | str) -> Path:
         raise _not_found_text(str(e)) from e
 
 
+def _resolve_episode_or_404(base_dir: Path, rel_path: str) -> Path:
+    try:
+        return fs.resolve_episode_file(base_dir, rel_path)
+    except ValueError as e:
+        raise _not_found_text(str(e)) from e
+
+
 # ---------- 정적 미디어 파일 (require_access) ----------
 # URL 매핑은 services/urls.py와 합의: /api/files/covers|animes|subtitles/…
 
@@ -58,7 +65,7 @@ def video_download(
     ).first()
     if not row or not row.file_path:
         raise _not_found_text()
-    path = _resolve_or_404(settings.base_dir, settings.base_dir / row.file_path)
+    path = _resolve_episode_or_404(settings.base_dir, row.file_path)
     if path.stat().st_size == 0:
         raise _not_found_text()
     download_name = f"{row.title} {episode_number}화.mp4"
@@ -116,7 +123,7 @@ def start_bundle(
             if not rel:
                 continue
             try:
-                path = fs.resolve_under(base_dir, base_dir / rel)
+                path = fs.resolve_episode_file(base_dir, rel)
             except ValueError:
                 continue
             if path.stat().st_size == 0:
