@@ -179,6 +179,8 @@ def anime_detail(
         else:
             thumb_url = urls.cover_url(a.cover_image)
         has_chapters = (base_dir / urls.chapter_vtt_rel(anime_id, safe_ep)).is_file()
+        video_path = base_dir / ep.file_path
+        file_size = video_path.stat().st_size if video_path.is_file() else None
 
         item = {
             "id": ep.id,
@@ -187,6 +189,7 @@ def anime_detail(
             "duration_ms": ep.duration_ms,
             "created_at": ep.created_at.isoformat() if ep.created_at else None,
             "duration_text": urls.format_playtime(ep.duration_ms),
+            "file_size": file_size,
             "has_subtitle": bool(ep.has_subtitle),
             "en_subtitle_url": urls.subtitle_url(ep.en_subtitle_file) if ep.en_subtitle_file else None,
             "video_url": urls.anime_video_url(anime_id, ep.episode_number),

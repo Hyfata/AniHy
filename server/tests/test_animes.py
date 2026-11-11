@@ -3,8 +3,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from conftest import make_client
+from server.core.config import Settings, get_settings
 from server.core.security import Identity
 from server.models import Anime, AnimeBroadcast, Episode, User, WatchHistory
+from server.main import app
 
 
 @pytest.fixture()
@@ -74,6 +76,28 @@ def test_anime_detail_anonymous_has_no_progress(db_session, seed_detail):
 
 def test_anime_detail_404(user_client, seed_detail):
     assert user_client.get("/api/animes/99").status_code == 404
+
+
+def test_anime_detail_episode_file_size(db_session, tmp_path):
+    """회차 file_size — 실제 파일 stat 값, 없는 파일은 null (다운로드 확인 다이얼로그용)."""
+    (tmp_path / "animes" / "1").mkdir(parents=True)
+    (tmp_path / "animes" / "1" / "1.mp4").write_bytes(b"x" * 1234)
+    db_session.add_all([
+        Anime(id=1, title="A애니", cover_image="a.jpg"),
+        Episode(id=1, anime_id=1, episode_number="1", file_path="animes/1/1.mp4"),
+        Episode(id=2, anime_id=1, episode_number="2", file_path="animes/1/2.mp4"),
+    ])
+    db_session.commit()
+    app.dependency_overrides[get_settings] = lambda: Settings(base_dir=tmp_path)
+    try:
+        for client in make_client(db_session, Identity(user_id=None, is_admin=False)):
+            d = client.get("/api/animes/1").json()
+            ep1 = next(e for e in d["episodes"] if e["episode_number"] == "1")
+            ep2 = next(e for e in d["episodes"] if e["episode_number"] == "2")
+            assert ep1["file_size"] == 1234
+            assert ep2["file_size"] is None
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_quarters(user_client, seed_detail):

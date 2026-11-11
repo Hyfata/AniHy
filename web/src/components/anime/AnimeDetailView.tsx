@@ -18,6 +18,7 @@ import { FadeSwap } from '../FadeSwap';
 import { Modal } from '../Modal';
 import { Skeleton } from '../Spinner';
 import { useMotionTransition, useReducedMotion, tweenNormal } from '../../lib/motion';
+import { formatBytes } from '../../lib/format';
 import { VT_POSTER } from '../../lib/viewTransition';
 import { isNative } from '../../lib/native';
 import { useAuthStore } from '../../stores/auth';
@@ -300,9 +301,15 @@ export function AnimeDetailView({
     }
   };
 
-  const webDownload = useCallback((episodeNumber: string) => {
+  const webDownload = useCallback(async (ep: Episode) => {
+    // 구 .episode-dl-btn 규약: 다운로드 전 확인 다이얼로그 + 예상 용량 표기
+    const label = ep.title || `${ep.episode_number}화`;
+    const size = ep.file_size && ep.file_size > 0 ? `\n예상 용량: ${formatBytes(ep.file_size)}` : '';
+    if (!(await dialog.confirm(`"${label}"을(를) 다운로드하시겠습니까?${size}`, { confirmLabel: '다운로드' }))) {
+      return;
+    }
     window.location.assign(
-      `${API_BASE}/files/video/${animeId}/${encodeURIComponent(episodeNumber)}`,
+      `${API_BASE}/files/video/${animeId}/${encodeURIComponent(ep.episode_number)}`,
     );
   }, [animeId]);
 
@@ -500,7 +507,7 @@ export function AnimeDetailView({
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              webDownload(ep.episode_number);
+                              void webDownload(ep);
                             }}
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="m6 11 6 6 6-6" /><path d="M4 21h16" /></svg>

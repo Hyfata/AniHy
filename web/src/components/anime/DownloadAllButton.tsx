@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE, get, post } from '../../api/client';
 import type { Episode, ZipJob } from '../../api/types';
-import { formatSpeed } from '../../lib/format';
+import { formatBytes, formatSpeed } from '../../lib/format';
 import { cancelDownload, downloadAll, isNative } from '../../lib/native';
 import { useDownloadsStore } from '../../stores/downloads';
 import { dialog } from '../../stores/dialog';
@@ -42,7 +42,11 @@ export function DownloadAllButton({
       </NativeDownloadAll>
     );
   }
-  return <WebZipDownload animeId={animeId} className={className}>{children}</WebZipDownload>;
+  return (
+    <WebZipDownload animeId={animeId} className={className} episodes={episodes}>
+      {children}
+    </WebZipDownload>
+  );
 }
 
 // ---------- 네이티브: 회차별 순차 저장 ----------
@@ -104,7 +108,9 @@ function NativeDownloadAll({
       (e) => !downloaded[`${animeId}/${e.episode_number}`],
     );
     if (remaining.length === 0) return;
-    if (!(await dialog.confirm(`${remaining.length}개 회차를 기기에 저장할까요?`))) return;
+    const remainingBytes = remaining.reduce((s, e) => s + (e.file_size ?? 0), 0);
+    const sizeNote = remainingBytes > 0 ? ` (약 ${formatBytes(remainingBytes)})` : '';
+    if (!(await dialog.confirm(`${remaining.length}개 회차${sizeNote}를 기기에 저장할까요?`))) return;
     setBusy(true);
     try {
       await downloadAll(
@@ -140,7 +146,7 @@ function NativeDownloadAll({
 
 // ---------- 웹: 서버 ZIP ----------
 
-function WebZipDownload({ animeId, className, children }: DownloadAllButtonProps) {
+function WebZipDownload({ animeId, className, episodes, children }: DownloadAllButtonProps) {
   const [percent, setPercent] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -187,7 +193,15 @@ function WebZipDownload({ animeId, className, children }: DownloadAllButtonProps
 
   const onClick = async () => {
     if (timerRef.current) return;
-    if (!(await dialog.confirm('압축이 완료된 후 다운로드가 시작됩니다.\n한번 시작된 압축 작업은 취소할 수 없습니다.\n\n계속하시겠습니까?'))) {
+    // 구 download-all-btn 규약: 회차 수 + 예상 용량 표기 (file_size는 서버가 stat)
+    const downloadable = (episodes ?? []).filter((e) => (e.file_size ?? 0) > 0);
+    const summary = downloadable.length > 0
+      ? `총 ${downloadable.length}개의 에피소드(약 ${formatBytes(downloadable.reduce((s, e) => s + (e.file_size ?? 0), 0))})를 다운로드하시겠습니까?\n\n`
+      : '';
+    if (!(await dialog.confirm(
+      `${summary}압축이 완료된 후 다운로드가 시작됩니다.\n한번 시작된 압축 작업은 취소할 수 없습니다.\n\n계속하시겠습니까?`,
+      { confirmLabel: '다운로드' },
+    ))) {
       return;
     }
     setPercent(0);

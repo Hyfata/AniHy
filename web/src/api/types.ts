@@ -38,6 +38,8 @@ export interface Episode {
   title: string;
   duration_ms: number | null;
   duration_text: string;
+  /** 회차 영상 파일 크기(바이트) — 파일이 없으면 null (다운로드 확인 다이얼로그용) */
+  file_size?: number | null;
   has_subtitle: boolean;
   en_subtitle_url: string | null;
   video_url: string;
