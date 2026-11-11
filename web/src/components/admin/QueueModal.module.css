@@ -1,4 +1,5 @@
 /* 대기열 모달 (관리자) — 구 assets/css/style.css 큐 모달(queue-*) 시각 규약 계승.
+   3뷰 드릴다운: 진행 중(애니 그룹 카드 → 회차 카드 → 로그 뷰), 완료·실패(플랫 목록 → 로그 뷰).
    하드 규약: 로그 뷰어 자동 스크롤은 스크롤이 하단 40px 이내에 있을 때만. */
 
 /* --- 탭 (소스 탭과 같은 세그먼트 스타일) --- */
@@ -39,21 +40,52 @@
   box-shadow: 0 2px 8px rgba(124, 92, 255, 0.35);
 }
 
-/* --- 그룹 (애니 단위) --- */
-.groupBlock {
-  margin-bottom: var(--space-5);
+/* --- 뷰 래퍼 — 고정 높이 스크롤 컨테이너 (뷰 전환에도 모달 높이 고정) --- */
+.viewWrap {
+  height: min(520px, calc(90vh - 170px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- 뒤로가기 버튼 --- */
+.backBtn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-bottom: var(--space-3);
+  align-self: flex-start;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.backBtn:hover {
+  color: var(--color-text);
+}
+}
+
+/* --- 회차 뷰 헤더 (선택한 애니) --- */
+.episodeList {
+  display: flex;
+  flex-direction: column;
 }
 
 .groupHeader {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
   padding: 0 2px;
 }
 
-.groupTitle {
+.groupHeading {
   margin: 0;
   font-size: var(--text-md);
   font-weight: var(--font-weight-bold);
@@ -61,7 +93,94 @@
 }
 
 .groupCount {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* --- 애니 그룹 카드 (진행 중 1단계, 구 queue-group-card) --- */
+.groupCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+
+@media (hover: hover) {
+
+.groupCard:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-default);
+}
+}
+
+.groupCard:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.groupRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* 포스터 클릭 = 애니 상세 모달 */
+.groupPoster {
   flex: none;
+  width: 44px;
+  aspect-ratio: 2 / 3;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: var(--color-surface-light);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+
+.groupPoster:hover {
+  filter: brightness(1.18);
+}
+}
+
+.groupPoster:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.groupPoster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.groupInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.groupTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.groupTitle {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-normal);
+  word-break: keep-all;
+}
+
+.groupMeta {
+  margin: 2px 0 0;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -84,8 +203,21 @@
 }
 }
 
-.jobCardFailed {
-  border-color: var(--color-danger);
+/* 클릭 가능 카드(회차/완료) — role=button으로 마킹된 것만 */
+.jobCard[role='button'] {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+
+.jobCard[role='button']:hover {
+  border-color: var(--border-default);
+}
+}
+
+.jobCard[role='button']:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .jobTop {
@@ -144,6 +276,19 @@
   word-break: break-all;
 }
 
+.jobFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.jobTime {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
 .progressTrack {
   height: 5px;
   border-radius: var(--radius-pill);
@@ -151,16 +296,16 @@
   overflow: hidden;
 }
 
-/* 인코딩 진행 바는 구 규약 그라데이션 */
 .progressFill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-accent), var(--color-sky));
+  background: var(--color-primary);
   transition: width var(--duration-normal);
 }
 
 .jobActions {
   display: flex;
+  justify-content: flex-end;
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
@@ -202,6 +347,46 @@
 }
 }
 
+/* --- 로그 뷰 (구 queue-log-view) --- */
+.logView {
+  display: flex;
+  flex-direction: column;
+}
+
+.logHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.logTitle {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-normal);
+  word-break: keep-all;
+}
+
+.progressBlock {
+  margin-bottom: var(--space-2);
+}
+
+.progressBlock:last-child {
+  margin-bottom: 0;
+}
+
+.progressLabelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 5px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
 .logBox {
   margin-top: var(--space-3);
   max-height: 220px;
@@ -217,10 +402,15 @@
   word-break: break-all;
 }
 
+.logSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .empty {
   text-align: center;
   padding: var(--space-10) var(--space-4);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
-

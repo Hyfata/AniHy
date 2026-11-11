@@ -32,7 +32,11 @@ export function AnimeDetailModal({
   const [hasOrigin] = useState(
     () => typeof document !== 'undefined' && !!document.querySelector(`[data-anime-id="${animeId}"]`),
   );
-  const useVt = vt && hasOrigin;
+  // 대기열 포스터로 연 세션(origin 저장 중) — 닫히면 큐 모달이 바로 재오픈되므로 VT/퇴장
+  // 애니메이션을 쓰지 않는다. hasOrigin은 배경 페이지의 같은 애니 카드를 DOM에서 찾을 뿐이라
+  // 대기열 진입에서도 true가 될 수 있어 fromQueue로 VT를 차단한다.
+  const fromQueue = useUiStore((s) => s.queueReopenOrigin != null);
+  const useVt = vt && hasOrigin && !fromQueue;
   const panelRef = useRef<HTMLDivElement>(null);
   const closingRef = useRef(false);
 
@@ -82,7 +86,7 @@ export function AnimeDetailModal({
         style={useVt ? { viewTransitionName: VT_BACKDROP } : undefined}
         initial={useVt ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={useVt ? undefined : { opacity: 0 }}
+        exit={useVt || fromQueue ? undefined : { opacity: 0 }}
         transition={{ duration: 0.2 }}
       />
       <div
@@ -101,7 +105,7 @@ export function AnimeDetailModal({
           style={useVt ? { viewTransitionName: VT_PANEL } : undefined}
           initial={useVt ? false : { opacity: 0, y: 18, scale: 0.97 }}
           animate={useVt ? {} : { opacity: 1, y: 0, scale: 1 }}
-          exit={useVt ? undefined : { opacity: 0, y: 12, scale: 0.96 }}
+          exit={useVt || fromQueue ? undefined : { opacity: 0, y: 12, scale: 0.96 }}
           transition={springPop}
         >
           <AnimeAdminMenu animeId={animeId} />

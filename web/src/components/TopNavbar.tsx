@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useMatch } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/auth';
 import { dialog } from '../stores/dialog';
+import { useUiStore } from '../stores/ui';
 import { EditAnimeModal } from './admin/EditAnimeModal';
 import { QueueModal } from './admin/QueueModal';
 import { ProfileModal } from './ProfileModal';
@@ -20,6 +21,21 @@ export function TopNavbar() {
   const [queueOpen, setQueueOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // 대기열 포스터로 연 애니 상세 모달이 닫혀 원래 경로로 돌아오면 대기열 재오픈
+  // (모달 안에서 watch 등으로 이동한 경우엔 재오픈하지 않음)
+  const location = useLocation();
+  const inAnimeModal = useMatch('/anime/:id') != null;
+  const queueReopenOrigin = useUiStore((s) => s.queueReopenOrigin);
+  const setQueueReopenOrigin = useUiStore((s) => s.setQueueReopenOrigin);
+
+  useEffect(() => {
+    if (!queueReopenOrigin || inAnimeModal) return;
+    if (location.pathname + location.search + location.hash === queueReopenOrigin) {
+      setQueueOpen(true);
+    }
+    setQueueReopenOrigin(null);
+  }, [queueReopenOrigin, inAnimeModal, location, setQueueReopenOrigin]);
 
   return (
     <header className={styles.navbar}>

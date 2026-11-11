@@ -217,9 +217,13 @@ def test_queue_endpoint_groups_and_reaps_dead(admin_client, db_session):
     assert len(body["groups"]) == 1
     g = body["groups"][0]
     assert g["title"] == "A" and g["total"] == 3 and g["completed"] == 1
+    assert g["cover"] == "/api/files/covers/a.jpg"
     assert [e["episode_number"] for e in g["episodes"]] == ["1"]  # 2번은 failed로 보정됨
     completed = {c["episode_number"]: c["status"] for c in body["completed"]}
     assert completed == {"2": "failed", "3": "completed"}
+    assert all(
+        c["anime_id"] == 1 and c["cover"] == "/api/files/covers/a.jpg" for c in body["completed"]
+    )
     assert db_session.get(Job, 2).message == "워커 프로세스가 종료되어 실패 처리되었습니다."
 
 

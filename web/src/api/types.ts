@@ -135,6 +135,7 @@ export interface QueueJob {
   message: string;
   updated_at: string | null;
   worker_pid: number | null;
+  is_test: boolean;
 }
 
 /** GET /api/jobs — 활성 잡 그룹 (애니 단위) */
@@ -142,6 +143,7 @@ export interface QueueGroup {
   anime_id: number;
   title: string;
   season_id: string | null;
+  cover: string | null;
   total: number;
   completed: number;
   episodes: QueueJob[];
@@ -149,7 +151,9 @@ export interface QueueGroup {
 
 /** GET /api/jobs — 최근 완료/실패 잡 */
 export interface QueueCompletedJob extends QueueJob {
+  anime_id: number;
   anime_title: string;
+  cover: string | null;
 }
 
 export interface QueueStatusResponse {

@@ -20,6 +20,7 @@ from ..core.db import SessionLocal, get_db
 from ..core.security import require_access, require_admin
 from ..models import Anime, Job
 from ..services import files as fs
+from ..services import urls
 from ..worker import manager
 
 router = APIRouter(prefix="/jobs", tags=["jobs"], dependencies=[Depends(require_access), Depends(require_admin)])
@@ -52,6 +53,7 @@ def _job_public(j: Job) -> dict:
         "message": j.message or "",
         "updated_at": j.updated_at.isoformat() if j.updated_at else None,
         "worker_pid": j.worker_pid,
+        "is_test": bool(j.is_test),
     }
 
 
@@ -176,16 +178,22 @@ def queue_status(db: Session = Depends(get_db)):
 
     since = datetime.now() - _RECENT_WINDOW
     active = db.execute(
-        select(Job, Anime.title.label("anime_title"), Anime.season_id.label("anime_season_id"))
+        select(
+            Job,
+            Anime.title.label("anime_title"),
+            Anime.season_id.label("anime_season_id"),
+            Anime.cover_image.label("anime_cover"),
+        )
         .join(Anime, Anime.id == Job.anime_id)
         .where(Job.status.notin_(("completed", "failed")), Job.created_at >= since)
     ).all()
     active.sort(key=lambda r: (r[0].anime_id, _ep_sort_key(str(r[0].episode_number))))
 
     groups: dict[int, dict] = {}
-    for j, anime_title, season_id in active:
+    for j, anime_title, season_id, anime_cover in active:
         g = groups.setdefault(j.anime_id, {
             "anime_id": j.anime_id, "title": anime_title, "season_id": season_id,
+            "cover": urls.cover_url(anime_cover) if anime_cover else None,
             "total": 0, "completed": 0, "episodes": [],
         })
         g["episodes"].append(_job_public(j))
@@ -204,13 +212,19 @@ def queue_status(db: Session = Depends(get_db)):
                 groups[aid]["completed"] += 1
 
     recent = db.execute(
-        select(Job, Anime.title.label("anime_title"))
+        select(Job, Anime.title.label("anime_title"), Anime.cover_image.label("anime_cover"))
         .join(Anime, Anime.id == Job.anime_id)
         .where(Job.status.in_(("completed", "failed")), Job.created_at >= since)
         .order_by(Job.updated_at.desc())
     ).all()
     completed = [
-        {**_job_public(j), "anime_title": anime_title} for j, anime_title in recent
+        {
+            **_job_public(j),
+            "anime_id": j.anime_id,
+            "anime_title": anime_title,
+            "cover": urls.cover_url(anime_cover) if anime_cover else None,
+        }
+        for j, anime_title, anime_cover in recent
     ]
     return {"groups": list(groups.values()), "completed": completed}
 
