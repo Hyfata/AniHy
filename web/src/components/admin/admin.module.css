@@ -413,6 +413,10 @@
   margin-top: var(--space-5);
 }
 
+.footerRowInFooter {
+  margin-top: 0;
+}
+
 .footerRow > * {
   flex: 1;
 }

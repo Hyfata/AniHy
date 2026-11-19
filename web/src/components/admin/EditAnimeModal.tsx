@@ -132,7 +132,33 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={isCreate ? '애니 추가' : '애니 정보 수정'}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isCreate ? '애니 추가' : '애니 정보 수정'}
+      footer={
+        <div className={`${styles.footerRow} ${styles.footerRowInFooter}`}>
+          {!isCreate && onDeleted && (
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnDanger}`}
+              disabled={deleting || submitting}
+              onClick={() => void remove()}
+            >
+              {deleting ? '삭제 중...' : '삭제'}
+            </button>
+          )}
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            disabled={submitting || deleting}
+            onClick={() => void submit()}
+          >
+            {submitting ? '저장 중...' : isCreate ? '추가' : '수정'}
+          </button>
+        </div>
+      }
+    >
       {!isCreate && anime.cover && (
         <div className={styles.field}>
           <span className={styles.label}>현재 커버</span>
@@ -318,27 +344,6 @@ export function EditAnimeModal({ open, onClose, anime, onSaved, onDeleted }: Edi
       </div>
 
       {errors.form && <div className={styles.error}>{errors.form}</div>}
-
-      <div className={styles.footerRow}>
-        {!isCreate && onDeleted && (
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnDanger}`}
-            disabled={deleting || submitting}
-            onClick={() => void remove()}
-          >
-            {deleting ? '삭제 중...' : '삭제'}
-          </button>
-        )}
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnPrimary}`}
-          disabled={submitting || deleting}
-          onClick={() => void submit()}
-        >
-          {submitting ? '저장 중...' : isCreate ? '추가' : '수정'}
-        </button>
-      </div>
     </Modal>
   );
 }

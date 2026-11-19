@@ -42,4 +42,5 @@
 - 컴포넌트 스타일은 CSS Modules(`X.module.css`), 전역 토큰/리셋만 `web/src/styles/`.
 - 기존 구 클래스명 개념 이식: `.episode-thumb-badge`→`EpisodeRow.thumbBadge`, `.episode-submeta`→`submeta`, `.episode-progress-bar`→`progressBar`, `.zip-ring`→`ProgressRing`.
 - 모든 `:hover` 규칙은 `@media (hover: hover)` 안에 둘 것 (터치 디바이스 sticky hover 방지). 터치 피드백은 `:active`를 고려.
+- 공용 `Modal`은 오버레이 높이를 `100dvh`(vh 폴백)로 잡고 safe-area를 패딩에 더한 뒤 패널 높이를 `min(90vh, 100%)`로 제한 — 모바일 Safari 툴바/네이티브 탭바에 위아래가 가리지 않게 하고, 긴 폼은 본문만 스크롤·푸터는 고정. 새 모달도 이 규약을 재사용할 것.
 - 하단 탭바(BottomTabbar)는 모바일에서 `position: fixed` — sticky는 iOS 러버밴드 스크롤에서 본문과 같이 튄다. 가려지는 본문 하단 여백은 global.css `.appMain`의 모바일 `padding-bottom: calc(88px + var(--sab))`이 담당. 데스크톱(≥769px)에서는 좌측 고정 사이드바로 전환되고 본문 오프셋은 `.appMain`의 `padding-left: var(--sidebar-w)`.
