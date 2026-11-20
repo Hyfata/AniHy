@@ -740,12 +740,15 @@ export function QueueModal({ open, onClose }: QueueModalProps) {
                       meta={`${g.completed}/${g.total}개 처리 완료 · ${g.episodes.length}개 진행 중`}
                       badgeStatus={g.episodes[0]?.status}
                       progressPct={
-                        g.episodes.length
+                        g.total
                           ? Math.round(
-                              g.episodes.reduce(
-                                (n, ep) => n + Math.min(100, Math.max(0, ep.progress)),
-                                0,
-                              ) / g.episodes.length,
+                              ((g.completed +
+                                g.episodes.reduce(
+                                  (n, ep) => n + Math.min(1, Math.max(0, ep.progress / 100)),
+                                  0,
+                                )) /
+                                g.total) *
+                                100,
                             )
                           : 0
                       }
